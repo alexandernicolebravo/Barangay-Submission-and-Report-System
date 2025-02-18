@@ -26,7 +26,7 @@ Route::middleware(['auth'])->group(function () {
 
 
       // Display a list of the user's uploaded files
-      Route::get('/barangay/dashboard', [BarangayController::class, 'index'])->name('barangay.index');
+      Route::get('/barangay/dashboard', [BarangayController::class, 'index'])->name('barangay.dashboard');
 
       // Upload a new file
       Route::post('/barangay/upload', [BarangayController::class, 'store'])->name('barangay.store');
@@ -49,6 +49,13 @@ Route::middleware(['auth'])->group(function () {
       Route::get('/cluster/store', function() {
         return "GET method hit for /cluster/store, should be a POST request";
     });
+
+ // Route for displaying the confirmation message for deactivation
+Route::get('/admin/users/{id}/confirm-deactivation', [AdminController::class, 'confirmDeactivation']);
+
+// Route for deleting (deactivating/reactivating) a user
+Route::delete('/admin/users/{id}', [AdminController::class, 'destroy'])->name('admin.users.destroy');
+
 
 
 

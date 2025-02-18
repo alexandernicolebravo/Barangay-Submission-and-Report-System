@@ -14,75 +14,113 @@
     @if(session('error'))
         <p class="text-red-500">{{ session('error') }}</p>
     @endif
+    @if(session('confirm'))
+        <script>
+            if (confirm("{{ session('confirm') }}")) {
+                document.getElementById("confirm-delete-form").submit();
+            }
+        </script>
+    @endif
 
     <!-- Create User Form -->
     <h2 class="text-xl mt-4">Create User</h2>
-    <form action="{{ route('admin.store') }}" method="POST">
-    @csrf
-    <label>Name:</label>
-    <input type="text" name="name" required>
+    <form action="{{ route('admin.store') }}" method="POST" class="space-y-2">
+        @csrf
+        <label class="block">Name:</label>
+        <input type="text" name="name" required class="border p-1 w-full">
 
-    <label>Email:</label>
-    <input type="email" name="email" required>
+        <label class="block">Email:</label>
+        <input type="email" name="email" required class="border p-1 w-full">
 
-    <label>Password:</label>
-    <input type="password" name="password" required>
+        <label class="block">Password:</label>
+        <input type="password" name="password" required class="border p-1 w-full">
 
-    <label>Role:</label>
-    <select name="role" id="role-select" required>
-        <option value="cluster">Cluster</option>
-        <option value="barangay">Barangay</option>
-    </select>
-
-    <div id="cluster-selection" style="display: none;">
-        <label>Assign to Cluster:</label>
-        <select name="cluster_id">
-            <option value="">-- Select Cluster --</option>
-            @foreach($clusters as $cluster)
-                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
-            @endforeach
+        <label class="block">Role:</label>
+        <select name="role" id="role-select" required class="border p-1 w-full">
+            <option value="cluster">Cluster</option>
+            <option value="barangay">Barangay</option>
         </select>
-    </div>
 
-    <button type="submit">Create</button>
-</form>
+        <div id="cluster-selection" class="mt-2 hidden">
+            <label class="block">Assign to Cluster:</label>
+            <select name="cluster_id" class="border p-1 w-full">
+                <option value="">-- Select Cluster --</option>
+                @foreach($clusters as $cluster)
+                    <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
+                @endforeach
+            </select>
+        </div>
 
-    <!-- Display Existing Users -->
-    <h2 class="text-xl mt-6">Existing Users</h2>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-1 rounded">Create</button>
+    </form>
 
-    <!-- Clusters -->
-    <h3 class="text-lg font-semibold mt-4">Clusters</h3>
-    <ul class="list-disc ml-6">
-        @foreach($clusters as $cluster)
-            <li>
-                {{ $cluster->name }} ({{ $cluster->email }})
-                <form method="POST" action="{{ route('admin.users.destroy', $cluster->id) }}" class="inline">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="text-red-500">Delete</button>
-                </form>
-            </li>
-        @endforeach
-    </ul>
+   <!-- Display Existing Users -->
+   <h2 class="text-xl mt-6">Existing Users</h2>
 
-    <!-- Barangays -->
-    <h3 class="text-lg font-semibold mt-4">Barangays</h3>
-    <ul class="list-disc ml-6">
-        @foreach($barangays as $barangay)
-            <li>
-                {{ $barangay->name }} ({{ $barangay->email }})
-                <form method="POST" action="{{ route('admin.users.destroy', $barangay->id) }}" class="inline">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="text-red-500">Delete</button>
-                </form>
-            </li>
-        @endforeach
-    </ul>
-    <script>
-    document.getElementById('role-select').addEventListener('change', function () {
-        document.getElementById('cluster-selection').style.display = this.value === 'barangay' ? 'block' : 'none';
+<!-- Clusters -->
+<h3 class="text-lg font-semibold mt-4">Clusters</h3>
+<ul class="list-disc ml-6">
+    @foreach($clusters as $cluster)
+        <li class="flex justify-between items-center">
+            <span>{{ $cluster->name }} ({{ $cluster->email }}) -
+                <span class="{{ $cluster->is_active ? 'text-green-500' : 'text-red-500' }}">
+                    {{ $cluster->is_active ? 'Active' : 'Inactive' }}
+                </span>
+            </span>
+            <form method="POST" action="{{ route('admin.users.destroy', $cluster->id) }}" class="inline">
+                @csrf
+                @method('DELETE')
+                <button type="button" class="text-yellow-500 confirm-deactivate" data-id="{{ $cluster->id }}">
+                    {{ $cluster->is_active ? 'Disable' : 'Reactivate' }}
+                </button>
+            </form>
+        </li>
+    @endforeach
+</ul>
+
+<!-- Barangays -->
+<h3 class="text-lg font-semibold mt-4">Barangays</h3>
+<ul class="list-disc ml-6">
+    @foreach($barangays as $barangay)
+        <li class="flex justify-between items-center">
+            <span>{{ $barangay->name }} ({{ $barangay->email }}) -
+                <span class="{{ $barangay->is_active ? 'text-green-500' : 'text-red-500' }}">
+                    {{ $barangay->is_active ? 'Active' : 'Inactive' }}
+                </span>
+            </span>
+            <form method="POST" action="{{ route('admin.users.destroy', $barangay->id) }}" class="inline">
+                @csrf
+                @method('DELETE')
+                <button type="button" class="text-red-500 confirm-deactivate" data-id="{{ $barangay->id }}">
+                    {{ $barangay->is_active ? 'Disable' : 'Reactivate' }}
+                </button>
+            </form>
+        </li>
+    @endforeach
+</ul>
+
+<script>
+    document.querySelectorAll('.confirm-deactivate').forEach(button => {
+        button.addEventListener('click', async function(event) {
+            event.preventDefault();
+
+            const userId = this.dataset.id;
+            const response = await fetch(`/admin/users/${userId}/confirm-deactivation`);
+            const data = await response.json();
+
+            if (data.confirm) {
+                if (confirm(data.confirm)) {
+                    // If the user confirms, submit the form
+                    this.closest('form').submit();
+                }
+            }
+        });
     });
 </script>
+
+Create this in table format . It should separate the barangays based on their assigned clusters 
+
+
+
 </body>
 </html>

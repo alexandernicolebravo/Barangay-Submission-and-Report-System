@@ -91,20 +91,56 @@ class AdminController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
-    {
-        $user = User::findOrFail($id);
+/**
+ * Remove the specified resource from storage.
+ */
 
-        // Prevent deletion of clusters if barangays are linked
-        if ($user->role === 'cluster') {
-            $barangayExists = User::where('role', 'barangay')->exists();
-            if ($barangayExists) {
-                return back()->with('error', 'Cannot delete cluster while barangays exist.');
-            }
+
+
+
+ public function confirmDeactivation($id)
+{
+    $user = User::findOrFail($id);
+
+    // Check if the user is a cluster
+    if ($user->role === 'cluster') {
+        $barangayExists = User::where('role', 'barangay')
+            ->where('cluster_id', $user->id)
+            ->exists();
+
+        // Return a message if there are barangays associated with the cluster
+        if ($barangayExists) {
+            return response()->json([
+                'confirm' => $user->is_active
+                    ? 'This cluster has assigned barangays. Are you sure you want to deactivate it?'
+                    : 'This cluster has assigned barangays. Are you sure you want to reactivate it?'
+            ]);
         }
-
-        $user->delete();
-
-        return back()->with('success', ucfirst($user->role) . ' account deleted successfully.');
     }
+
+    // Confirmation message for barangay
+    return response()->json([
+        'confirm' => $user->is_active
+            ? 'Are you sure you want to deactivate this barangay?'
+            : 'Are you sure you want to reactivate this barangay?'
+    ]);
+}
+
+public function destroy($id)
+{
+    $user = User::findOrFail($id);
+
+    // Handle deactivation or reactivation based on the current status
+    $user->update(['is_active' => !$user->is_active]);
+
+    return back()->with('success', ucfirst($user->role) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.');
+}
+
+
+
+
+
+
+
+
 }
