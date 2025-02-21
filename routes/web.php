@@ -6,8 +6,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\BarangayController;
+use App\Http\Controllers\ReportSubmissionController;
 
 
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\BarangayFileController;
 
 
 Route::get('/', function () {
@@ -25,20 +28,11 @@ Route::middleware(['auth'])->group(function () {
 
 
 
-      // Display a list of the user's uploaded files
-      Route::get('/barangay/dashboard', [BarangayController::class, 'index'])->name('barangay.dashboard');
-
-      // Upload a new file
-      Route::post('/barangay/upload', [BarangayController::class, 'store'])->name('barangay.store');
-
-      // Download a file
-      Route::get('/barangay/download/{id}', [BarangayController::class, 'download'])->name('barangay.download');
-
-      // View a file (image or PDF preview)
-      Route::get('/barangay/view/{id}', [BarangayController::class, 'view'])->name('barangay.view');
-
-      // Delete a file
-      Route::delete('/barangay/delete/{id}', [BarangayController::class, 'destroy'])->name('barangay.destroy');
+    Route::get('/barangay/dashboard', [BarangayController::class, 'index'])->name('barangay.dashboard');
+    Route::post('/barangay/files', [BarangayController::class, 'storeFile'])->name('barangay.files.store');
+    Route::get('/barangay/files/download/{id}', [BarangayController::class, 'downloadFile'])->name('barangay.files.download');
+    Route::get('/barangay/files/view/{id}', [BarangayController::class, 'viewFile'])->name('barangay.files.view');
+    Route::delete('/barangay/files/{id}', [BarangayController::class, 'deleteFile'])->name('barangay.files.destroy');
 
 
       Route::get('/cluster/dashboard', [ClusterController::class, 'index'])->name('cluster.index');
@@ -57,11 +51,61 @@ Route::get('/admin/users/{id}/confirm-deactivation', [AdminController::class, 'c
 Route::delete('/admin/users/{id}', [AdminController::class, 'destroy'])->name('admin.users.destroy');
 
 
+Route::get('/admin/create-report', [ReportSubmissionController::class, 'create'])->name('admin.create');
+Route::post('/admin/store', [ReportSubmissionController::class, 'store'])->name('admin.store');
+Route::get('/admin/view-submissions', [ReportSubmissionController::class, 'viewSubmissions'])->name('admin.view-submissions');
+Route::get('/admin/submissions/{id}', [ReportSubmissionController::class, 'show'])->name('admin.submissions.show');
+Route::post('/admin/submissions/{id}/update', [ReportSubmissionController::class, 'updateStatus'])->name('admin.submissions.update');
+
+Route::get('/barangay/submissions', [ReportSubmissionController::class, 'index'])->name('barangay.submissions');
+// Route::post('/barangay/submissions/{id}/submit', [ReportSubmissionController::class, 'submitFile'])->name('barangay.submissions.submit');
+
+
+ // Admin routes
+ Route::middleware('can:admin')->prefix('admin')->name('admin.')->group(function() {
+    Route::resource('reports', ReportController::class)->except(['show', 'edit', 'destroy']);
+    Route::patch('reports/{report}/status', [ReportController::class, 'updateStatus'])->name('reports.status');
+
+    Route::get('admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
+
+
+
+
+
+
+
 
 
 
 
 });
+
+Route::post('/barangay/submissions/{id}/submit', [ReportSubmissionController::class, 'submitFile'])->name('barangay.submit');
+
+
+Route::post('/barangay/submissions/{id}/submit', [ReportSubmissionController::class, 'submitFile'])->name('barangay.submissions.submit');
+
+
+
+// Barangay routes
+Route::post('barangay/files', [BarangayFileController::class, 'store'])->name('barangay.files.store');
+Route::get('barangay/files/{file}/download', [BarangayFileController::class, 'download'])->name('barangay.files.download');
+Route::delete('barangay/files/{file}', [BarangayFileController::class, 'destroy'])->name('barangay.files.destroy');
+
+
+
+
+
+
+
+
+
+});
+
+Route::prefix('barangay')->name('barangay.')->group(function () {
+    Route::post('/submit-file/{id}', [ReportSubmissionController::class, 'submitFile'])->name('submit.file');
+});
+
 
 
 

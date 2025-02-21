@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\ReportForm;
+
 use Illuminate\Support\Facades\Hash;
 
 class AdminController extends Controller
@@ -135,6 +137,11 @@ public function destroy($id)
 
     return back()->with('success', ucfirst($user->role) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.');
 }
+
+
+
+
+
 
 
 

@@ -7,19 +7,12 @@
 <body class="p-6">
     <h1 class="text-2xl font-bold">Admin Dashboard</h1>
 
-    <!-- Display Success & Error Messages -->
+    <!-- Display Messages -->
     @if(session('success'))
         <p class="text-green-500">{{ session('success') }}</p>
     @endif
     @if(session('error'))
         <p class="text-red-500">{{ session('error') }}</p>
-    @endif
-    @if(session('confirm'))
-        <script>
-            if (confirm("{{ session('confirm') }}")) {
-                document.getElementById("confirm-delete-form").submit();
-            }
-        </script>
     @endif
 
     <!-- Create User Form -->
@@ -54,73 +47,92 @@
         <button type="submit" class="bg-blue-500 text-white px-4 py-1 rounded">Create</button>
     </form>
 
-   <!-- Display Existing Users -->
-   <h2 class="text-xl mt-6">Existing Users</h2>
 
-<!-- Clusters -->
-<h3 class="text-lg font-semibold mt-4">Clusters</h3>
-<ul class="list-disc ml-6">
-    @foreach($clusters as $cluster)
-        <li class="flex justify-between items-center">
-            <span>{{ $cluster->name }} ({{ $cluster->email }}) -
+
+    <!-- Tab Navigation -->
+    <div class="mt-6">
+        <h2 class="text-xl">Existing Users</h2>
+
+        <div class="flex space-x-4 mt-4 border-b">
+            @foreach($clusters as $index => $cluster)
+                <button class="tab-button px-4 py-2" data-tab="tab-{{ $cluster->id }}"
+                    :class="{ 'border-b-2 border-blue-500': activeTab === 'tab-{{ $cluster->id }}' }">
+                    {{ $cluster->name }}
+                </button>
+            @endforeach
+        </div>
+
+        <!-- Tab Content -->
+        @foreach($clusters as $cluster)
+            <div id="tab-{{ $cluster->id }}" class="tab-content mt-4 hidden">
+                <h3 class="text-lg font-semibold">{{ $cluster->name }} ({{ $cluster->email }})</h3>
                 <span class="{{ $cluster->is_active ? 'text-green-500' : 'text-red-500' }}">
                     {{ $cluster->is_active ? 'Active' : 'Inactive' }}
                 </span>
-            </span>
-            <form method="POST" action="{{ route('admin.users.destroy', $cluster->id) }}" class="inline">
-                @csrf
-                @method('DELETE')
-                <button type="button" class="text-yellow-500 confirm-deactivate" data-id="{{ $cluster->id }}">
-                    {{ $cluster->is_active ? 'Disable' : 'Reactivate' }}
-                </button>
-            </form>
-        </li>
-    @endforeach
-</ul>
 
-<!-- Barangays -->
-<h3 class="text-lg font-semibold mt-4">Barangays</h3>
-<ul class="list-disc ml-6">
-    @foreach($barangays as $barangay)
-        <li class="flex justify-between items-center">
-            <span>{{ $barangay->name }} ({{ $barangay->email }}) -
-                <span class="{{ $barangay->is_active ? 'text-green-500' : 'text-red-500' }}">
-                    {{ $barangay->is_active ? 'Active' : 'Inactive' }}
-                </span>
-            </span>
-            <form method="POST" action="{{ route('admin.users.destroy', $barangay->id) }}" class="inline">
-                @csrf
-                @method('DELETE')
-                <button type="button" class="text-red-500 confirm-deactivate" data-id="{{ $barangay->id }}">
-                    {{ $barangay->is_active ? 'Disable' : 'Reactivate' }}
-                </button>
-            </form>
-        </li>
-    @endforeach
-</ul>
+                <!-- List Barangays Assigned to This Cluster -->
+                <h4 class="text-md font-semibold mt-4">Barangays under {{ $cluster->name }}</h4>
+                <ul class="list-disc ml-6">
+                    @foreach($barangays->where('cluster_id', $cluster->id) as $barangay)
+                        <li class="flex justify-between items-center">
+                            <span>{{ $barangay->name }} ({{ $barangay->email }}) -
+                                <span class="{{ $barangay->is_active ? 'text-green-500' : 'text-red-500' }}">
+                                    {{ $barangay->is_active ? 'Active' : 'Inactive' }}
+                                </span>
+                            </span>
+                            <form method="POST" action="{{ route('admin.users.destroy', $barangay->id) }}" class="inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="button" class="text-red-500 confirm-deactivate" data-id="{{ $barangay->id }}">
+                                    {{ $barangay->is_active ? 'Disable' : 'Reactivate' }}
+                                </button>
+                            </form>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endforeach
+    </div>
 
-<script>
-    document.querySelectorAll('.confirm-deactivate').forEach(button => {
-        button.addEventListener('click', async function(event) {
-            event.preventDefault();
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const tabButtons = document.querySelectorAll(".tab-button");
+            const tabContents = document.querySelectorAll(".tab-content");
 
-            const userId = this.dataset.id;
-            const response = await fetch(`/admin/users/${userId}/confirm-deactivation`);
-            const data = await response.json();
-
-            if (data.confirm) {
-                if (confirm(data.confirm)) {
-                    // If the user confirms, submit the form
-                    this.closest('form').submit();
-                }
+            // Set default active tab (first cluster)
+            if (tabButtons.length > 0) {
+                tabButtons[0].classList.add("border-b-2", "border-blue-500");
+                tabContents[0].classList.remove("hidden");
             }
+
+            tabButtons.forEach(button => {
+                button.addEventListener("click", function () {
+                    const targetTab = this.getAttribute("data-tab");
+
+                    // Hide all tabs
+                    tabContents.forEach(tab => tab.classList.add("hidden"));
+                    tabButtons.forEach(btn => btn.classList.remove("border-b-2", "border-blue-500"));
+
+                    // Show selected tab
+                    document.getElementById(targetTab).classList.remove("hidden");
+                    this.classList.add("border-b-2", "border-blue-500");
+                });
+            });
+
+            // Confirmation for deactivation
+            document.querySelectorAll('.confirm-deactivate').forEach(button => {
+                button.addEventListener('click', async function (event) {
+                    event.preventDefault();
+                    const userId = this.dataset.id;
+                    const response = await fetch(`/admin/users/${userId}/confirm-deactivation`);
+                    const data = await response.json();
+                    if (data.confirm && confirm(data.confirm)) {
+                        this.closest('form').submit();
+                    }
+                });
+            });
         });
-    });
-</script>
-
-Create this in table format . It should separate the barangays based on their assigned clusters 
-
-
+    </script>
 
 </body>
 </html>

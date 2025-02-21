@@ -4,106 +4,88 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barangay Dashboard</title>
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}"> <!-- Include Tailwind CSS or your custom styles -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container mx-auto p-4">
-        <h2 class="text-2xl font-semibold">Upload Files</h2>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-2xl font-semibold mb-4">Barangay Dashboard</h2>
 
-        <!-- Success Message -->
         @if(session('success'))
-            <div style="color: green;">
-                {{ session('success') }}
-            </div>
+            <p class="text-green-600">{{ session('success') }}</p>
         @endif
 
-        <!-- File Upload Section -->
-<form action="{{ route('barangay.store') }}" method="POST" enctype="multipart/form-data">
-    @csrf
+        <!-- Forms from Admin -->
+        <h3 class="text-xl font-semibold mt-6">Active Submission Portals</h3>
+        <table class="w-full border-collapse border border-gray-300 mt-2">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="border px-4 py-2">Title</th>
+                    <th class="border px-4 py-2">Description</th>
+                    <th class="border px-4 py-2">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($reports as $report)
+                <tr class="bg-white">
+                    <td class="border px-4 py-2">{{ $report->title }}</td>
+                    <td class="border px-4 py-2">{{ $report->description }}</td>
+                    <td class="border px-4 py-2">
+                        <span class="{{ $report->status == 'Completed' ? 'text-green-600' : ($report->status == 'Rejected' ? 'text-red-600' : 'text-yellow-600') }}">
+                            {{ $report->status }}
+                        </span>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
 
-    <div class="mb-4">
-        <label for="file" class="block text-sm font-medium text-gray-700">Upload File</label>
-        <input type="file" id="file" name="file" class="mt-1 block w-full" accept=".pdf,.doc,.docx,.xlsx,.png,.jpg,.jpeg"
-            onchange="previewFile()" required>
+        <!-- Submit a File -->
+        <h3 class="text-xl font-semibold mt-6">Submit a File</h3>
+        <form action="{{ route('barangay.files.store') }}" method="POST" enctype="multipart/form-data" class="mt-2">
+            @csrf
+            <label for="barangay_report_id" class="block text-gray-700">Select Report:</label>
+            <select name="barangay_report_id" required class="w-full p-2 border rounded mt-1">
+                @foreach($reports as $report)
+                    <option value="{{ $report->id }}">{{ $report->title }}</option>
+                @endforeach
+            </select>
+            <input type="file" name="file" required class="w-full p-2 border rounded mt-2">
+            <button type="submit" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded">Upload</button>
+        </form>
 
-        <!-- Display the preview once a file is chosen -->
-        <div id="file-preview" class="mt-4">
-            <img id="file-image-preview" src="" alt="File Preview" class="hidden max-w-full" />
-            <embed id="file-pdf-preview" src="" type="application/pdf" class="hidden w-full h-64" />
-            <p id="file-name" class="mt-2 text-sm text-gray-500"></p>
-        </div>
-    </div>
-
-    <!-- Submit button, initially hidden until file is chosen -->
-    <div id="submit-section" class="hidden">
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">Submit</button>
-    </div>
-</form>
-
-        <!-- Submitted Files Section -->
-<h3 class="mt-6 text-xl font-semibold">Submitted Files</h3>
-<ul>
-    @foreach($files as $file)
-        <li class="mb-4">
-            <span>{{ $file->file_name }}</span>
-            <!-- View Link -->
-            @if(in_array(pathinfo($file->file_name, PATHINFO_EXTENSION), ['jpg', 'jpeg', 'png', 'gif', 'pdf']))
-                <a href="{{ route('barangay.view', $file->id) }}" class="ml-4 text-blue-600">View</a>
-            @endif
-            <!-- Download Link -->
-            <a href="{{ route('barangay.download', $file->id) }}" class="ml-4 text-blue-600">Download</a>
-            <!-- Delete (Cancel Upload) Form -->
-            <form action="{{ route('barangay.destroy', $file->id) }}" method="POST" style="display:inline;">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="ml-4 p-2 bg-red-500 text-white rounded" onclick="return confirm('Are you sure you want to cancel the upload?')">Cancel Upload</button>
-            </form>
-        </li>
-    @endforeach
-</ul>
-
+        <!-- Uploaded Files -->
+        <h3 class="text-xl font-semibold mt-6">Uploaded Files</h3>
+        <table class="w-full border-collapse border border-gray-300 mt-2">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="border px-4 py-2">File Name</th>
+                    <th class="border px-4 py-2">Status</th>
+                    <th class="border px-4 py-2">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($files as $file)
+                <tr class="bg-white">
+                    <td class="border px-4 py-2">{{ $file->file_name }}</td>
+                    <td class="border px-4 py-2">
+                        <span class="{{ $file->status == 'Completed' ? 'text-green-600' : ($file->status == 'Rejected' ? 'text-red-600' : 'text-yellow-600') }}">
+                            {{ $file->status }}
+                        </span>
+                    </td>
+                    <td class="border px-4 py-2">
+                        <a href="{{ route('barangay.files.download', $file->id) }}" class="text-blue-600">Download</a> |
+                        <a href="{{ route('barangay.files.view', $file->id) }}" target="_blank" class="text-blue-600">View</a> |
+                        <form action="{{ route('barangay.files.destroy', $file->id) }}" method="POST" class="inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-red-600">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
     </div>
 </body>
-<script>
-    function previewFile() {
-        const fileInput = document.getElementById('file');
-        const previewSection = document.getElementById('file-preview');
-        const submitSection = document.getElementById('submit-section');
-        const fileName = document.getElementById('file-name');
-        const fileImagePreview = document.getElementById('file-image-preview');
-        const filePdfPreview = document.getElementById('file-pdf-preview');
-
-        const file = fileInput.files[0];
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-
-        // Show the submit button and hide the upload button
-        submitSection.classList.remove('hidden');
-
-        // Display file name
-        fileName.textContent = file.name;
-
-        // Hide previews initially
-        fileImagePreview.classList.add('hidden');
-        filePdfPreview.classList.add('hidden');
-
-        // If it's an image, display image preview
-        if (['jpg', 'jpeg', 'png'].includes(fileExtension)) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                fileImagePreview.src = e.target.result;
-                fileImagePreview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        }
-        // If it's a PDF, display PDF preview
-        else if (fileExtension === 'pdf') {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                filePdfPreview.src = e.target.result;
-                filePdfPreview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-</script>
 </html>
+sdasdadas

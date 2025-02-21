@@ -3,107 +3,74 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use App\Models\BarangayFile;
+use App\Models\ReportForm;
+use Illuminate\Support\Facades\Storage;
 
 class BarangayController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
-        $files = BarangayFile::where('user_id', auth()->id())->get();
-        return view('barangay.dashboard', compact('files'));
+        $reports = ReportForm::all();
+        $files = BarangayFile::where('barangay_id', auth()->id())->get();
+
+        return view('barangay.dashboard', compact('reports', 'files'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function storeFile(Request $request)
     {
-        //
+        $request->validate([
+            'barangay_form_id' => 'required|exists:barangay_forms,id',
+            'file' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:2048',
+        ]);
+
+        $file = $request->file('file');
+        $filePath = $file->store('barangay_files', 'public');
+
+        BarangayFile::create([
+            'barangay_id' => auth()->id(),
+            'barangay_form_id' => $request->barangay_form_id,
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $filePath,
+        ]);
+
+        return redirect()->route('barangay.dashboard')->with('success', 'File uploaded successfully.');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-{
-    $request->validate([
-        'file' => 'required|file|mimes:pdf,doc,docx,xlsx,png,jpg,jpeg|max:5120', // Max 5MB
-    ]);
-
-    $filePath = $request->file('file')->store('barangay_files', 'public');
-
-    BarangayFile::create([
-        'user_id' => auth()->id(),
-        'file_name' => $request->file('file')->getClientOriginalName(),
-        'file_path' => $filePath,
-    ]);
-
-    return back()->with('success', 'File uploaded successfully.');
-}
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function downloadFile($id)
     {
-        //
-    }
+        $file = BarangayFile::findOrFail($id);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
-    {
-        $file = BarangayFile::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
-
-        // Delete file from storage
-        Storage::disk('public')->delete($file->file_path);
-
-        // Delete file record from database
-        $file->delete();
-
-        return back()->with('success', 'File deleted successfully.');
-    }
-    public function download($id)
-{
-    $file = BarangayFile::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
-
-    return Storage::disk('public')->download($file->file_path, $file->file_name);
-}
-
-public function view($id)
-    {
-        $file = BarangayFile::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
-
-        // Check if the file is an image or PDF, and return appropriate response
-        $fileExtension = strtolower(pathinfo($file->file_name, PATHINFO_EXTENSION));
-
-        if (in_array($fileExtension, ['jpg', 'jpeg', 'png', 'gif', 'pdf'])) {
-            return response()->file(storage_path('app/public/' . $file->file_path));
+        if ($file->barangay_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
         }
 
-        return response()->json(['error' => 'File type not viewable'], 400);
+        return Storage::download('public/' . $file->file_path, $file->file_name);
     }
 
+    public function viewFile($id)
+    {
+        $file = BarangayFile::findOrFail($id);
+
+        if ($file->barangay_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        return response()->file(storage_path('app/public/' . $file->file_path));
+    }
+
+    public function deleteFile($id)
+    {
+        $file = BarangayFile::findOrFail($id);
+
+        if ($file->barangay_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+
+        Storage::delete('public/' . $file->file_path);
+        $file->delete();
+
+        return redirect()->route('barangay.dashboard')->with('success', 'File deleted successfully.');
+    }
 }
+
