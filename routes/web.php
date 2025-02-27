@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\BarangayController;
 use App\Http\Controllers\ReportSubmissionController;
+use App\Http\Controllers\Admin\WeeklyReportsController;
 
 
 use App\Http\Controllers\ReportController;
@@ -70,7 +71,11 @@ Route::get('/barangay/submissions', [ReportSubmissionController::class, 'index']
 
 
 
-
+    Route::prefix('admin/weekly-reports')->group(function () {
+        Route::get('/create', [WeeklyReportsController::class, 'create'])->name('admin.weekly-reports.create');
+        Route::post('/store', [WeeklyReportsController::class, 'store'])->name('admin.weekly-reports.store');
+        // Add other routes for index, edit, delete etc.
+    });
 
 
 
@@ -104,6 +109,12 @@ Route::delete('barangay/files/{file}', [BarangayFileController::class, 'destroy'
 
 Route::prefix('barangay')->name('barangay.')->group(function () {
     Route::post('/submit-file/{id}', [ReportSubmissionController::class, 'submitFile'])->name('submit.file');
+});
+
+Route::prefix('admin/weekly_reports')->group(function () {
+    Route::get('/create', [WeeklyReportsController::class, 'create'])->name('admin.weekly-reports.create');
+    Route::post('/store', [WeeklyReportsController::class, 'store'])->name('admin.weekly-reports.store');
+    // Add other routes for index, edit, delete etc.
 });
 
 
