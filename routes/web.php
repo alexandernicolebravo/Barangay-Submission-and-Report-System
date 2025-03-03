@@ -6,16 +6,13 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\BarangayController;
 use App\Http\Controllers\ReportSubmissionController;
-<<<<<<< HEAD
-use App\Http\Controllers\WeeklyReportController;
-use App\Http\Controllers\ReportTypeController;
-=======
+
 
 
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BarangayFileController;
 
->>>>>>> parent of c0c49f2 (Seeded Users Table)
+
 
 // Public Routes
 Route::get('/', function () {
@@ -64,13 +61,8 @@ Route::post('/barangay/submissions/store', [BarangayController::class, 'store'])
         Route::get('/files/view/{id}', [BarangayController::class, 'viewFile'])->name('files.view');
         Route::delete('/files/{id}', [BarangayController::class, 'deleteFile'])->name('files.destroy');
 
-<<<<<<< HEAD
-        // Weekly Report Submission
-        Route::get('/submissions', [WeeklyReportController::class, 'create'])->name('submissions');
-        Route::post('/submissions', [WeeklyReportController::class, 'store'])->name('submissions.store');
-        Route::post('/submit-file/{id}', [ReportSubmissionController::class, 'submitFile'])->name('submit.file');
     });
-=======
+
 // Route for deleting (deactivating/reactivating) a user
 Route::delete('/admin/users/{id}', [AdminController::class, 'destroy'])->name('admin.users.destroy');
 
@@ -95,7 +87,6 @@ Route::get('/barangay/submissions', [ReportSubmissionController::class, 'index']
 
 
 
->>>>>>> parent of c0c49f2 (Seeded Users Table)
 
     // Cluster Routes
     Route::prefix('cluster')->name('cluster.')->group(function () {
