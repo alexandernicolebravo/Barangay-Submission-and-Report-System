@@ -9,7 +9,7 @@ class ReportType extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'frequency'];
+    protected $fillable = ['name', 'frequency','deadline'];
 
     public static function frequencies()
     {
@@ -20,4 +20,5 @@ class ReportType extends Model
     {
         return ucfirst($this->name);
     }
+
 }

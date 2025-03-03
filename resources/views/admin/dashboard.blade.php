@@ -4,59 +4,87 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
 </head>
-<body class="bg-gray-100 p-6">
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
-        <h1 class="text-2xl font-bold mb-4">Admin Dashboard</h1>
+<body>
 
-        <!-- Success Message -->
-        @if (session('success'))
-            <div class="bg-green-200 text-green-800 p-2 rounded mb-4">
-                {{ session('success') }}
-            </div>
-        @endif
+    <h2>Admin Dashboard</h2>
 
-        <!-- Report Type Form -->
-        <form action="{{ route('admin.report_types.store') }}" method="POST" class="mb-6">
-            @csrf
-            <div class="mb-4">
-                <label class="block text-gray-700">Report Type Name:</label>
-                <input type="text" name="name" class="w-full border p-2 rounded" required>
-            </div>
+    <!-- Success & Error Messages -->
+    @if(session('success'))
+        <p style="color: green;">{{ session('success') }}</p>
+    @endif
+    @if(session('error'))
+        <p style="color: red;">{{ session('error') }}</p>
+    @endif
 
-            <div class="mb-4">
-                <label class="block text-gray-700">Frequency:</label>
-                <select name="frequency" class="w-full border p-2 rounded" required>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="semestral">Semestral</option>
-                    <option value="annual">Annual</option>
-                </select>
-            </div>
+    <!-- User Registration Form -->
+    <h3>Add User</h3>
+    <form method="POST" action="{{ route('admin.store') }}">
+        @csrf
+        <label>Name:</label>
+        <input type="text" name="name" required>
+        <br>
+        <label>Email:</label>
+        <input type="email" name="email" required>
+        <br>
+        <label>Password:</label>
+        <input type="password" name="password" required>
+        <br>
+        <label>Role:</label>
+        <select name="role" required>
+            <option value="cluster">Cluster</option>
+            <option value="barangay">Barangay</option>
+        </select>
+        <br>
+        <label>Assign to Cluster (if Barangay):</label>
+        <select name="cluster_id">
+            <option value="">None</option>
+            @foreach($clusters as $cluster)
+                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
+            @endforeach
+        </select>
+        <br>
+        <button type="submit">Create User</button>
+    </form>
 
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Add Report Type</button>
-        </form>
+    <hr>
 
-        <!-- Report Types Table -->
-        <h2 class="text-xl font-semibold mb-2">Existing Report Types</h2>
-        <table class="w-full border-collapse border border-gray-300">
-            <thead>
-                <tr class="bg-gray-200">
-                    <th class="border p-2">Name</th>
-                    <th class="border p-2">Frequency</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($reportTypes as $reportType)
-                    <tr class="border">
-                        <td class="border p-2">{{ $reportType->name }}</td>
-                        <td class="border p-2">{{ ucfirst($reportType->frequency) }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+    <!-- User List -->
+    <h3>User List</h3>
+    <table border="1">
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Cluster Assigned</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        @foreach($users as $user)
+        <tr>
+            <td>{{ $user->name }}</td>
+            <td>{{ $user->email }}</td>
+            <td>{{ ucfirst($user->role) }}</td>
+            <td>
+                @if($user->role == 'barangay' && $user->cluster_id)
+                    {{ $clusters->firstWhere('id', $user->cluster_id)->name ?? 'Unassigned' }}
+                @else
+                    N/A
+                @endif
+            </td>
+            <td>{{ $user->is_active ? 'Active' : 'Inactive' }}</td>
+            <td>
+                <form action="{{ route('admin.destroy', $user->id) }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit">
+                        {{ $user->is_active ? 'Deactivate' : 'Activate' }}
+                    </button>
+                </form>
+            </td>
+        </tr>
+        @endforeach
+    </table>
+
 </body>
 </html>

@@ -45,10 +45,7 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'cluster_id');
     }
 
-        public function reportForms()
-        {
-            return $this->belongsToMany(ReportForm::class, 'barangay_report_form', 'barangay_id', 'report_form_id');
-        }
+  
 
     /**
      * Get the attributes that should be cast.
