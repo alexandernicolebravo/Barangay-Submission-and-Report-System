@@ -6,8 +6,16 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\BarangayController;
 use App\Http\Controllers\ReportSubmissionController;
+<<<<<<< HEAD
 use App\Http\Controllers\WeeklyReportController;
 use App\Http\Controllers\ReportTypeController;
+=======
+
+
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\BarangayFileController;
+
+>>>>>>> parent of c0c49f2 (Seeded Users Table)
 
 // Public Routes
 Route::get('/', function () {
@@ -56,11 +64,38 @@ Route::post('/barangay/submissions/store', [BarangayController::class, 'store'])
         Route::get('/files/view/{id}', [BarangayController::class, 'viewFile'])->name('files.view');
         Route::delete('/files/{id}', [BarangayController::class, 'deleteFile'])->name('files.destroy');
 
+<<<<<<< HEAD
         // Weekly Report Submission
         Route::get('/submissions', [WeeklyReportController::class, 'create'])->name('submissions');
         Route::post('/submissions', [WeeklyReportController::class, 'store'])->name('submissions.store');
         Route::post('/submit-file/{id}', [ReportSubmissionController::class, 'submitFile'])->name('submit.file');
     });
+=======
+// Route for deleting (deactivating/reactivating) a user
+Route::delete('/admin/users/{id}', [AdminController::class, 'destroy'])->name('admin.users.destroy');
+
+
+Route::get('/admin/create-report', [ReportSubmissionController::class, 'create'])->name('admin.create');
+Route::post('/admin/store', [ReportSubmissionController::class, 'store'])->name('admin.store');
+Route::get('/admin/view-submissions', [ReportSubmissionController::class, 'viewSubmissions'])->name('admin.view-submissions');
+Route::get('/admin/submissions/{id}', [ReportSubmissionController::class, 'show'])->name('admin.submissions.show');
+Route::post('/admin/submissions/{id}/update', [ReportSubmissionController::class, 'updateStatus'])->name('admin.submissions.update');
+
+Route::get('/barangay/submissions', [ReportSubmissionController::class, 'index'])->name('barangay.submissions');
+// Route::post('/barangay/submissions/{id}/submit', [ReportSubmissionController::class, 'submitFile'])->name('barangay.submissions.submit');
+
+
+ // Admin routes
+ Route::middleware('can:admin')->prefix('admin')->name('admin.')->group(function() {
+    Route::resource('reports', ReportController::class)->except(['show', 'edit', 'destroy']);
+    Route::patch('reports/{report}/status', [ReportController::class, 'updateStatus'])->name('reports.status');
+
+    Route::get('admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
+
+
+
+
+>>>>>>> parent of c0c49f2 (Seeded Users Table)
 
     // Cluster Routes
     Route::prefix('cluster')->name('cluster.')->group(function () {
@@ -74,3 +109,39 @@ Route::post('/barangay/submissions/store', [BarangayController::class, 'store'])
         return view('home');
     })->name('home');
 });
+<<<<<<< HEAD
+=======
+
+Route::post('/barangay/submissions/{id}/submit', [ReportSubmissionController::class, 'submitFile'])->name('barangay.submit');
+
+
+Route::post('/barangay/submissions/{id}/submit', [ReportSubmissionController::class, 'submitFile'])->name('barangay.submissions.submit');
+
+
+
+// Barangay routes
+Route::post('barangay/files', [BarangayFileController::class, 'store'])->name('barangay.files.store');
+Route::get('barangay/files/{file}/download', [BarangayFileController::class, 'download'])->name('barangay.files.download');
+Route::delete('barangay/files/{file}', [BarangayFileController::class, 'destroy'])->name('barangay.files.destroy');
+
+
+
+
+
+
+
+
+
+});
+
+Route::prefix('barangay')->name('barangay.')->group(function () {
+    Route::post('/submit-file/{id}', [ReportSubmissionController::class, 'submitFile'])->name('submit.file');
+});
+
+
+
+
+Route::get('/home', function () {
+    return view('home');
+})->middleware('auth'); // Protect the /home route
+>>>>>>> parent of c0c49f2 (Seeded Users Table)
