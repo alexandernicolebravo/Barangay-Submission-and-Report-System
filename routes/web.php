@@ -32,17 +32,49 @@ Route::middleware(['auth'])->group(function () {
 
 
 
-    Route::get('/admin/create-report', [ReportTypeController::class, 'create'])->name('report_types.create');
-    Route::post('/admin/create-report', [ReportTypeController::class, 'store'])->name('report_types.store');
-    Route::delete('/admin/create-report/{id}', [ReportTypeController::class, 'destroy'])->name('report_types.destroy');
+
+
+    Route::get('admin/create-report', [ReportTypeController::class, 'create'])->name('admin.create-report');
+    Route::post('admin/create-report', [ReportTypeController::class, 'store'])->name('admin.store-report');
+
+    // Route::get('admin/create-report/{id}/edit', [ReportTypeController::class, 'create'])->name('admin.edit-report'); // Uses create() to reuse the form
+    // Route::put('admin/create-report/{id}', [ReportTypeController::class, 'update'])->name('admin.update-report');
+
+    Route::delete('admin/create-report/{id}', [ReportTypeController::class, 'destroy'])->name('admin.delete-report');
+
+
+
+
+Route::post('admin/create-report/{id?}', [ReportTypeController::class, 'storeOrUpdate'])->name('admin.storeOrUpdate');
+Route::delete('admin/create-report/{id}', [ReportTypeController::class, 'destroy'])->name('admin.destroy-report');
+
+
+Route::get('admin/create-report', [ReportTypeController::class, 'index'])->name('admin.create-report');
+Route::post('admin/store-report', [ReportTypeController::class, 'store'])->name('admin.store-report');
+Route::put('admin/update-report/{id}', [ReportTypeController::class, 'update'])->name('admin.update-report');
+Route::delete('admin/destroy-report/{id}', [ReportTypeController::class, 'destroy'])->name('admin.destroy-report');
+
+
+
+
+//     Route::get('/admin/create-report', [ReportTypeController::class, 'create'])->name('report_types.create');
+//     Route::post('/admin/create-report', [ReportTypeController::class, 'store'])->name('report_types.store');
+//     Route::delete('/admin/create-report/{id}', [ReportTypeController::class, 'destroy'])->name('report_types.destroy');
+
+
+//     Route::get('/report-types/edit/{id}', [ReportTypeController::class, 'create'])->name('report_types.edit'); // For editing
+// Route::put('/report-types/{id}', [ReportTypeController::class, 'update'])->name('report_types.update'); // Update function
 
 
     Route::get('/barangay/submit-report', [ReportController::class, 'create'])->name('reports.create');
     Route::post('/barangay/submit-report', [ReportController::class, 'store'])->name('reports.store');
 
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index'); // View page
+    Route::get('/reports/show', [ReportController::class, 'showReports'])->name('reports.show'); // AJAX fetching
 
-    Route::get('/admin/view-submissions', [ReportController::class, 'index'])->name('reports.index');
-    Route::put('/admin/view-submissions/{id}', [ReportController::class, 'update'])->name('reports.update');
+
+    // Route::get('/admin/view-submissions', [ReportController::class, 'index'])->name('reports.index');
+    // Route::put('/admin/view-submissions/{id}', [ReportController::class, 'update'])->name('reports.update');
 });
 
 // Protected Routes (Requires Authentication)
