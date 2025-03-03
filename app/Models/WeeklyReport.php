@@ -8,23 +8,25 @@ use Illuminate\Database\Eloquent\Model;
 class WeeklyReport extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'user_id',
+        'report_type_id',
         'month',
         'week_number',
         'num_of_clean_up_sites',
         'num_of_participants',
         'num_of_barangays',
         'total_volume',
-        'kalinisan_file_path',
-        'fields',
+        'file_name',
+        'file_path',
+        'deadline',
+        'status',
+        'remarks'
     ];
 
-    protected $casts =[
-        'fields'=>'array'
-    ];
-    public function user(){
-        return $this->belongsTo(User::class);
+    public function reportType()
+    {
+        return $this->belongsTo(ReportType::class);
     }
-
 }

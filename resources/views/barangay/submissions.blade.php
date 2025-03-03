@@ -4,47 +4,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barangay Submissions</title>
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6">
+<body>
+    <h1>Barangay Submissions</h1>
 
-    <h1 class="text-2xl font-bold">Report Submission Portal</h1>
+    @if($reportTypes->isEmpty())
+        <p>No report types found.</p>
+    @else
+        <ul>
+            @foreach($reportTypes as $reportType)
+                <li>
+                    {{ $reportType->name }} ({{ $reportType->frequency }})
+                </li>
+            @endforeach
+        </ul>
+    @endif
 
-    <div class="mt-6 bg-white shadow-md rounded-lg p-4">
-        <h2 class="text-xl font-semibold mb-4">Active Submissions</h2>
+    <form action="{{ route('barangay.submissions.store') }}" method="POST" enctype="multipart/form-data">
+        @csrf
 
-        <!-- Check if there are active report submissions -->
-        @if($submissions->isEmpty())
-            <p class="text-gray-500">No active submissions available.</p>
-        @else
-            <table class="w-full border-collapse border border-gray-300">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="border p-2">Title</th>
-                        <th class="border p-2">Description</th>
-                        <th class="border p-2">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($submissions as $submission)
-                        <tr class="bg-white border">
-                            <td class="border p-2">{{ $submission->title }}</td>
-                            <td class="border p-2">{{ $submission->description ?? 'No description' }}</td>
-                            <td class="border p-2">
-                            <form action="{{ url('/barangay/submissions/'.$submission->id.'/submit') }}" method="POST" enctype="multipart/form-data">
+        <label for="report_type_id">Select Report Type:</label>
+        <select name="report_type_id" id="report_type_id">
+            <option value="">-- Select Report Type --</option>
+            @foreach($reportTypes as $reportType)
+                <option value="{{ $reportType->id }}" data-frequency="{{ $reportType->frequency }}">
+                    {{ $reportType->name }}
+                </option>
+            @endforeach
+        </select>
 
-    @csrf
-    <input type="file" name="file">
-    <button type="submit">Submit</button>
-</form>
+        <div id="weekly_fields" style="display: none;">
+            <label for="month">Month:</label>
+            <input type="month" name="month">
 
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
-    </div>
+            <label for="week_number">Week Number:</label>
+            <input type="number" name="week_number" min="1" max="5">
 
+            <label for="num_of_clean_up_sites">Number of Clean-Up Sites:</label>
+            <input type="number" name="num_of_clean_up_sites">
+
+            <label for="num_of_participants">Number of Participants:</label>
+            <input type="number" name="num_of_participants">
+
+            <label for="num_of_barangays">Number of Barangays:</label>
+            <input type="number" name="num_of_barangays">
+
+            <label for="total_volume">Total Volume:</label>
+            <input type="text" name="total_volume">
+
+            <label for="file">Upload File:</label>
+            <input type="file" name="file">
+
+            <label for="deadline">Deadline:</label>
+            <input type="date" name="deadline">
+        </div>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <script>
+        document.getElementById('report_type_id').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const frequency = selectedOption.getAttribute('data-frequency');
+            const weeklyFields = document.getElementById('weekly_fields');
+
+            if (frequency === 'weekly') {
+                weeklyFields.style.display = 'block';
+            } else {
+                weeklyFields.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>

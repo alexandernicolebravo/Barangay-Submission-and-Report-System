@@ -14,16 +14,18 @@ return new class extends Migration
         Schema::create('weekly_reports', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('report_type_id')->constrained()->onDelete('cascade');
             $table->string('month');
             $table->integer('week_number');
             $table->integer('num_of_clean_up_sites');
             $table->integer('num_of_participants');
             $table->integer('num_of_barangays');
             $table->integer('total_volume');
-            $table->integer('kalinisan_file_path');
-            $table->json('fields');
-
-
+            $table->date('deadline');
+            $table->string('status')->default('pending');
+            $table->string('file_path');
+            $table->string('file_name');
+            $table->text('remarks')->nullable();
             $table->timestamps();
         });
     }
