@@ -30,7 +30,6 @@
     @if ($reportTypes->isEmpty())
         <p>No report types available.</p>
     @else
-        <!-- Tabs -->
         <div>
             @foreach ($reportTypes->groupBy('frequency') as $frequency => $types)
                 <span class="tab {{ $loop->first ? 'active' : '' }}" id="{{ $frequency }}-tab" onclick="showTab('{{ $frequency }}')">
@@ -39,7 +38,6 @@
             @endforeach
         </div>
 
-        <!-- Forms and Submitted Reports -->
         @foreach ($reportTypes->groupBy('frequency') as $frequency => $types)
             <div id="{{ $frequency }}-content" class="tab-content {{ $loop->first ? 'active' : '' }}">
                 <h3>{{ ucfirst($frequency) }} Report</h3>
@@ -94,7 +92,7 @@
                     </form>
                 @endforeach
 
-                <!-- View Submitted Reports -->
+                View Submitted Reports
                 <h3>Submitted {{ ucfirst($frequency) }} Reports</h3>
 
                 @php
@@ -104,28 +102,49 @@
                 @if ($submittedReports->isEmpty())
                     <p>No submitted reports available.</p>
                 @else
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Report Name</th>
-                                <th>Submitted By</th>
-                                <th>Submitted At</th>
-                                <th>File</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($submittedReports as $report)
-                                <tr>
-                                    <td>{{ $report->reportType->name }}</td>
-                                    <td>{{ $report->user->name }}</td>
-                                    <td>{{ $report->created_at->format('Y-m-d H:i:s') }}</td>
-                                    <td><a href="{{ asset('storage/' . $report->file_path) }}" target="_blank">View File</a></td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
+                <table>
+    <thead>
+        <tr>
+            <th>Report Name</th>
+            <th>Submitted By</th>
+            <th>Submitted At</th>
+            <th>File</th>
+            <th>Status</th>
+            <th>Remarks</th>
+        </tr>
+    </thead>
+    <!-- <tbody>
+        @foreach ($submittedReports as $report)
+            <tr>
+                <td>{{ $report->reportType->name }}</td>
+                <td>{{ $report->user->name }}</td>
+                <td>{{ $report->created_at->format('Y-m-d H:i:s') }}</td>
+                <td><a href="{{ url('/files/' . basename($report->file_path)) }}" target="_blank">View File</a>
+                <br>
+                <td>{{ $report->status ?? 'Pending' }}</td>
+                <td>{{ $report->remarks ?? 'No remarks' }}</td>
+            </tr>
+        @endforeach
+    </tbody> -->
 
+    <tbody>
+    @foreach ($submittedReports as $report)
+        <tr>
+            <td>{{ $report->reportType->name }}</td>
+            <td>{{ $report->user->name }}</td>
+            <td>{{ $report->created_at->format('Y-m-d H:i:s') }}</td>
+            <td>
+                <a href="{{ Storage::url($report->file_path) }}" target="_blank">View File</a>
+            </td>
+            <td>{{ $report->status ?? 'Pending' }}</td>
+            <td>{{ $report->remarks ?? 'No remarks' }}</td>
+        </tr>
+    @endforeach
+</tbody>
+
+</table>
+
+                @endif
             </div>
         @endforeach
     @endif

@@ -9,7 +9,7 @@ use App\Http\Controllers\ReportSubmissionController;
 use App\Http\Controllers\WeeklyReportController;
 use App\Http\Controllers\ReportTypeController;
 
-
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BarangayFileController;
 
@@ -55,6 +55,15 @@ Route::put('admin/update-report/{id}', [ReportTypeController::class, 'update'])-
 Route::delete('admin/destroy-report/{id}', [ReportTypeController::class, 'destroy'])->name('admin.destroy-report');
 
 
+Route::get('/files/{filename}', function ($filename) {
+    $path = storage_path('app/reports/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+})->where('filename', '.*');
 
 
 //     Route::get('/admin/create-report', [ReportTypeController::class, 'create'])->name('report_types.create');
@@ -70,7 +79,11 @@ Route::delete('admin/destroy-report/{id}', [ReportTypeController::class, 'destro
     Route::post('/barangay/submit-report', [ReportController::class, 'store'])->name('reports.store');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index'); // View page
-    Route::get('/reports/show', [ReportController::class, 'showReports'])->name('reports.show'); // AJAX fetching
+    // Route::get('/reports/show', [ReportController::class, 'showReports'])->name('reports.show'); // AJAX fetching
+    // Route::get('/barangay/create-report', [ReportController::class, 'showReports'])->name('reports.view');
+
+    Route::get('/barangay/submit-report', [ReportController::class, 'showSubmitReport']);
+
 
 
     // Route::get('/admin/view-submissions', [ReportController::class, 'index'])->name('reports.index');
