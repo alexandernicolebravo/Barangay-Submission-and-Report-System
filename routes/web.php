@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BarangayFileController;
-
-
+use Illuminate\Support\Facades\Auth;
+use App\Models\Report;
 
 // Public Routes
 Route::get('/', function () {
