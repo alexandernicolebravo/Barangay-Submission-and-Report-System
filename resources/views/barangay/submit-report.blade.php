@@ -134,7 +134,9 @@
             <td>{{ $report->user->name }}</td>
             <td>{{ $report->created_at->format('Y-m-d H:i:s') }}</td>
             <td>
-                <a href="{{ Storage::url($report->file_path) }}" target="_blank">View File</a>
+            <a href="{{ asset('storage/reports/' . basename($report->file_path)) }}" target="_blank">View File</a>
+
+
             </td>
             <td>{{ $report->status ?? 'Pending' }}</td>
             <td>{{ $report->remarks ?? 'No remarks' }}</td>

@@ -8,7 +8,7 @@ use App\Http\Controllers\BarangayController;
 use App\Http\Controllers\ReportSubmissionController;
 use App\Http\Controllers\WeeklyReportController;
 use App\Http\Controllers\ReportTypeController;
-
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BarangayFileController;
@@ -56,14 +56,20 @@ Route::delete('admin/destroy-report/{id}', [ReportTypeController::class, 'destro
 
 
 Route::get('/files/{filename}', function ($filename) {
-    $path = storage_path('app/reports/' . $filename);
+    $report = Report::where('file_path', 'reports/' . $filename)->where('user_id', Auth::id())->first();
 
-    if (!file_exists($path)) {
-        abort(404);
+    if (!$report) {
+        abort(403, 'Unauthorized access.');
     }
 
-    return response()->file($path);
-})->where('filename', '.*');
+    $path = storage_path("app/public/reports/{$filename}");
+
+    if (!file_exists($path)) {
+        abort(404, 'File not found.');
+    }
+
+    return Response::file($path);
+})->middleware('auth');
 
 
 //     Route::get('/admin/create-report', [ReportTypeController::class, 'create'])->name('report_types.create');

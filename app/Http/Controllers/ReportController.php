@@ -81,76 +81,69 @@ public function showSubmitReport()
 
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'report_type_id' => 'required|exists:report_types,id',
-            'file' => 'required|file|mimes:pdf,doc,docx,xlsx|max:2048',
-        ]);
+{
+    $reportType = ReportType::find($request->report_type_id);
 
-        $reportType = ReportType::find($request->report_type_id);
+    $request->validate([
+        'report_type_id' => 'required|exists:report_types,id',
+        'file' => 'required|file|mimes:pdf,doc,docx,xlsx|max:2048', // Add file validation
+    ]);
 
-        $fileName = time() . '_' . str_replace([' ', '(', ')'], '_', $request->file('file')->getClientOriginalName());
-        $filePath = 'reports/' . $fileName;
+    $fileName = time() . '_' . str_replace([' ', '(', ')'], '_', $request->file('file')->getClientOriginalName());
+    $filePath = "reports/{$fileName}";
 
-        DB::beginTransaction();
-        try {
-            // Store the file using Laravel's storage facade
-            Storage::disk('local')->putFileAs('reports', $request->file('file'), $fileName);
+    DB::beginTransaction();
+    try {
+        // Store file
+        Storage::disk('public')->putFileAs('reports', $request->file('file'), $fileName);
 
-            $reportData = [
-                'user_id' => Auth::id(),
-                'report_type_id' => $request->report_type_id,
-                'file_name' => $request->file('file')->getClientOriginalName(),
-                'file_path' => $filePath,
-                'status' => 'pending',
-                'remarks' => null,
-                'deadline' => now()->addDays(7),
-            ];
+        // Report Data
+        $reportData = [
+            'user_id' => Auth::id(),
+            'report_type_id' => $request->report_type_id,
+            'file_name' => $request->file('file')->getClientOriginalName(),
+            'file_path' => $filePath,
+            'status' => 'pending',
+            'remarks' => null,
+            'deadline' => now()->addDays(7),
+        ];
 
-            switch ($reportType->frequency) {
-                case 'weekly':
-                    $request->validate([
-                        'month' => 'required|string',
-                        'week_number' => 'required|integer',
-                        'num_of_clean_up_sites' => 'required|integer',
-                        'num_of_participants' => 'required|integer',
-                        'num_of_barangays' => 'required|integer',
-                        'total_volume' => 'required|numeric',
-                    ]);
-                    WeeklyReport::create(array_merge($reportData, [
-                        'month' => $request->month,
-                        'week_number' => $request->week_number,
-                        'num_of_clean_up_sites' => $request->num_of_clean_up_sites,
-                        'num_of_participants' => $request->num_of_participants,
-                        'num_of_barangays' => $request->num_of_barangays,
-                        'total_volume' => $request->total_volume,
-                    ]));
-                    break;
-                case 'monthly':
-                    $request->validate(['month' => 'required|string']);
-                    MonthlyReport::create(array_merge($reportData, ['month' => $request->month]));
-                    break;
-                case 'quarterly':
-                    $request->validate(['quarter_number' => 'required|integer']);
-                    QuarterlyReport::create(array_merge($reportData, ['quarter_number' => $request->quarter_number]));
-                    break;
-                case 'semestral':
-                    $request->validate(['sem_number' => 'required|integer']);
-                    SemestralReport::create(array_merge($reportData, ['sem_number' => $request->sem_number]));
-                    break;
-                case 'annual':
-                    AnnualReport::create($reportData);
-                    break;
-                default:
-                    return back()->with('error', 'Invalid report type.');
-            }
+        // Dynamic validation based on report type
+        $extraFields = match ($reportType->frequency) {
+            'weekly' => $request->validate([
+                'month' => 'required|string',
+                'week_number' => 'required|integer',
+                'num_of_clean_up_sites' => 'required|integer',
+                'num_of_participants' => 'required|integer',
+                'num_of_barangays' => 'required|integer',
+                'total_volume' => 'required|numeric',
+            ]),
+            'monthly' => $request->validate(['month' => 'required|string']),
+            'quarterly' => $request->validate(['quarter_number' => 'required|integer']),
+            'semestral' => $request->validate(['sem_number' => 'required|integer']),
+            default => [],
+        };
 
-            DB::commit();
-            return back()->with('success', 'Report submitted successfully.');
-        } catch (\Exception $e) {
-            DB::rollback();
-            return back()->with('error', 'An error occurred while submitting the report: ' . $e->getMessage());
+        $modelMap = [
+            'weekly' => WeeklyReport::class,
+            'monthly' => MonthlyReport::class,
+            'quarterly' => QuarterlyReport::class,
+            'semestral' => SemestralReport::class,
+            'annual' => AnnualReport::class,
+        ];
+
+        if (!isset($modelMap[$reportType->frequency])) {
+            return back()->with('error', 'Invalid report type.');
         }
+
+        $modelMap[$reportType->frequency]::create(array_merge($reportData, $extraFields));
+
+        DB::commit();
+        return back()->with('success', 'Report submitted successfully.');
+    } catch (\Exception $e) {
+        DB::rollback();
+        return back()->with('error', 'An error occurred: ' . $e->getMessage());
     }
+}
 
 }
