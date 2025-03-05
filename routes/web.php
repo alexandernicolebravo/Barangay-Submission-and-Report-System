@@ -8,12 +8,12 @@ use App\Http\Controllers\BarangayController;
 use App\Http\Controllers\ReportSubmissionController;
 use App\Http\Controllers\WeeklyReportController;
 use App\Http\Controllers\ReportTypeController;
-use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BarangayFileController;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Report;
+use Illuminate\Support\Facades\Response;
+use App\Http\Controllers\ReportSubmissionsController;
 
 // Public Routes
 Route::get('/', function () {
@@ -56,6 +56,7 @@ Route::delete('admin/destroy-report/{id}', [ReportTypeController::class, 'destro
 
 
 Route::get('/files/{filename}', function ($filename) {
+
     $report = Report::where('file_path', 'reports/' . $filename)->where('user_id', Auth::id())->first();
 
     if (!$report) {
@@ -65,11 +66,22 @@ Route::get('/files/{filename}', function ($filename) {
     $path = storage_path("app/public/reports/{$filename}");
 
     if (!file_exists($path)) {
+
         abort(404, 'File not found.');
     }
 
+
     return Response::file($path);
 })->middleware('auth');
+
+
+
+
+
+Route::get('/admin/view-submissions', [ReportSubmissionsController::class, 'index'])->name('view.submissions');
+Route::post('/admin/update-report/{id}', [ReportSubmissionsController::class, 'update'])->name('update.report');
+
+
 
 
 //     Route::get('/admin/create-report', [ReportTypeController::class, 'create'])->name('report_types.create');
