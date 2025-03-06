@@ -18,6 +18,7 @@
                     <th>Report Type</th>
                     <th>Status</th>
                     <th>Remarks</th>
+                    <th>File</th> <!-- Updated this column -->
                     <th>Action</th>
                 </tr>
             </thead>
@@ -29,6 +30,16 @@
                         <td>{{ $report->reportType->name }}</td>
                         <td>{{ ucfirst($report->status) }}</td>
                         <td>{{ $report->remarks }}</td>
+                        <td>
+                            @if($report->file_path)
+                                @php
+                                    $fileName = basename($report->file_path);
+                                @endphp
+                                <a href="{{ asset('storage/' . $report->file_path) }}" target="_blank">{{ $fileName }}</a>
+                            @else
+                                No File
+                            @endif
+                        </td>
                         <td>
                             <form action="{{ route('update.report', $report->id) }}" method="POST">
                                 @csrf

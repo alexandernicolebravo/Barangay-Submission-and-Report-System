@@ -35,6 +35,11 @@ class AuthController extends Controller
         return back()->withErrors(['email' => 'Invalid login credentials']);
     }
 
+    public function showSubmitReport()
+    {
+        return view('barangay.submissions');
+    }
+
     public function logout()
     {
         Auth::logout();
