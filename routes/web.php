@@ -8,12 +8,12 @@ use App\Http\Controllers\BarangayController;
 use App\Http\Controllers\ReportSubmissionController;
 use App\Http\Controllers\WeeklyReportController;
 use App\Http\Controllers\ReportTypeController;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BarangayFileController;
-use Illuminate\Support\Facades\Response;
-use App\Http\Controllers\ReportSubmissionsController;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Report;
 
 // Public Routes
 Route::get('/', function () {
@@ -58,8 +58,48 @@ Route::middleware(['auth'])->group(function () {
         return Response::file($path);
     })->middleware('auth');
 
+<<<<<<< HEAD
     Route::get('/admin/view-submissions', [ReportSubmissionsController::class, 'index'])->name('view.submissions');
     Route::post('/admin/update-report/{id}', [ReportSubmissionsController::class, 'update'])->name('update.report');
+=======
+
+
+Route::post('admin/create-report/{id?}', [ReportTypeController::class, 'storeOrUpdate'])->name('admin.storeOrUpdate');
+Route::delete('admin/create-report/{id}', [ReportTypeController::class, 'destroy'])->name('admin.destroy-report');
+
+
+Route::get('admin/create-report', [ReportTypeController::class, 'index'])->name('admin.create-report');
+Route::post('admin/store-report', [ReportTypeController::class, 'store'])->name('admin.store-report');
+Route::put('admin/update-report/{id}', [ReportTypeController::class, 'update'])->name('admin.update-report');
+Route::delete('admin/destroy-report/{id}', [ReportTypeController::class, 'destroy'])->name('admin.destroy-report');
+
+
+Route::get('/files/{filename}', function ($filename) {
+    $report = Report::where('file_path', 'reports/' . $filename)->where('user_id', Auth::id())->first();
+
+    if (!$report) {
+        abort(403, 'Unauthorized access.');
+    }
+
+    $path = storage_path("app/public/reports/{$filename}");
+
+    if (!file_exists($path)) {
+        abort(404, 'File not found.');
+    }
+
+    return Response::file($path);
+})->middleware('auth');
+
+
+//     Route::get('/admin/create-report', [ReportTypeController::class, 'create'])->name('report_types.create');
+//     Route::post('/admin/create-report', [ReportTypeController::class, 'store'])->name('report_types.store');
+//     Route::delete('/admin/create-report/{id}', [ReportTypeController::class, 'destroy'])->name('report_types.destroy');
+
+
+//     Route::get('/report-types/edit/{id}', [ReportTypeController::class, 'create'])->name('report_types.edit'); // For editing
+// Route::put('/report-types/{id}', [ReportTypeController::class, 'update'])->name('report_types.update'); // Update function
+
+>>>>>>> parent of 0f5da93 (view all submitted reports (admin))
 
     Route::get('/barangay/submit-report', [ReportController::class, 'create'])->name('reports.create');
     Route::post('/barangay/submit-report', [ReportController::class, 'store'])->name('reports.store');
