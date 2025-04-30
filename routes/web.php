@@ -44,8 +44,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('admin/create-report/{id}', [ReportTypeController::class, 'destroy'])->name('admin.delete-report');
 
 
-    Route::get('/admin/view-submissions', [ReportSubmissionsController::class, 'index'])->name('view.submissions');
-    Route::post('/admin/update-report/{id}', [ReportSubmissionsController::class, 'update'])->name('update.report');
+    Route::get('/admin/view-submissions', [ReportController::class, 'index'])->name('view.submissions');
+    Route::post('/admin/update-report/{id}', [ReportController::class, 'update'])->name('update.report');
 
 
 
@@ -86,8 +86,7 @@ Route::get('/files/{filename}', function ($filename) {
 
 
 
-Route::get('/admin/view-submissions', [ReportSubmissionsController::class, 'index'])->name('view.submissions');
-Route::post('/admin/update-report/{id}', [ReportSubmissionsController::class, 'update'])->name('update.report');
+
 
 
 
@@ -133,6 +132,7 @@ Route::post('/barangay/submissions/store', [BarangayController::class, 'store'])
     // Admin Routes
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::post('/users', [AdminController::class, 'store'])->name('users.store');
         Route::delete('/users/{id}', [AdminController::class, 'destroy'])->name('users.destroy');
         Route::get('/users/{id}/confirm-deactivation', [AdminController::class, 'confirmDeactivation']);
@@ -145,6 +145,15 @@ Route::post('/barangay/submissions/store', [BarangayController::class, 'store'])
 
     // Barangay Routes
     Route::prefix('barangay')->name('barangay.')->group(function () {
+        // Report Submission
+        Route::get('/submit-report', [ReportController::class, 'create'])->name('submit-report');
+        Route::post('/submit-report', [ReportController::class, 'store'])->name('store-report');
+        Route::get('/submissions', [BarangayController::class, 'submissions'])->name('submissions');
+        Route::post('/submissions/store', [BarangayController::class, 'store'])->name('submissions.store');
+        Route::get('/overdue-reports', [ReportController::class, 'overdueReports'])->name('overdue-reports');
+        Route::get('/view-reports', [ReportController::class, 'view'])->name('view-reports');
+
+        // File Management
         Route::post('/files', [BarangayController::class, 'storeFile'])->name('files.store');
         Route::get('/files/download/{id}', [BarangayController::class, 'downloadFile'])->name('files.download');
         Route::get('/files/view/{id}', [BarangayController::class, 'viewFile'])->name('files.view');
@@ -153,7 +162,6 @@ Route::post('/barangay/submissions/store', [BarangayController::class, 'store'])
         // Weekly Report Submission
         Route::get('/submissions', [WeeklyReportController::class, 'create'])->name('submissions');
         Route::post('/submissions', [WeeklyReportController::class, 'store'])->name('submissions.store');
-
     });
 
 
@@ -195,14 +203,10 @@ Route::delete('barangay/files/{file}', [BarangayFileController::class, 'destroy'
 
 
 
-
+// Closing the main auth middleware group
 });
 
-
-
-
-
-
-
-
+Route::middleware(['auth'])->group(function () {
+    Route::post('/barangay/submissions/resubmit', [BarangayController::class, 'resubmit'])->name('barangay.submissions.resubmit');
+});
 
