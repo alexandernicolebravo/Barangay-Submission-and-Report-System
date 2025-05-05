@@ -37,6 +37,9 @@ class BarangayController extends Controller
                 ->where('user_id', $userId)
                 ->get();
 
+            // Get all report types
+            $reportTypes = ReportType::orderBy('name')->get();
+
             // Combine all reports
             $allReports = collect()
                 ->concat($weeklyReports)
@@ -72,7 +75,8 @@ class BarangayController extends Controller
                 'pendingReports',
                 'rejectedReports',
                 'recentReports',
-                'upcomingDeadlines'
+                'upcomingDeadlines',
+                'reportTypes'
             ));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'An error occurred while loading the dashboard: ' . $e->getMessage());

@@ -93,17 +93,13 @@ Route::middleware(['auth'])->group(function () {
         return response()->file($path);
     })->middleware('auth');
 
-    Route::get('/barangay/submit-report', [ReportController::class, 'create'])->name('reports.create');
-    Route::post('/barangay/submit-report', [ReportController::class, 'store'])->name('reports.store');
+    // Report Submission Routes
+    Route::get('/barangay/submit-report', [ReportController::class, 'showSubmitReport'])->name('barangay.submit-report');
+    Route::post('/barangay/submit-report', [ReportController::class, 'store'])->name('barangay.store-report');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index'); // View page
     // Route::get('/reports/show', [ReportController::class, 'showReports'])->name('reports.show'); // AJAX fetching
     // Route::get('/barangay/create-report', [ReportController::class, 'showReports'])->name('reports.view');
-
-    Route::get('/barangay/submit-report', [ReportController::class, 'showSubmitReport']);
-
-    // Route::get('/admin/view-submissions', [ReportController::class, 'index'])->name('reports.index');
-    // Route::put('/admin/view-submissions/{id}', [ReportController::class, 'update'])->name('reports.update');
 });
 
 // Protected Routes (Requires Authentication)
@@ -136,10 +132,6 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('barangay')->name('barangay.')->group(function () {
         // Dashboard
         Route::get('/dashboard', [BarangayController::class, 'dashboard'])->name('dashboard');
-
-        // Report Submission
-        Route::get('/submit-report', [BarangayController::class, 'submitReport'])->name('submit-report');
-        Route::post('/submit-report', [BarangayController::class, 'store'])->name('store-report');
 
         // View Reports
         Route::get('/view-reports', [BarangayController::class, 'viewReports'])->name('view-reports');

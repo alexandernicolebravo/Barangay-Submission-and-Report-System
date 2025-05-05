@@ -7,8 +7,8 @@ use App\Models\{ReportType, WeeklyReport, MonthlyReport, QuarterlyReport, Semest
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
-
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReportController extends Controller
 {

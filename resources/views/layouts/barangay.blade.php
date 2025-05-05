@@ -152,9 +152,6 @@
                     <a class="nav-link {{ request()->routeIs('barangay.submit-report') ? 'active' : '' }}" href="{{ route('barangay.submit-report') }}">
                         <i class="fas fa-plus-circle me-2"></i> Submit Report
                     </a>
-                    <a class="nav-link {{ request()->routeIs('barangay.view-reports') ? 'active' : '' }}" href="{{ route('barangay.view-reports') }}">
-                        <i class="fas fa-list me-2"></i> View Reports
-                    </a>
                     <a class="nav-link {{ request()->routeIs('barangay.overdue-reports') ? 'active' : '' }}" href="{{ route('barangay.overdue-reports') }}">
                         <i class="fas fa-exclamation-triangle me-2"></i> Overdue Reports
                     </a>
