@@ -6,6 +6,8 @@ use App\Models\BarangayFile;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+use App\Models\{WeeklyReport, MonthlyReport, QuarterlyReport, SemestralReport, AnnualReport};
 
 class BarangayFileController extends Controller {
     public function store(Request $request) {
@@ -26,13 +28,95 @@ class BarangayFileController extends Controller {
         return back()->with('success', 'File submitted successfully.');
     }
 
-    public function download(BarangayFile $file) {
-        return Storage::download('public/' . $file->file_path);
+    public function download($id)
+    {
+        // Try to find the report in each table
+        $report = WeeklyReport::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$report) {
+            $report = MonthlyReport::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
+        if (!$report) {
+            $report = QuarterlyReport::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
+        if (!$report) {
+            $report = SemestralReport::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
+        if (!$report) {
+            $report = AnnualReport::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
+        if (!$report) {
+            return back()->with('error', 'Report not found.');
+        }
+
+        if (!Storage::disk('public')->exists($report->file_path)) {
+            return back()->with('error', 'File not found.');
+        }
+
+        return Storage::disk('public')->download(
+            $report->file_path,
+            $report->file_name
+        );
     }
 
-    public function destroy(BarangayFile $file) {
-        Storage::delete('public/' . $file->file_path);
-        $file->delete();
+    public function destroy($id)
+    {
+        // Try to find the report in each table
+        $report = WeeklyReport::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$report) {
+            $report = MonthlyReport::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
+        if (!$report) {
+            $report = QuarterlyReport::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
+        if (!$report) {
+            $report = SemestralReport::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
+        if (!$report) {
+            $report = AnnualReport::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+
+        if (!$report) {
+            return back()->with('error', 'Report not found.');
+        }
+
+        if (Storage::disk('public')->exists($report->file_path)) {
+            Storage::disk('public')->delete($report->file_path);
+        }
+
+        $report->update([
+            'file_path' => null,
+            'file_name' => null
+        ]);
+
         return back()->with('success', 'File deleted successfully.');
     }
 }
