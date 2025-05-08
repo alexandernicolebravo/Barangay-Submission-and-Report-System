@@ -31,7 +31,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('barangay.store-report') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                <form method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
                     @csrf
 
                     <div class="row mb-4">

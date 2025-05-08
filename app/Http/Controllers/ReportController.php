@@ -233,40 +233,37 @@ class ReportController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $type = $request->input('type');
-            $status = $request->input('status');
-            $remarks = $request->input('remarks');
-
-            switch ($type) {
-                case 'weekly':
-                    $report = WeeklyReport::findOrFail($id);
-                    break;
-                case 'monthly':
-                    $report = MonthlyReport::findOrFail($id);
-                    break;
-                case 'quarterly':
-                    $report = QuarterlyReport::findOrFail($id);
-                    break;
-                case 'semestral':
-                    $report = SemestralReport::findOrFail($id);
-                    break;
-                case 'annual':
-                    $report = AnnualReport::findOrFail($id);
-                    break;
-                default:
-                    throw new \Exception('Invalid report type');
-            }
-
-            $report->update([
-                'status' => $status,
-                'remarks' => $remarks
+            $validated = $request->validate([
+                'status' => 'required|in:pending,approved,rejected',
+                'remarks' => 'nullable|string|max:1000',
+                'type' => 'required|in:weekly,monthly,quarterly,semestral,annual'
             ]);
 
-            return redirect()->route('view.submissions')
+            // Map report types to their models
+            $reportModels = [
+                'weekly' => WeeklyReport::class,
+                'monthly' => MonthlyReport::class,
+                'quarterly' => QuarterlyReport::class,
+                'semestral' => SemestralReport::class,
+                'annual' => AnnualReport::class
+            ];
+
+            // Get the appropriate model
+            $model = $reportModels[$validated['type']];
+            $report = $model::findOrFail($id);
+
+            // Update the report
+            $report->update([
+                'status' => $validated['status'],
+                'remarks' => $validated['remarks']
+            ]);
+
+            return redirect()->route('admin.view.submissions')
                 ->with('success', 'Report status updated successfully.');
         } catch (\Exception $e) {
-            return redirect()->route('view.submissions')
-                ->with('error', 'Error updating report status. Please try again.');
+            Log::error('Error updating report: ' . $e->getMessage());
+            return redirect()->route('admin.view.submissions')
+                ->with('error', 'Error updating report. Please try again.');
         }
     }
 

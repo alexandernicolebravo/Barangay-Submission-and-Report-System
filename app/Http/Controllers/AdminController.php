@@ -212,9 +212,12 @@ class AdminController extends Controller
         return back()->with('success', ucfirst($user->role) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.');
     }
 
+    /**
+     * Display the user management page.
+     */
     public function userManagement()
     {
-        $users = User::where('role', '!=', 'admin')->get();
+        $users = User::with('cluster')->get();
         return view('admin.user-management', compact('users'));
     }
 

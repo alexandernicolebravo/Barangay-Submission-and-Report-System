@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Panel')</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --primary: #3b82f6;
@@ -327,20 +332,16 @@
                 </div>
                 <nav class="nav flex-column">
                     <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
-                        <i class="fas fa-home"></i>
-                        <span>Dashboard</span>
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
                     <a class="nav-link {{ request()->routeIs('admin.create-report') ? 'active' : '' }}" href="{{ route('admin.create-report') }}">
-                        <i class="fas fa-file-alt"></i>
-                        <span>Report Types</span>
+                        <i class="fas fa-file-alt"></i> Report Types
                     </a>
-                    <a class="nav-link {{ request()->routeIs('view.submissions') ? 'active' : '' }}" href="{{ route('view.submissions') }}">
-                        <i class="fas fa-list"></i>
-                        <span>View Submissions</span>
+                    <a class="nav-link {{ request()->routeIs('admin.view.submissions') ? 'active' : '' }}" href="{{ route('admin.view.submissions') }}">
+                        <i class="fas fa-inbox"></i> View Submissions
                     </a>
                     <a class="nav-link {{ request()->routeIs('admin.user-management') ? 'active' : '' }}" href="{{ route('admin.user-management') }}">
-                        <i class="fas fa-users"></i>
-                        <span>User Management</span>
+                        <i class="fas fa-users"></i> User Management
                     </a>
                     <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                         <i class="fas fa-sign-out-alt"></i>
@@ -361,6 +362,14 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Initialize AJAX CSRF Token -->
+    <script>
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+    </script>
     @stack('scripts')
 </body>
 </html>

@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Log;
 
 class BarangayController extends Controller
 {
+    public function __construct()
+    {
+        if (!Auth::check() || Auth::user()->role !== 'barangay') {
+            abort(403, 'Unauthorized access.');
+        }
+    }
+
     public function dashboard()
     {
         try {

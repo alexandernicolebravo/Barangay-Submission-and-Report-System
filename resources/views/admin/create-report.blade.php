@@ -207,11 +207,11 @@
                             @endif
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#editReportTypeModal{{ $reportType->id }}">
+                            <button type="button" class="btn btn-sm edit-report-type" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#editReportTypeModal{{ $reportType->id }}">
                                 <i class="fas fa-edit"></i>
                                 <span>Edit</span>
                             </button>
-                            <button type="button" class="btn btn-sm" style="background: var(--danger-light); color: var(--danger); border: none;" data-bs-toggle="modal" data-bs-target="#deleteReportModal" data-report-id="{{ $reportType->id }}" data-report-name="{{ $reportType->name }}">
+                            <button type="button" class="btn btn-sm delete-report-type" style="background: var(--danger-light); color: var(--danger); border: none;" data-report-id="{{ $reportType->id }}" data-report-name="{{ $reportType->name }}">
                                 <i class="fas fa-trash"></i>
                                 <span>Delete</span>
                             </button>
@@ -229,7 +229,7 @@
                                     </h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <form action="{{ route('admin.update-report', $reportType->id) }}" method="POST" id="editForm{{ $reportType->id }}">
+                                <form action="{{ route('admin.update-report', $reportType->id) }}" method="POST" id="editForm{{ $reportType->id }}" class="edit-form">
                                     @csrf
                                     @method('PUT')
                                     <div class="modal-body">
@@ -262,11 +262,11 @@
                                             <label class="form-label">Allowed File Types</label>
                                             <div class="row">
                                                 @foreach(App\Models\ReportType::availableFileTypes() as $key => $value)
-                                                    <div class="col-md-6">
+                                                    <div class="col-md-4">
                                                         <div class="form-check">
-                                                            <input class="form-check-input @error('allowed_file_types') is-invalid @enderror" type="checkbox" name="allowed_file_types[]" value="{{ $key }}"
+                                                            <input class="form-check-input" type="checkbox" name="allowed_file_types[]" value="{{ $key }}" id="fileType{{ $reportType->id }}{{ $key }}"
                                                                 {{ in_array($key, old('allowed_file_types', $reportType->allowed_file_types ?? [])) ? 'checked' : '' }}>
-                                                            <label class="form-check-label">
+                                                            <label class="form-check-label" for="fileType{{ $reportType->id }}{{ $key }}">
                                                                 {{ $value }}
                                                             </label>
                                                         </div>
@@ -307,7 +307,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ route('admin.store-report') }}" method="POST">
+            <form action="{{ route('admin.store-report') }}" method="POST" id="createForm">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
@@ -393,123 +393,194 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Search functionality
-    const searchInput = document.getElementById('reportTypeSearch');
-    const frequencyFilter = document.getElementById('frequencyFilter');
-    const tableRows = document.querySelectorAll('tbody tr');
+$(document).ready(function() {
+    // Handle create form submission
+    $('#createForm').on('submit', function(e) {
+        e.preventDefault();
+        var form = $(this);
+        var formData = new FormData(this);
+        var submitButton = form.find('button[type="submit"]');
 
-    function filterTable() {
-        const searchText = searchInput.value.toLowerCase();
-        const selectedFrequency = frequencyFilter.value.toLowerCase();
+        submitButton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating...');
 
-        tableRows.forEach(row => {
-            const name = row.dataset.name;
-            const frequency = row.dataset.frequency;
-
-            const matchesSearch = name.includes(searchText);
-            const matchesFrequency = !selectedFrequency || frequency === selectedFrequency;
-
-            row.style.display = matchesSearch && matchesFrequency ? '' : 'none';
-        });
-    }
-
-    searchInput.addEventListener('input', filterTable);
-    frequencyFilter.addEventListener('change', filterTable);
-
-    // Form validation and submission
-    const forms = document.querySelectorAll('form');
-    forms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const requiredFields = form.querySelectorAll('[required]');
-            let isValid = true;
-
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.classList.add('is-invalid');
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    $('#createReportTypeModal').modal('hide');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.message,
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(function() {
+                        window.location.reload();
+                    });
                 } else {
-                    field.classList.remove('is-invalid');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: response.message || 'An error occurred while creating the report type.'
+                    });
                 }
-            });
-
-            if (!isValid) {
-                alert('Please fill in all required fields.');
-                return;
+            },
+            error: function(xhr) {
+                var errorMessage = 'An error occurred. Please try again.';
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON.errors) {
+                        errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                    }
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: errorMessage
+                });
+            },
+            complete: function() {
+                submitButton.prop('disabled', false).html('<i class="fas fa-save"></i> Create Report Type');
             }
-
-            // Submit the form
-            form.submit();
         });
     });
 
-    // Reset form on modal close
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => {
-        modal.addEventListener('hidden.bs.modal', function() {
-            const form = this.querySelector('form');
-            if (form) {
-                form.reset();
-                const invalidFields = form.querySelectorAll('.is-invalid');
-                invalidFields.forEach(field => field.classList.remove('is-invalid'));
+    // Handle edit form submissions
+    $('.edit-form').on('submit', function(e) {
+        e.preventDefault();
+        var form = $(this);
+        var formData = new FormData(this);
+        var submitButton = form.find('button[type="submit"]');
+
+        submitButton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    form.closest('.modal').modal('hide');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: response.message,
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(function() {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: response.message || 'An error occurred while updating the report type.'
+                    });
+                }
+            },
+            error: function(xhr) {
+                var errorMessage = 'An error occurred. Please try again.';
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    } else if (xhr.responseJSON.errors) {
+                        errorMessage = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                    }
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: errorMessage
+                });
+            },
+            complete: function() {
+                submitButton.prop('disabled', false).html('<i class="fas fa-save"></i> Save Changes');
             }
         });
+    });
+
+    // Handle delete button click
+    $('.delete-report-type').on('click', function(e) {
+        e.preventDefault();
+        var button = $(this);
+        var reportId = button.data('report-id');
+        var reportName = button.data('report-name');
+
+        Swal.fire({
+            title: 'Delete Report Type',
+            text: `Are you sure you want to delete "${reportName}"? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                $.ajax({
+                    url: `{{ route('admin.destroy-report', '') }}/${reportId}`,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: response.message,
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(function() {
+                                window.location.reload();
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        var errorMessage = 'An error occurred. Please try again.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: errorMessage
+                        });
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete');
+                    }
+                });
+            }
+        });
+    });
+
+    // Search functionality
+    $('#reportTypeSearch').on('keyup', function() {
+        var value = $(this).val().toLowerCase();
+        $('tbody tr').filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+        });
+    });
+
+    // Frequency filter
+    $('#frequencyFilter').on('change', function() {
+        var value = $(this).val().toLowerCase();
+        if (value === '') {
+            $('tbody tr').show();
+        } else {
+            $('tbody tr').filter(function() {
+                $(this).toggle($(this).data('frequency') === value);
+            });
+        }
     });
 });
-
-function showDeleteConfirmation(reportId, reportName) {
-    const modal = new bootstrap.Modal(document.getElementById('deleteReportModal'));
-
-    // Update the confirmation message with the report name
-    const message = document.querySelector('#deleteReportModal .text-muted');
-    message.textContent = `Are you sure you want to delete "${reportName}"? This action cannot be undone and all associated reports will be affected.`;
-
-    // Set up the delete button action
-    const confirmBtn = document.getElementById('confirmDeleteBtn');
-    confirmBtn.onclick = function() {
-        // Send delete request
-        fetch(`/admin/create-report/${reportId}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Close the modal
-                modal.hide();
-                // Show success message
-                showSuccessMessage('Report type deleted successfully');
-                // Reload the page after a short delay
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            } else {
-                throw new Error(data.message || 'Failed to delete report type');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showErrorMessage(error.message);
-        });
-    };
-
-    modal.show();
-}
-
-function showSuccessMessage(message) {
-    // You can implement this function to show a success toast or alert
-    alert(message); // Replace with your preferred notification system
-}
-
-function showErrorMessage(message) {
-    // You can implement this function to show an error toast or alert
-    alert(message); // Replace with your preferred notification system
-}
 </script>
 @endpush
 @endsection

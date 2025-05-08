@@ -180,7 +180,7 @@
             <i class="fas fa-file-alt me-2" style="color: var(--primary);"></i>
             All Submissions
         </h5>
-        <form id="filterForm" class="d-flex gap-2" method="GET" action="{{ route('view.submissions') }}">
+        <form id="filterForm" class="d-flex gap-2" method="GET" action="{{ route('admin.view.submissions') }}">
             <div class="input-group" style="width: 200px;">
                 <span class="input-group-text">
                     <i class="fas fa-search"></i>
@@ -226,7 +226,7 @@
                 Apply Filters
             </button>
             @if(request()->hasAny(['search', 'type', 'status', 'timeliness']))
-                <a href="{{ route('view.submissions') }}" class="btn btn-light">
+                <a href="{{ route('admin.view.submissions') }}" class="btn btn-light">
                     <i class="fas fa-times"></i>
                     Clear Filters
                 </a>
@@ -355,11 +355,11 @@
                                             <button type="button"
                                                     class="btn btn-sm"
                                                     style="background: var(--primary-light); color: var(--primary); border: none;"
-                                                    onclick="previewFile('{{ route('barangay.files.download', ['id' => $submission['id']]) }}', '{{ $submission['file_name'] }}')">
+                                                    onclick="previewFile('{{ route('admin.files.download', ['id' => $submission['id']]) }}', '{{ $submission['file_name'] }}')">
                                                 <i class="fas fa-eye"></i>
                                                 <span>View File</span>
                                             </button>
-                                            <a href="{{ route('barangay.files.download', ['id' => $submission['id'], 'download' => true]) }}"
+                                            <a href="{{ route('admin.files.download', ['id' => $submission['id'], 'download' => true]) }}"
                                                class="btn btn-sm"
                                                style="background: var(--info-light); color: var(--info); border: none;">
                                                 <i class="fas fa-download"></i>
@@ -386,9 +386,9 @@
                                     </h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                         </div>
-                                <form action="{{ route('update.report', $submission['id']) }}" method="POST">
-                                                            @csrf
-                                    @method('POST')
+                                <form action="{{ route('admin.update.report', $submission['id']) }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
                                     <input type="hidden" name="type" value="{{ $submission['type'] }}">
                                                             <div class="modal-body">
                                                                 <div class="mb-3">
