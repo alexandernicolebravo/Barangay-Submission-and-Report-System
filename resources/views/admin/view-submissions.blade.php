@@ -144,7 +144,7 @@
 
     .modal .text-warning {
         color: var(--warning) !important;
-    }
+        }
     </style>
 @endpush
 
@@ -282,15 +282,15 @@
                             {{ \Carbon\Carbon::parse($submission['submitted_at'])->format('M d, Y h:i A') }}
                             <span class="timeliness-badge {{ $submission['is_late'] ? 'late' : 'ontime' }}">
                                 {{ $submission['is_late'] ? 'Late' : 'On Time' }}
-                            </span>
-                        </td>
+                                                    </span>
+                                                </td>
                         <td>{{ \Carbon\Carbon::parse($submission['deadline'])->format('M d, Y h:i A') }}</td>
                         <td>
                             <span class="status-badge {{ $submission['status'] }}">
                                 {{ ucfirst($submission['status']) }}
-                            </span>
-                        </td>
-                        <td>
+                                                    </span>
+                                                </td>
+                                                <td>
                             <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $submission['id'] }}">
                                 <i class="fas fa-eye"></i>
                                 <span>View</span>
@@ -298,9 +298,9 @@
                             <button type="button" class="btn btn-sm" style="background: var(--info-light); color: var(--info); border: none;" data-bs-toggle="modal" data-bs-target="#updateStatusModal{{ $submission['id'] }}">
                                 <i class="fas fa-edit"></i>
                                 <span>Update</span>
-                            </button>
-                        </td>
-                    </tr>
+                                                    </button>
+                                                </td>
+                                            </tr>
 
                     <!-- View Submission Modal -->
                     <div class="modal fade" id="viewSubmissionModal{{ $submission['id'] }}" tabindex="-1">
@@ -441,9 +441,9 @@
                                         Download
                                     </a>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         @empty
                                             <tr>
                         <td colspan="6" class="text-center py-4">
@@ -519,7 +519,7 @@
                 </div>
                 <h5 class="mb-3">Status Updated</h5>
                 <p class="text-muted mb-0">The report status has been updated successfully.</p>
-            </div>
+                    </div>
             <div class="modal-footer justify-content-center">
                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
             </div>

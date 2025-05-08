@@ -74,8 +74,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::post('/users', [AdminController::class, 'store'])->name('users.store');
+        Route::put('/users/{id}', [AdminController::class, 'update'])->name('users.update');
         Route::delete('/users/{id}', [AdminController::class, 'destroy'])->name('users.destroy');
         Route::get('/users/{id}/confirm-deactivation', [AdminController::class, 'confirmDeactivation']);
+        Route::get('/user-management', [AdminController::class, 'userManagement'])->name('user-management');
 
         // Report Types - Cleaned up routes
         Route::get('/create-report', [ReportTypeController::class, 'index'])->name('create-report');

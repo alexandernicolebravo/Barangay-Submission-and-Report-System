@@ -5,6 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Models\ReportType;
+use App\Models\WeeklyReport;
+use App\Models\MonthlyReport;
+use App\Models\QuarterlyReport;
+use App\Models\AnnualReport;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AdminController extends Controller
 {
@@ -13,10 +20,87 @@ class AdminController extends Controller
      */
     public function index()
     {
-        $clusters = User::where('role', 'cluster')->get();
-        $barangays = User::where('role', 'barangay')->get();
-        $users = User::all(); // Fetch all users
-        return view('admin.dashboard', compact('clusters', 'barangays', 'users'));
+        // Get total submissions count
+        $totalSubmissions = WeeklyReport::count() +
+                          MonthlyReport::count() +
+                          QuarterlyReport::count() +
+                          AnnualReport::count();
+
+        // Get approved submissions count
+        $approvedSubmissions = WeeklyReport::where('status', 'approved')->count() +
+                             MonthlyReport::where('status', 'approved')->count() +
+                             QuarterlyReport::where('status', 'approved')->count() +
+                             AnnualReport::where('status', 'approved')->count();
+
+        // Get pending submissions count
+        $pendingSubmissions = WeeklyReport::where('status', 'pending')->count() +
+                            MonthlyReport::where('status', 'pending')->count() +
+                            QuarterlyReport::where('status', 'pending')->count() +
+                            AnnualReport::where('status', 'pending')->count();
+
+        // Get late submissions count
+        $lateSubmissions = DB::table('weekly_reports')
+            ->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id')
+            ->where('weekly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->count() +
+            DB::table('monthly_reports')
+            ->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id')
+            ->where('monthly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->count() +
+            DB::table('quarterly_reports')
+            ->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id')
+            ->where('quarterly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->count() +
+            DB::table('annual_reports')
+            ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
+            ->where('annual_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->count();
+
+        // Get recent submissions
+        $recentSubmissions = DB::table('weekly_reports')
+            ->select('weekly_reports.*', 'users.name as submitter', 'report_types.name as report_type', 'weekly_reports.created_at as submitted_at')
+            ->join('users', 'weekly_reports.user_id', '=', 'users.id')
+            ->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id')
+            ->select('weekly_reports.*', 'users.name as submitter', 'report_types.name as report_type', DB::raw('CASE WHEN weekly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late'))
+            ->union(
+                DB::table('monthly_reports')
+                ->join('users', 'monthly_reports.user_id', '=', 'users.id')
+                ->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id')
+                ->select('monthly_reports.*', 'users.name as submitter', 'report_types.name as report_type', DB::raw('CASE WHEN monthly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late'))
+            )
+            ->union(
+                DB::table('quarterly_reports')
+                ->join('users', 'quarterly_reports.user_id', '=', 'users.id')
+                ->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id')
+                ->select('quarterly_reports.*', 'users.name as submitter', 'report_types.name as report_type', DB::raw('CASE WHEN quarterly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late'))
+            )
+            ->union(
+                DB::table('annual_reports')
+                ->join('users', 'annual_reports.user_id', '=', 'users.id')
+                ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
+                ->select('annual_reports.*', 'users.name as submitter', 'report_types.name as report_type', DB::raw('CASE WHEN annual_reports.created_at > report_types.deadline THEN true ELSE false END as is_late'))
+            )
+            ->orderBy('submitted_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get submissions by type for chart
+        $weeklyCount = WeeklyReport::count();
+        $monthlyCount = MonthlyReport::count();
+        $quarterlyCount = QuarterlyReport::count();
+        $annualCount = AnnualReport::count();
+
+        return view('admin.dashboard', compact(
+            'totalSubmissions',
+            'approvedSubmissions',
+            'pendingSubmissions',
+            'lateSubmissions',
+            'recentSubmissions',
+            'weeklyCount',
+            'monthlyCount',
+            'quarterlyCount',
+            'annualCount'
+        ));
     }
 
     /**
@@ -91,5 +175,50 @@ class AdminController extends Controller
         $user->update(['is_active' => !$user->is_active]);
 
         return back()->with('success', ucfirst($user->role) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.');
+    }
+
+    public function userManagement()
+    {
+        $users = User::where('role', '!=', 'admin')->get();
+        return view('admin.user-management', compact('users'));
+    }
+
+    /**
+     * Update the specified user.
+     */
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $id,
+            'role' => 'required|in:cluster,barangay',
+            'cluster_id' => 'nullable|exists:users,id',
+        ]);
+
+        if ($request->role === 'barangay') {
+            if (!$request->cluster_id) {
+                return back()->with('error', 'Barangays must be assigned to a cluster.');
+            }
+        }
+
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $request->role,
+            'cluster_id' => $request->cluster_id,
+        ]);
+
+        if ($request->filled('password')) {
+            $request->validate([
+                'password' => 'required|min:6',
+            ]);
+            $user->update([
+                'password' => Hash::make($request->password)
+            ]);
+        }
+
+        return back()->with('success', 'User updated successfully.');
     }
 }
