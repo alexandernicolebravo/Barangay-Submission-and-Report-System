@@ -1,249 +1,243 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Submissions</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #34495e;
-            --accent-color: #3498db;
-        }
+@extends('admin.layouts.app')
 
-        body {
-            background-color: #f8f9fa;
-        }
+@section('title', 'View Submissions')
 
-        .sidebar {
-            background-color: var(--primary-color);
-            min-height: 100vh;
-            padding: 20px 0;
-            color: white;
-        }
+@section('content')
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="page-title">
+            <i class="fas fa-list"></i>
+            View Submissions
+        </h2>
+    </div>
+</div>
 
-        .sidebar .nav-link {
-            color: white;
-            padding: 10px 20px;
-            margin: 5px 0;
-            border-radius: 5px;
-            transition: all 0.3s;
-        }
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
 
-        .sidebar .nav-link:hover {
-            background-color: var(--secondary-color);
-        }
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
 
-        .sidebar .nav-link.active {
-            background-color: var(--accent-color);
-        }
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-file-alt me-2" style="color: var(--primary);"></i>
+            Report Submissions
+        </h5>
+        <div class="input-group" style="width: 300px;">
+            <span class="input-group-text">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" class="form-control search-box" id="submissionSearch" placeholder="Search submissions...">
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Report Type</th>
+                        <th>Barangay</th>
+                        <th>Submission Date</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($submissions as $submission)
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3" style="width: 40px; height: 40px; border-radius: 10px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 500; color: var(--dark);">{{ $submission->reportType->name }}</div>
+                                    <small style="color: var(--gray-600);">{{ $submission->reportType->description }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3" style="width: 40px; height: 40px; border-radius: 10px; background: var(--info-light); display: flex; align-items: center; justify-content: center; color: var(--info);">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 500; color: var(--dark);">{{ $submission->barangay->name }}</div>
+                                    <small style="color: var(--gray-600);">{{ $submission->barangay->cluster }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="color: var(--gray-600);">{{ $submission->submission_date }}</td>
+                        <td style="color: var(--gray-600);">{{ $submission->due_date }}</td>
+                        <td>
+                            @php
+                                $statusColors = [
+                                    'pending' => ['bg' => 'var(--warning-light)', 'text' => 'var(--warning)'],
+                                    'approved' => ['bg' => 'var(--success-light)', 'text' => 'var(--success)'],
+                                    'rejected' => ['bg' => 'var(--danger-light)', 'text' => 'var(--danger)']
+                                ];
+                                $statusIcons = [
+                                    'pending' => 'clock',
+                                    'approved' => 'check-circle',
+                                    'rejected' => 'times-circle'
+                                ];
+                            @endphp
+                            <span class="badge" style="background: {{ $statusColors[$submission->status]['bg'] }}; color: {{ $statusColors[$submission->status]['text'] }};">
+                                <i class="fas fa-{{ $statusIcons[$submission->status] }} me-1"></i>
+                                {{ ucfirst($submission->status) }}
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewModal{{ $submission->id }}">
+                                <i class="fas fa-eye"></i>
+                                <span>View</span>
+                            </button>
+                            <button type="button" class="btn btn-sm" style="background: var(--info-light); color: var(--info); border: none;" data-bs-toggle="modal" data-bs-target="#updateModal{{ $submission->id }}">
+                                <i class="fas fa-edit"></i>
+                                <span>Update</span>
+                            </button>
+                        </td>
+                    </tr>
 
-        .main-content {
-            padding: 20px;
-        }
-
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .card-header {
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 10px 10px 0 0 !important;
-        }
-
-        .btn-primary {
-            background-color: var(--accent-color);
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--secondary-color);
-        }
-
-        .modal-content {
-            border-radius: 10px;
-            border: none;
-        }
-
-        .modal-header {
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 10px 10px 0 0 !important;
-        }
-
-        .badge {
-            padding: 0.5em 0.75em;
-            font-weight: 500;
-        }
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
-                <div class="text-center mb-4">
-                    <h4>Admin Panel</h4>
-                </div>
-                <nav class="nav flex-column">
-                    <a class="nav-link" href="{{ route('admin.dashboard') }}">
-                        <i class="fas fa-home me-2"></i> Dashboard
-                    </a>
-                    <a class="nav-link" href="{{ route('admin.create-report') }}">
-                        <i class="fas fa-file-alt me-2"></i> Create Report Type
-                    </a>
-                    <a class="nav-link active" href="{{ route('view.submissions') }}">
-                        <i class="fas fa-list me-2"></i> View Submissions
-                    </a>
-                    <a class="nav-link" href="{{ route('admin.create-report') }}">
-                        <i class="fas fa-chart-bar me-2"></i> Report Types
-                    </a>
-                    <a class="nav-link" href="{{ route('barangay.submissions') }}">
-                        <i class="fas fa-building me-2"></i> Barangay Submissions
-                    </a>
-                    <a class="nav-link" href="{{ route('barangay.overdue-reports') }}">
-                        <i class="fas fa-exclamation-triangle me-2"></i> Overdue Reports
-                    </a>
-                    <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                        <i class="fas fa-sign-out-alt me-2"></i> Logout
-                    </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                        @csrf
-                    </form>
-                </nav>
-            </div>
-
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h2>View Submissions</h2>
-                        <hr>
-                    </div>
-                </div>
-
-                @foreach(['weekly', 'monthly', 'quarterly', 'semestral', 'annual'] as $type)
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">{{ ucfirst($type) }} Reports</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Submitted By</th>
-                                            <th>Report Type</th>
-                                            <th>Status</th>
-                                            <th>Submission Time</th>
-                                            <th>File</th>
-                                            <th>Submitted At</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($reports[$type] as $report)
-                                            <tr>
-                                                <td>{{ $report->id }}</td>
-                                                <td>{{ $report->user->name }}</td>
-                                                <td>{{ $report->reportType->name }}</td>
-                                                <td>
-                                                    <span class="badge bg-{{ $report->status === 'approved' ? 'success' : ($report->status === 'rejected' ? 'danger' : 'warning') }}">
-                                                        {{ ucfirst($report->status) }}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    @php
-                                                        $submittedTimestamp = strtotime($report->created_at);
-                                                        $deadlineTimestamp = strtotime($report->deadline);
-                                                        $deadlineTimestamp = $deadlineTimestamp + (24 * 60 * 60);
-                                                        $isLate = $submittedTimestamp > $deadlineTimestamp;
-                                                        $submissionStatus = $isLate ? 'Late' : 'On Time';
-                                                        $badgeClass = $isLate ? 'danger' : 'success';
-                                                    @endphp
-                                                    <span class="badge bg-{{ $badgeClass }}">
-                                                        {{ $submissionStatus }}
-                                                    </span>
-                                                    @if($isLate)
-                                                        <small class="text-muted d-block">
-                                                            Deadline: {{ date('Y-m-d', $deadlineTimestamp - (24 * 60 * 60)) }}
-                                                        </small>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    @if($report->file_path)
-                                                        <a href="{{ Storage::url($report->file_path) }}" target="_blank" class="btn btn-sm btn-info">
-                                                            <i class="fas fa-eye"></i> View File
-                                                        </a>
-                                                    @else
-                                                        <span class="text-muted">No file attached</span>
-                                                    @endif
-                                                </td>
-                                                <td>{{ date('Y-m-d H:i:s', $submittedTimestamp) }}</td>
-                                                <td>
-                                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#updateModal{{ $report->id }}">
-                                                        <i class="fas fa-edit"></i> Update Status
-                                                    </button>
-                                                </td>
-                                            </tr>
-
-                                            <!-- Update Status Modal -->
-                                            <div class="modal fade" id="updateModal{{ $report->id }}" tabindex="-1" aria-labelledby="updateModalLabel{{ $report->id }}" aria-hidden="true">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="updateModalLabel{{ $report->id }}">Update Report Status</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <form action="{{ route('update.report', $report->id) }}" method="POST">
-                                                            @csrf
-                                                            <div class="modal-body">
-                                                                <div class="mb-3">
-                                                                    <label for="status" class="form-label">Status</label>
-                                                                    <select name="status" id="status" class="form-select" required>
-                                                                        <option value="pending" {{ $report->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                                                                        <option value="approved" {{ $report->status === 'approved' ? 'selected' : '' }}>Approved</option>
-                                                                        <option value="rejected" {{ $report->status === 'rejected' ? 'selected' : '' }}>Rejected</option>
-                                                                    </select>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label for="remarks" class="form-label">Remarks</label>
-                                                                    <textarea name="remarks" id="remarks" class="form-control" rows="3">{{ $report->remarks }}</textarea>
-                                                                </div>
-                                                            </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                <button type="submit" class="btn btn-primary">Update Status</button>
-                                                            </div>
-                                                        </form>
-                                                    </div>
-                                                </div>
+                    <!-- View Modal -->
+                    <div class="modal fade" id="viewModal{{ $submission->id }}" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-eye me-2" style="color: var(--primary);"></i>
+                                        View Submission Details
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Report Type</label>
+                                            <div class="form-control bg-light">{{ $submission->reportType->name }}</div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Barangay</label>
+                                            <div class="form-control bg-light">{{ $submission->barangay->name }}</div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Submission Date</label>
+                                            <div class="form-control bg-light">{{ $submission->submission_date }}</div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Due Date</label>
+                                            <div class="form-control bg-light">{{ $submission->due_date }}</div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Status</label>
+                                            <div>
+                                                <span class="badge" style="background: {{ $statusColors[$submission->status]['bg'] }}; color: {{ $statusColors[$submission->status]['text'] }};">
+                                                    <i class="fas fa-{{ $statusIcons[$submission->status] }} me-1"></i>
+                                                    {{ ucfirst($submission->status) }}
+                                                </span>
                                             </div>
-                                        @empty
-                                            <tr>
-                                                <td colspan="8" class="text-center">No {{ $type }} reports found.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Remarks</label>
+                                            <div class="form-control bg-light">{{ $submission->remarks ?? 'No remarks' }}</div>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Attached Files</label>
+                                            <div class="form-control bg-light">
+                                                @if($submission->files->count() > 0)
+                                                    <ul class="list-unstyled mb-0">
+                                                        @foreach($submission->files as $file)
+                                                            <li>
+                                                                <a href="{{ route('download.file', $file->id) }}" class="text-decoration-none">
+                                                                    <i class="fas fa-file me-2"></i>
+                                                                    {{ $file->filename }}
+                                                                </a>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    No files attached
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                @endforeach
-            </div>
+
+                    <!-- Update Modal -->
+                    <div class="modal fade" id="updateModal{{ $submission->id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-edit me-2" style="color: var(--primary);"></i>
+                                        Update Submission Status
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form action="{{ route('admin.update-submission', $submission->id) }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Status</label>
+                                            <select class="form-select" name="status" required>
+                                                <option value="pending" {{ $submission->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                                                <option value="approved" {{ $submission->status == 'approved' ? 'selected' : '' }}>Approved</option>
+                                                <option value="rejected" {{ $submission->status == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Remarks</label>
+                                            <textarea class="form-control" name="remarks" rows="3">{{ $submission->remarks }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i>
+                                            <span>Save Changes</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+@push('scripts')
+<script>
+    document.getElementById('submissionSearch').addEventListener('keyup', function() {
+        const searchText = this.value.toLowerCase();
+        const tableRows = document.querySelectorAll('tbody tr');
+
+        tableRows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchText) ? '' : 'none';
+        });
+    });
+</script>
+@endpush
+@endsection

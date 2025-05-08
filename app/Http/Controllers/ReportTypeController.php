@@ -17,43 +17,46 @@ class ReportTypeController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'frequency' => 'required|string',
-            'deadline' => 'nullable|date',
+            'frequency' => 'required|in:' . implode(',', ReportType::frequencies()),
+            'deadline' => 'required|date',
+            'allowed_file_types' => 'nullable|array',
+            'allowed_file_types.*' => 'in:' . implode(',', array_keys(ReportType::availableFileTypes()))
         ]);
 
-        ReportType::create([
+        $reportType = ReportType::create([
             'name' => $request->name,
             'frequency' => $request->frequency,
             'deadline' => $request->deadline,
+            'allowed_file_types' => $request->allowed_file_types
         ]);
 
-        return redirect()->route('admin.create-report')->with('success', 'Report Type created successfully.');
+        return redirect()->route('admin.create-report')->with('success', 'Report type created successfully.');
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, ReportType $reportType)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'frequency' => 'required|string',
-            'deadline' => 'nullable|date',
+            'frequency' => 'required|in:' . implode(',', ReportType::frequencies()),
+            'deadline' => 'required|date',
+            'allowed_file_types' => 'nullable|array',
+            'allowed_file_types.*' => 'in:' . implode(',', array_keys(ReportType::availableFileTypes()))
         ]);
 
-        $reportType = ReportType::findOrFail($id);
         $reportType->update([
             'name' => $request->name,
             'frequency' => $request->frequency,
             'deadline' => $request->deadline,
+            'allowed_file_types' => $request->allowed_file_types
         ]);
 
-        return redirect()->route('admin.create-report')->with('success', 'Report Type updated successfully.');
+        return redirect()->route('admin.create-report')->with('success', 'Report type updated successfully.');
     }
 
-    public function destroy($id)
+    public function destroy(ReportType $reportType)
     {
-        $reportType = ReportType::findOrFail($id);
         $reportType->delete();
-
-        return redirect()->route('admin.create-report')->with('success', 'Report Type deleted successfully.');
+        return redirect()->route('admin.create-report')->with('success', 'Report type deleted successfully.');
     }
 }
 
