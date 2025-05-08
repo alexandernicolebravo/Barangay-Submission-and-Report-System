@@ -15,25 +15,136 @@ class ReportController extends Controller
     /**
      * Show the report submission form.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Fetch all reports with their relationships
-        $weeklyReports = WeeklyReport::with('user', 'reportType')->orderBy('created_at', 'desc')->get();
-        $monthlyReports = MonthlyReport::with('user', 'reportType')->orderBy('created_at', 'desc')->get();
-        $quarterlyReports = QuarterlyReport::with('user', 'reportType')->orderBy('created_at', 'desc')->get();
-        $semestralReports = SemestralReport::with('user', 'reportType')->orderBy('created_at', 'desc')->get();
-        $annualReports = AnnualReport::with('user', 'reportType')->orderBy('created_at', 'desc')->get();
+        // Get all submissions from different report types
+        $weeklyReports = WeeklyReport::with(['user', 'reportType'])->get();
+        $monthlyReports = MonthlyReport::with(['user', 'reportType'])->get();
+        $quarterlyReports = QuarterlyReport::with(['user', 'reportType'])->get();
+        $semestralReports = SemestralReport::with(['user', 'reportType'])->get();
+        $annualReports = AnnualReport::with(['user', 'reportType'])->get();
 
-        // Compile all reports into an array
-        $reports = [
-            'weekly' => $weeklyReports,
-            'monthly' => $monthlyReports,
-            'quarterly' => $quarterlyReports,
-            'semestral' => $semestralReports,
-            'annual' => $annualReports,
-        ];
+        // Combine all submissions
+        $submissions = collect()
+            ->concat($weeklyReports->map(function ($report) {
+                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
+                return [
+                    'id' => $report->id,
+                    'type' => 'weekly',
+                    'report_type' => $report->reportType->name,
+                    'submitted_by' => $report->user->name,
+                    'submitted_at' => $report->created_at,
+                    'deadline' => $report->reportType->deadline,
+                    'status' => $report->status,
+                    'is_late' => $isLate,
+                    'remarks' => $report->remarks,
+                    'file_path' => $report->file_path,
+                    'file_name' => basename($report->file_path)
+                ];
+            }))
+            ->concat($monthlyReports->map(function ($report) {
+                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
+                return [
+                    'id' => $report->id,
+                    'type' => 'monthly',
+                    'report_type' => $report->reportType->name,
+                    'submitted_by' => $report->user->name,
+                    'submitted_at' => $report->created_at,
+                    'deadline' => $report->reportType->deadline,
+                    'status' => $report->status,
+                    'is_late' => $isLate,
+                    'remarks' => $report->remarks,
+                    'file_path' => $report->file_path,
+                    'file_name' => basename($report->file_path)
+                ];
+            }))
+            ->concat($quarterlyReports->map(function ($report) {
+                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
+                return [
+                    'id' => $report->id,
+                    'type' => 'quarterly',
+                    'report_type' => $report->reportType->name,
+                    'submitted_by' => $report->user->name,
+                    'submitted_at' => $report->created_at,
+                    'deadline' => $report->reportType->deadline,
+                    'status' => $report->status,
+                    'is_late' => $isLate,
+                    'remarks' => $report->remarks,
+                    'file_path' => $report->file_path,
+                    'file_name' => basename($report->file_path)
+                ];
+            }))
+            ->concat($semestralReports->map(function ($report) {
+                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
+                return [
+                    'id' => $report->id,
+                    'type' => 'semestral',
+                    'report_type' => $report->reportType->name,
+                    'submitted_by' => $report->user->name,
+                    'submitted_at' => $report->created_at,
+                    'deadline' => $report->reportType->deadline,
+                    'status' => $report->status,
+                    'is_late' => $isLate,
+                    'remarks' => $report->remarks,
+                    'file_path' => $report->file_path,
+                    'file_name' => basename($report->file_path)
+                ];
+            }))
+            ->concat($annualReports->map(function ($report) {
+                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
+                return [
+                    'id' => $report->id,
+                    'type' => 'annual',
+                    'report_type' => $report->reportType->name,
+                    'submitted_by' => $report->user->name,
+                    'submitted_at' => $report->created_at,
+                    'deadline' => $report->reportType->deadline,
+                    'status' => $report->status,
+                    'is_late' => $isLate,
+                    'remarks' => $report->remarks,
+                    'file_path' => $report->file_path,
+                    'file_name' => basename($report->file_path)
+                ];
+            }))
+            ->sortByDesc('submitted_at');
 
-        return view('admin.view-submissions', compact('reports'));
+        // Apply filters if they exist
+        if ($request->filled('type')) {
+            $submissions = $submissions->where('type', $request->type);
+        }
+        if ($request->filled('status')) {
+            $submissions = $submissions->where('status', $request->status);
+        }
+        if ($request->filled('timeliness')) {
+            $submissions = $submissions->where('is_late', $request->timeliness === 'late');
+        }
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $submissions = $submissions->filter(function ($submission) use ($search) {
+                return str_contains(strtolower($submission['report_type']), $search) ||
+                       str_contains(strtolower($submission['submitted_by']), $search);
+            });
+        }
+
+        // Convert to pagination
+        $page = $request->get('page', 1);
+        $perPage = 10;
+        $total = $submissions->count();
+        $submissions = $submissions->forPage($page, $perPage);
+
+        // Create paginator
+        $submissions = new \Illuminate\Pagination\LengthAwarePaginator(
+            $submissions,
+            $total,
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'query' => $request->query()
+            ]
+        );
+
+        return view('admin.view-submissions', compact('submissions'));
     }
 
     public function showSubmitReport()
@@ -121,27 +232,42 @@ class ReportController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'remarks' => 'nullable|string',
-            'status' => 'required|in:pending,approved,rejected',
-        ]);
+        try {
+            $type = $request->input('type');
+            $status = $request->input('status');
+            $remarks = $request->input('remarks');
 
-        $reportModels = [
-            WeeklyReport::class, MonthlyReport::class, QuarterlyReport::class, SemestralReport::class, AnnualReport::class
-        ];
-
-        foreach ($reportModels as $model) {
-            $report = $model::find($id);
-            if ($report) {
-                $report->update([
-                    'remarks' => $request->remarks,
-                    'status' => $request->status,
-                ]);
-                return back()->with('success', 'Report updated successfully.');
+            switch ($type) {
+                case 'weekly':
+                    $report = WeeklyReport::findOrFail($id);
+                    break;
+                case 'monthly':
+                    $report = MonthlyReport::findOrFail($id);
+                    break;
+                case 'quarterly':
+                    $report = QuarterlyReport::findOrFail($id);
+                    break;
+                case 'semestral':
+                    $report = SemestralReport::findOrFail($id);
+                    break;
+                case 'annual':
+                    $report = AnnualReport::findOrFail($id);
+                    break;
+                default:
+                    throw new \Exception('Invalid report type');
             }
-        }
 
-        return back()->with('error', 'Report not found.');
+            $report->update([
+                'status' => $status,
+                'remarks' => $remarks
+            ]);
+
+            return redirect()->route('view.submissions')
+                ->with('success', 'Report status updated successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('view.submissions')
+                ->with('error', 'Error updating report status. Please try again.');
+        }
     }
 
     /**
@@ -186,109 +312,49 @@ class ReportController extends Controller
 
     public function store(Request $request)
     {
-        $reportType = ReportType::find($request->report_type_id);
-
-        $request->validate([
-            'report_type_id' => 'required|exists:report_types,id',
-            'file' => 'required|file|mimes:pdf,doc,docx,xlsx|max:2048',
-        ]);
-
-        // Generate a unique filename
-        $originalName = $request->file('file')->getClientOriginalName();
-        $extension = $request->file('file')->getClientOriginalExtension();
-        $fileName = time() . '_' . str_replace([' ', '(', ')'], '_', $originalName);
-        $filePath = "reports/{$reportType->frequency}/{$fileName}";
-
-        DB::beginTransaction();
         try {
-            // Create directory if it doesn't exist
-            Storage::disk('public')->makeDirectory("reports/{$reportType->frequency}");
+            $validated = $request->validate([
+                'report_type_id' => 'required|exists:report_types,id',
+                'file' => 'required|file|max:10240', // 10MB max
+            ]);
 
-            // Store file
-            $stored = Storage::disk('public')->putFileAs(
-                "reports/{$reportType->frequency}",
-                $request->file('file'),
-                $fileName
-            );
+            $reportType = ReportType::findOrFail($validated['report_type_id']);
+            $file = $request->file('file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('public/reports', $fileName);
 
-            if (!$stored) {
-                throw new \Exception('Failed to store the file');
-            }
-
-            // Report Data
-            $reportData = [
+            $data = [
                 'user_id' => Auth::id(),
-                'report_type_id' => $request->report_type_id,
-                'file_name' => $originalName,
-                'file_path' => $filePath,
-                'status' => 'pending',
-                'remarks' => null,
-                'deadline' => $reportType->deadline,
+                'report_type_id' => $validated['report_type_id'],
+                'file_path' => 'reports/' . $fileName,
+                'status' => 'pending'
             ];
 
-            // Dynamic validation and data preparation based on report type
-            $extraFields = [];
             switch ($reportType->frequency) {
                 case 'weekly':
-                    $extraFields = $request->validate([
-                        'month' => 'required|string',
-                        'week_number' => 'required|integer',
-                        'num_of_clean_up_sites' => 'required|integer',
-                        'num_of_participants' => 'required|integer',
-                        'num_of_barangays' => 'required|integer',
-                        'total_volume' => 'required|numeric',
-                    ]);
+                    WeeklyReport::create($data);
                     break;
                 case 'monthly':
-                    $extraFields = $request->validate([
-                        'month' => 'required|string',
-                    ]);
+                    MonthlyReport::create($data);
                     break;
                 case 'quarterly':
-                    $extraFields = $request->validate([
-                        'quarter_number' => 'required|integer|between:1,4',
-                    ]);
+                    QuarterlyReport::create($data);
                     break;
                 case 'semestral':
-                    $extraFields = $request->validate([
-                        'sem_number' => 'required|integer|between:1,2',
-                    ]);
+                    SemestralReport::create($data);
                     break;
                 case 'annual':
-                    // No extra fields needed for annual reports
+                    AnnualReport::create($data);
                     break;
                 default:
-                    throw new \Exception('Invalid report frequency type');
+                    throw new \Exception('Invalid report frequency');
             }
 
-            $modelMap = [
-                'weekly' => WeeklyReport::class,
-                'monthly' => MonthlyReport::class,
-                'quarterly' => QuarterlyReport::class,
-                'semestral' => SemestralReport::class,
-                'annual' => AnnualReport::class,
-            ];
-
-            if (!isset($modelMap[$reportType->frequency])) {
-                throw new \Exception('Invalid report type');
-            }
-
-            $model = $modelMap[$reportType->frequency];
-            $report = $model::create(array_merge($reportData, $extraFields));
-
-            DB::commit();
-            return redirect()->back()->with([
-                'success' => ucfirst($reportType->frequency) . ' report submitted successfully!',
-                'report_id' => $report->id,
-                'file_name' => $originalName
-            ]);
+            return redirect()->route('barangay.submit-report')
+                ->with('success', 'Report submitted successfully.');
         } catch (\Exception $e) {
-            DB::rollback();
-            // Clean up the file if it was stored but the database transaction failed
-            if (isset($stored) && $stored) {
-                Storage::disk('public')->delete($filePath);
-            }
-            return back()->with('error', 'Failed to submit report: ' . $e->getMessage());
+            return redirect()->route('barangay.submit-report')
+                ->with('error', 'Error submitting report. Please try again.');
         }
     }
 
@@ -461,5 +527,123 @@ class ReportController extends Controller
         return view('barangay.overdue-reports', [
             'overdueReports' => $overdueReports
         ]);
+    }
+
+    /**
+     * Download a report file.
+     */
+    public function downloadFile($id)
+    {
+        try {
+            \Log::info('Attempting to find report with ID: ' . $id);
+
+            // Try to find the report in each table
+            $report = null;
+            $reportTypes = [
+                'weekly' => WeeklyReport::class,
+                'monthly' => MonthlyReport::class,
+                'quarterly' => QuarterlyReport::class,
+                'semestral' => SemestralReport::class,
+                'annual' => AnnualReport::class
+            ];
+
+            foreach ($reportTypes as $type => $model) {
+                \Log::info("Checking {$type} reports table");
+                $foundReport = $model::find($id);
+                if ($foundReport) {
+                    $report = $foundReport;
+                    \Log::info("Found report in {$type} reports table");
+                    break;
+                }
+            }
+
+            if (!$report) {
+                \Log::error('Report not found in any table for ID: ' . $id);
+                return response()->json(['error' => 'Report not found.'], 404);
+            }
+
+            // Log the file path from the database
+            \Log::info('File path from database: ' . $report->file_path);
+
+            // Check if the file exists in storage
+            if (!Storage::disk('public')->exists($report->file_path)) {
+                \Log::error('File not found in storage: ' . $report->file_path);
+                return response()->json(['error' => 'File not found in storage.'], 404);
+            }
+
+            // Get the full path to the file
+            $path = Storage::disk('public')->path($report->file_path);
+            \Log::info('Full file path: ' . $path);
+
+            // Get the file's mime type
+            $mimeType = mime_content_type($path);
+            $fileName = basename($report->file_path);
+
+            \Log::info('File details:', [
+                'path' => $path,
+                'mime_type' => $mimeType,
+                'file_name' => $fileName,
+                'is_download' => request()->has('download')
+            ]);
+
+            // If it's a download request, force download
+            if (request()->has('download')) {
+                return response()->download($path, $fileName);
+            }
+
+            // For viewing, determine if the file type is viewable
+            $viewableTypes = [
+                'application/pdf',
+                'image/jpeg',
+                'image/png',
+                'image/gif',
+                'text/plain',
+                'text/html',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ];
+
+            // Get file extension
+            $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+            // Map common extensions to mime types if mime_content_type fails
+            $extensionMimeTypes = [
+                'pdf' => 'application/pdf',
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'txt' => 'text/plain',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ];
+
+            // If mime_content_type fails, try to determine from extension
+            if (!$mimeType && isset($extensionMimeTypes[$extension])) {
+                $mimeType = $extensionMimeTypes[$extension];
+                \Log::info('Using mime type from extension: ' . $mimeType);
+            }
+
+            if (in_array($mimeType, $viewableTypes)) {
+                \Log::info('Serving file as viewable type: ' . $mimeType);
+                return response()->file($path, [
+                    'Content-Type' => $mimeType,
+                    'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+                    'Cache-Control' => 'public, max-age=0',
+                    'Accept-Ranges' => 'bytes'
+                ]);
+            }
+
+            \Log::info('File type not viewable, forcing download: ' . $mimeType);
+            // For non-viewable types, force download
+            return response()->download($path, $fileName);
+        } catch (\Exception $e) {
+            \Log::error('File access error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            return response()->json(['error' => 'Error accessing file: ' . $e->getMessage()], 500);
+        }
     }
 }

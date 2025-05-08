@@ -9,15 +9,27 @@ class ReportType extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'frequency', 'deadline', 'allowed_file_types'];
+    protected $fillable = [
+        'name',
+        'frequency',
+        'deadline',
+        'allowed_file_types'
+    ];
 
     protected $casts = [
-        'allowed_file_types' => 'array'
+        'allowed_file_types' => 'array',
+        'deadline' => 'date'
     ];
 
     public static function frequencies()
     {
-        return ['weekly', 'monthly', 'quarterly', 'semestral', 'annual'];
+        return [
+            'weekly' => 'Weekly',
+            'monthly' => 'Monthly',
+            'quarterly' => 'Quarterly',
+            'semestral' => 'Semestral',
+            'annual' => 'Annual'
+        ];
     }
 
     public static function availableFileTypes()
@@ -38,6 +50,6 @@ class ReportType extends Model
 
     public function getFormattedNameAttribute()
     {
-        return ucfirst($this->name);
+        return ucwords(str_replace('_', ' ', $this->name));
     }
 }

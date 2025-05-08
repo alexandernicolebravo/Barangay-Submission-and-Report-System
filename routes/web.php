@@ -25,9 +25,13 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// File Routes - Public access
+Route::get('/files/{id}', [ReportController::class, 'downloadFile'])->name('barangay.files.download');
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::post('/admin/store', [AdminController::class, 'store'])->name('admin.store');
+    Route::put('/admin/{id}', [AdminController::class, 'update'])->name('admin.update');
     Route::delete('/admin/{id}', [AdminController::class, 'destroy'])->name('admin.destroy');
     Route::get('/admin/confirm-deactivation/{id}', [AdminController::class, 'confirmDeactivation'])->name('admin.confirmDeactivation');
 
@@ -50,56 +54,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('admin/update-report/{id}', [ReportTypeController::class, 'update'])->name('admin.update-report');
     Route::delete('admin/destroy-report/{id}', [ReportTypeController::class, 'destroy'])->name('admin.destroy-report');
 
-    Route::get('/files/{filename}', function ($filename) {
-        // Try to find the report in each table
-        $report = WeeklyReport::where('file_path', 'reports/' . $filename)
-            ->where('user_id', Auth::id())
-            ->first();
-
-        if (!$report) {
-            $report = MonthlyReport::where('file_path', 'reports/' . $filename)
-                ->where('user_id', Auth::id())
-                ->first();
-        }
-
-        if (!$report) {
-            $report = QuarterlyReport::where('file_path', 'reports/' . $filename)
-                ->where('user_id', Auth::id())
-                ->first();
-        }
-
-        if (!$report) {
-            $report = SemestralReport::where('file_path', 'reports/' . $filename)
-                ->where('user_id', Auth::id())
-                ->first();
-        }
-
-        if (!$report) {
-            $report = AnnualReport::where('file_path', 'reports/' . $filename)
-                ->where('user_id', Auth::id())
-                ->first();
-        }
-
-        if (!$report) {
-            abort(403, 'Unauthorized access.');
-        }
-
-        $path = storage_path("app/public/reports/{$filename}");
-
-        if (!file_exists($path)) {
-            abort(404, 'File not found.');
-        }
-
-        return response()->file($path);
-    })->middleware('auth');
-
-    // Report Submission Routes
-    Route::get('/barangay/submit-report', [ReportController::class, 'showSubmitReport'])->name('barangay.submit-report');
-    Route::post('/barangay/submit-report', [ReportController::class, 'store'])->name('barangay.store-report');
-
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index'); // View page
-    // Route::get('/reports/show', [ReportController::class, 'showReports'])->name('reports.show'); // AJAX fetching
-    // Route::get('/barangay/create-report', [ReportController::class, 'showReports'])->name('reports.view');
+    // Remove or comment out any duplicate file routes
+    // Route::get('/files/{filename}', function ($filename) { ... })->middleware('auth');
 });
 
 // Protected Routes (Requires Authentication)
@@ -121,9 +77,10 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/{id}', [AdminController::class, 'destroy'])->name('users.destroy');
         Route::get('/users/{id}/confirm-deactivation', [AdminController::class, 'confirmDeactivation']);
 
-        // Report Types
+        // Report Types - Cleaned up routes
         Route::get('/create-report', [ReportTypeController::class, 'index'])->name('create-report');
         Route::post('/store-report', [ReportTypeController::class, 'store'])->name('store-report');
+        Route::get('/edit-report/{id}', [ReportTypeController::class, 'edit'])->name('edit-report');
         Route::put('/update-report/{id}', [ReportTypeController::class, 'update'])->name('update-report');
         Route::delete('/destroy-report/{id}', [ReportTypeController::class, 'destroy'])->name('destroy-report');
     });
@@ -139,58 +96,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/submissions', [BarangayController::class, 'submissions'])->name('submissions');
 
         // File Management
-        Route::get('/files/download/{id}', [BarangayFileController::class, 'download'])->name('files.download');
+        Route::get('/files/{id}', [ReportController::class, 'downloadFile'])->name('files.download');
         Route::delete('/files/{id}', [BarangayFileController::class, 'destroy'])->name('files.destroy');
     });
-
-    // File Routes
-    Route::get('/files/{filename}', function ($filename) {
-        // Try to find the report in each table
-        $report = WeeklyReport::where('file_path', 'reports/' . $filename)
-            ->where('user_id', Auth::id())
-            ->first();
-
-        if (!$report) {
-            $report = MonthlyReport::where('file_path', 'reports/' . $filename)
-                ->where('user_id', Auth::id())
-                ->first();
-        }
-
-        if (!$report) {
-            $report = QuarterlyReport::where('file_path', 'reports/' . $filename)
-                ->where('user_id', Auth::id())
-                ->first();
-        }
-
-        if (!$report) {
-            $report = SemestralReport::where('file_path', 'reports/' . $filename)
-                ->where('user_id', Auth::id())
-                ->first();
-        }
-
-        if (!$report) {
-            $report = AnnualReport::where('file_path', 'reports/' . $filename)
-                ->where('user_id', Auth::id())
-                ->first();
-        }
-
-        if (!$report) {
-            abort(403, 'Unauthorized access.');
-        }
-
-        $path = storage_path("app/public/reports/{$filename}");
-
-        if (!file_exists($path)) {
-            abort(404, 'File not found.');
-        }
-
-        return response()->file($path);
-    })->middleware('auth');
 });
 
 // Barangay routes
 Route::post('barangay/files', [BarangayFileController::class, 'store'])->name('barangay.files.store');
-Route::get('barangay/files/{file}/download', [BarangayFileController::class, 'download'])->name('barangay.files.download');
 Route::delete('barangay/files/{file}', [BarangayFileController::class, 'destroy'])->name('barangay.files.destroy');
 
 Route::middleware(['auth'])->group(function () {
