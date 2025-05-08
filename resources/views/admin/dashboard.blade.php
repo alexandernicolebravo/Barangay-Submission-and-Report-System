@@ -154,9 +154,9 @@
                     <div class="activity-item {{ $submission->is_late ? 'late' : 'ontime' }}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <h6 class="mb-1">{{ $submission->reportType->name }}</h6>
+                                <h6 class="mb-1">{{ $submission->report_type }}</h6>
                                 <p class="mb-1 text-muted">
-                                    Submitted by {{ $submission->user->name }}
+                                    Submitted by {{ $submission->submitter }}
                                 </p>
                                 <small class="text-muted">
                                     {{ \Carbon\Carbon::parse($submission->submitted_at)->format('M d, Y h:i A') }}
@@ -201,19 +201,19 @@
                 <div class="mt-4">
                     <div class="d-flex justify-content-between mb-2">
                         <span>Weekly Reports</span>
-                        <span class="fw-bold">{{ $weeklySubmissions }}</span>
+                        <span class="fw-bold">{{ $weeklyCount }}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Monthly Reports</span>
-                        <span class="fw-bold">{{ $monthlySubmissions }}</span>
+                        <span class="fw-bold">{{ $monthlyCount }}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Quarterly Reports</span>
-                        <span class="fw-bold">{{ $quarterlySubmissions }}</span>
+                        <span class="fw-bold">{{ $quarterlyCount }}</span>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span>Annual Reports</span>
-                        <span class="fw-bold">{{ $annualSubmissions }}</span>
+                        <span class="fw-bold">{{ $annualCount }}</span>
                     </div>
                 </div>
             </div>
@@ -233,10 +233,10 @@ document.addEventListener('DOMContentLoaded', function() {
             labels: ['Weekly', 'Monthly', 'Quarterly', 'Annual'],
             datasets: [{
                 data: [
-                    {{ $weeklySubmissions }},
-                    {{ $monthlySubmissions }},
-                    {{ $quarterlySubmissions }},
-                    {{ $annualSubmissions }}
+                    {{ $weeklyCount }},
+                    {{ $monthlyCount }},
+                    {{ $quarterlyCount }},
+                    {{ $annualCount }}
                 ],
                 backgroundColor: [
                     'rgba(54, 162, 235, 0.8)',

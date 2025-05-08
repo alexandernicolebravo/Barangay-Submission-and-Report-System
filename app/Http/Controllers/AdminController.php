@@ -58,27 +58,62 @@ class AdminController extends Controller
 
         // Get recent submissions
         $recentSubmissions = DB::table('weekly_reports')
-            ->select('weekly_reports.*', 'users.name as submitter', 'report_types.name as report_type', 'weekly_reports.created_at as submitted_at')
+            ->select([
+                'weekly_reports.id',
+                'weekly_reports.user_id',
+                'weekly_reports.report_type_id',
+                'weekly_reports.status',
+                'weekly_reports.created_at as submitted_at',
+                'users.name as submitter',
+                'report_types.name as report_type',
+                DB::raw('CASE WHEN weekly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
+            ])
             ->join('users', 'weekly_reports.user_id', '=', 'users.id')
             ->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id')
-            ->select('weekly_reports.*', 'users.name as submitter', 'report_types.name as report_type', DB::raw('CASE WHEN weekly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late'))
             ->union(
                 DB::table('monthly_reports')
+                ->select([
+                    'monthly_reports.id',
+                    'monthly_reports.user_id',
+                    'monthly_reports.report_type_id',
+                    'monthly_reports.status',
+                    'monthly_reports.created_at as submitted_at',
+                    'users.name as submitter',
+                    'report_types.name as report_type',
+                    DB::raw('CASE WHEN monthly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
+                ])
                 ->join('users', 'monthly_reports.user_id', '=', 'users.id')
                 ->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id')
-                ->select('monthly_reports.*', 'users.name as submitter', 'report_types.name as report_type', DB::raw('CASE WHEN monthly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late'))
             )
             ->union(
                 DB::table('quarterly_reports')
+                ->select([
+                    'quarterly_reports.id',
+                    'quarterly_reports.user_id',
+                    'quarterly_reports.report_type_id',
+                    'quarterly_reports.status',
+                    'quarterly_reports.created_at as submitted_at',
+                    'users.name as submitter',
+                    'report_types.name as report_type',
+                    DB::raw('CASE WHEN quarterly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
+                ])
                 ->join('users', 'quarterly_reports.user_id', '=', 'users.id')
                 ->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id')
-                ->select('quarterly_reports.*', 'users.name as submitter', 'report_types.name as report_type', DB::raw('CASE WHEN quarterly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late'))
             )
             ->union(
                 DB::table('annual_reports')
+                ->select([
+                    'annual_reports.id',
+                    'annual_reports.user_id',
+                    'annual_reports.report_type_id',
+                    'annual_reports.status',
+                    'annual_reports.created_at as submitted_at',
+                    'users.name as submitter',
+                    'report_types.name as report_type',
+                    DB::raw('CASE WHEN annual_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
+                ])
                 ->join('users', 'annual_reports.user_id', '=', 'users.id')
                 ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
-                ->select('annual_reports.*', 'users.name as submitter', 'report_types.name as report_type', DB::raw('CASE WHEN annual_reports.created_at > report_types.deadline THEN true ELSE false END as is_late'))
             )
             ->orderBy('submitted_at', 'desc')
             ->limit(5)
