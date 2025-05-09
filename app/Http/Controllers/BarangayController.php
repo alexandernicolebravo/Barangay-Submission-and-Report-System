@@ -456,7 +456,15 @@ class BarangayController extends Controller
                     break;
             }
 
-            $request->validate($validationRules);
+            $validator = \Validator::make($request->all(), $validationRules);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
             // Store the file
             $file = $request->file('file');
@@ -473,8 +481,10 @@ class BarangayController extends Controller
                         ->first();
 
                     if ($existingReport) {
-                        return redirect()->route('barangay.submit-report')
-                            ->with('error', 'You have already submitted this report type.');
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'You have already submitted this report type.'
+                        ], 422);
                     }
 
                     $report = WeeklyReport::create([
@@ -484,8 +494,8 @@ class BarangayController extends Controller
                         'file_name' => $fileName,
                         'status' => 'pending',
                         'deadline' => $reportType->deadline,
-                        'month' => now()->format('F'),
-                        'week_number' => now()->weekOfMonth,
+                        'month' => $request->month,
+                        'week_number' => $request->week_number,
                         'num_of_clean_up_sites' => $request->num_of_clean_up_sites,
                         'num_of_participants' => $request->num_of_participants,
                         'num_of_barangays' => $request->num_of_barangays,
@@ -499,8 +509,10 @@ class BarangayController extends Controller
                         ->first();
 
                     if ($existingReport) {
-                        return redirect()->route('barangay.submit-report')
-                            ->with('error', 'You have already submitted this report type.');
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'You have already submitted this report type.'
+                        ], 422);
                     }
 
                     $report = MonthlyReport::create([
@@ -520,8 +532,10 @@ class BarangayController extends Controller
                         ->first();
 
                     if ($existingReport) {
-                        return redirect()->route('barangay.submit-report')
-                            ->with('error', 'You have already submitted this report type.');
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'You have already submitted this report type.'
+                        ], 422);
                     }
 
                     $report = QuarterlyReport::create([
@@ -541,8 +555,10 @@ class BarangayController extends Controller
                         ->first();
 
                     if ($existingReport) {
-                        return redirect()->route('barangay.submit-report')
-                            ->with('error', 'You have already submitted this report type.');
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'You have already submitted this report type.'
+                        ], 422);
                     }
 
                     $report = SemestralReport::create([
@@ -562,8 +578,10 @@ class BarangayController extends Controller
                         ->first();
 
                     if ($existingReport) {
-                        return redirect()->route('barangay.submit-report')
-                            ->with('error', 'You have already submitted this report type.');
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'You have already submitted this report type.'
+                        ], 422);
                     }
 
                     $report = AnnualReport::create([
@@ -583,14 +601,18 @@ class BarangayController extends Controller
 
             DB::commit();
 
-            return redirect()->route('barangay.submit-report')
-                ->with('success', 'Report submitted successfully.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Report submitted successfully.'
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Report submission error: ' . $e->getMessage());
-            return redirect()->route('barangay.submit-report')
-                ->with('error', 'Failed to submit report. Please try again. Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit report. Please try again. Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 
