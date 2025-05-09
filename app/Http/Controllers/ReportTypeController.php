@@ -8,9 +8,26 @@ use Illuminate\Support\Facades\Log;
 
 class ReportTypeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $reportTypes = ReportType::all();
+        $query = ReportType::query();
+
+        // Apply search filter if provided
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        // Apply frequency filter if provided
+        if ($request->has('frequency') && $request->frequency !== '') {
+            $query->where('frequency', $request->frequency);
+        }
+
+        // Get paginated results
+        $reportTypes = $query->orderBy('created_at', 'desc')
+                           ->paginate(10)
+                           ->withQueryString();
+
         return view('admin.create-report', compact('reportTypes'));
     }
 

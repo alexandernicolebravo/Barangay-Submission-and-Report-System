@@ -31,65 +31,219 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
-                    @csrf
-
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="report_type" class="form-label fw-bold">
-                                    <i class="fas fa-tasks me-2"></i>
-                                    Report Type
-                                </label>
-                                <select id="report_type" class="form-select form-select-lg @error('report_type_id') is-invalid @enderror" name="report_type_id" required>
-                                    <option value="">Select Report Type</option>
-                                    @foreach($reportTypes as $reportType)
-                                        <option value="{{ $reportType->id }}" data-frequency="{{ $reportType->frequency }}">
-                                            {{ $reportType->name }}
-                                        </option>
+                <!-- Already Submitted Reports Section -->
+                @if(count($submittedReportTypeIds) > 0)
+                    <div class="mb-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-history me-2"></i>
+                            Already Submitted Reports
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Report Type</th>
+                                        <th>Frequency</th>
+                                        <th>Status</th>
+                                        <th>Submitted Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($allReportTypes as $reportType)
+                                        @if($submittedReportTypeIds->contains($reportType->id))
+                                            @php
+                                                $report = $submittedReportsByFrequency[$reportType->frequency]->firstWhere('report_type_id', $reportType->id);
+                                            @endphp
+                                            <tr>
+                                                <td>{{ $reportType->name }}</td>
+                                                <td>
+                                                    <span class="badge bg-info">
+                                                        {{ ucfirst($reportType->frequency) }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-{{ $report->status === 'approved' ? 'success' : ($report->status === 'pending' ? 'warning' : 'danger') }}">
+                                                        {{ ucfirst($report->status) }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ $report->created_at->format('M d, Y') }}</td>
+                                                <td>
+                                                    @if($report->status === 'rejected')
+                                                        <a href="{{ route('barangay.submissions.resubmit', $report->id) }}" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-redo me-1"></i>
+                                                            Resubmit
+                                                        </a>
+                                                    @else
+                                                        <button class="btn btn-sm btn-secondary" disabled>
+                                                            <i class="fas fa-check me-1"></i>
+                                                            Submitted
+                                                        </button>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endif
                                     @endforeach
-                                </select>
-                                @error('report_type_id')
-                                    <div class="invalid-feedback">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="file" class="form-label fw-bold">
-                                    <i class="fas fa-file-upload me-2"></i>
-                                    Upload File
-                                </label>
-                                <div class="drop-zone" id="dropZone">
-                                    <div class="drop-zone__prompt">
-                                        <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-primary"></i>
-                                        <p class="mb-2">Drag and drop your file here or click to browse</p>
-                                        <small class="text-muted">Accepted formats: PDF, DOC, DOCX, XLSX (Max: 2MB)</small>
-                                    </div>
-                                    <input type="file" name="file" id="file" class="drop-zone__input" accept=".pdf,.doc,.docx,.xlsx" required>
-                                </div>
-                                @error('file')
-                                    <div class="invalid-feedback d-block">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+                @endif
 
-                    <!-- Weekly Report Fields -->
-                    <div id="weekly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Report Period
-                                </h6>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
+                <!-- New Report Submission Form -->
+                @if(count($reportTypes) > 0)
+                    <form method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        @csrf
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="report_type" class="form-label fw-bold">
+                                        <i class="fas fa-tasks me-2"></i>
+                                        Report Type
+                                    </label>
+                                    <select id="report_type" class="form-select form-select-lg @error('report_type_id') is-invalid @enderror" name="report_type_id" required>
+                                        <option value="">Select Report Type</option>
+                                        @foreach($reportTypes as $reportType)
+                                            <option value="{{ $reportType->id }}" data-frequency="{{ $reportType->frequency }}">
+                                                {{ $reportType->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('report_type_id')
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="file" class="form-label fw-bold">
+                                        <i class="fas fa-file-upload me-2"></i>
+                                        Upload File
+                                    </label>
+                                    <div class="drop-zone" id="dropZone">
+                                        <div class="drop-zone__prompt">
+                                            <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-primary"></i>
+                                            <p class="mb-2">Drag and drop your file here or click to browse</p>
+                                            <small class="text-muted">Accepted formats: PDF, DOC, DOCX, XLSX (Max: 2MB)</small>
+                                        </div>
+                                        <input type="file" name="file" id="file" class="drop-zone__input" accept=".pdf,.doc,.docx,.xlsx" required>
+                                    </div>
+                                    @error('file')
+                                        <div class="invalid-feedback d-block">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Report Fields -->
+                        <div id="weekly-fields" class="report-fields" style="display: none;">
+                            <div class="card bg-light mb-4">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-4">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        Report Period
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Month</label>
+                                            <select class="form-select" name="month" required>
+                                                @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
+                                                    <option value="{{ $month }}">{{ $month }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('month')
+                                                <div class="invalid-feedback d-block">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Week Number</label>
+                                            <input type="number" class="form-control" name="week_number" min="1" max="52" required>
+                                            @error('week_number')
+                                                <div class="invalid-feedback d-block">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card bg-light mb-4">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-4">
+                                        <i class="fas fa-chart-bar me-2"></i>
+                                        Report Details
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Number of Clean-up Sites</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
+                                                <span class="input-group-text">sites</span>
+                                            </div>
+                                            @error('num_of_clean_up_sites')
+                                                <div class="invalid-feedback d-block">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Number of Participants</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" name="num_of_participants" min="0" required>
+                                                <span class="input-group-text">people</span>
+                                            </div>
+                                            @error('num_of_participants')
+                                                <div class="invalid-feedback d-block">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Number of Barangays</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" name="num_of_barangays" min="0" required>
+                                                <span class="input-group-text">barangays</span>
+                                            </div>
+                                            @error('num_of_barangays')
+                                                <div class="invalid-feedback d-block">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Total Volume</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
+                                                <span class="input-group-text">m³</span>
+                                            </div>
+                                            @error('total_volume')
+                                                <div class="invalid-feedback d-block">
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Report Fields -->
+                        <div id="monthly-fields" class="report-fields" style="display: none;">
+                            <div class="card bg-light mb-4">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-4">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        Report Period
+                                    </h6>
+                                    <div class="mb-3">
                                         <label class="form-label">Month</label>
                                         <select class="form-select" name="month" required>
                                             @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
@@ -102,10 +256,28 @@
                                             </div>
                                         @enderror
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Week Number</label>
-                                        <input type="number" class="form-control" name="week_number" min="1" max="52" required>
-                                        @error('week_number')
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quarterly Report Fields -->
+                        <div id="quarterly-fields" class="report-fields" style="display: none;">
+                            <div class="card bg-light mb-4">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-4">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        Report Period
+                                    </h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Quarter</label>
+                                        <select class="form-select" name="quarter_number" required>
+                                            <option value="">Select Quarter</option>
+                                            <option value="1">First Quarter (January - March)</option>
+                                            <option value="2">Second Quarter (April - June)</option>
+                                            <option value="3">Third Quarter (July - September)</option>
+                                            <option value="4">Fourth Quarter (October - December)</option>
+                                        </select>
+                                        @error('quarter_number')
                                             <div class="invalid-feedback d-block">
                                                 {{ $message }}
                                             </div>
@@ -115,56 +287,22 @@
                             </div>
                         </div>
 
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
-                                    <i class="fas fa-chart-bar me-2"></i>
-                                    Report Details
-                                </h6>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Clean-up Sites</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
-                                            <span class="input-group-text">sites</span>
-                                        </div>
-                                        @error('num_of_clean_up_sites')
-                                            <div class="invalid-feedback d-block">
-                                                {{ $message }}
-                                            </div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Participants</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" name="num_of_participants" min="0" required>
-                                            <span class="input-group-text">people</span>
-                                        </div>
-                                        @error('num_of_participants')
-                                            <div class="invalid-feedback d-block">
-                                                {{ $message }}
-                                            </div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Barangays</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" name="num_of_barangays" min="0" required>
-                                            <span class="input-group-text">barangays</span>
-                                        </div>
-                                        @error('num_of_barangays')
-                                            <div class="invalid-feedback d-block">
-                                                {{ $message }}
-                                            </div>
-                                        @enderror
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Total Volume</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
-                                            <span class="input-group-text">m³</span>
-                                        </div>
-                                        @error('total_volume')
+                        <!-- Semestral Report Fields -->
+                        <div id="semestral-fields" class="report-fields" style="display: none;">
+                            <div class="card bg-light mb-4">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-4">
+                                        <i class="fas fa-calendar-alt me-2"></i>
+                                        Report Period
+                                    </h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Semester</label>
+                                        <select class="form-select" name="sem_number" required>
+                                            <option value="">Select Semester</option>
+                                            <option value="1">First Semester (January - June)</option>
+                                            <option value="2">Second Semester (July - December)</option>
+                                        </select>
+                                        @error('sem_number')
                                             <div class="invalid-feedback d-block">
                                                 {{ $message }}
                                             </div>
@@ -173,96 +311,29 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Monthly Report Fields -->
-                    <div id="monthly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Report Period
-                                </h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Month</label>
-                                    <select class="form-select" name="month" required>
-                                        @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
-                                            <option value="{{ $month }}">{{ $month }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('month')
-                                        <div class="invalid-feedback d-block">
-                                            {{ $message }}
-                                        </div>
-                                    @enderror
-                                </div>
-                            </div>
+                        <div class="text-end mt-4">
+                            <a href="{{ route('barangay.dashboard') }}" class="btn btn-secondary me-2">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Back to Dashboard
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Submit Report
+                            </button>
                         </div>
-                    </div>
-
-                    <!-- Quarterly Report Fields -->
-                    <div id="quarterly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Report Period
-                                </h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Quarter</label>
-                                    <select class="form-select" name="quarter_number" required>
-                                        <option value="">Select Quarter</option>
-                                        <option value="1">Q1 (January - March)</option>
-                                        <option value="2">Q2 (April - June)</option>
-                                        <option value="3">Q3 (July - September)</option>
-                                        <option value="4">Q4 (October - December)</option>
-                                    </select>
-                                    @error('quarter_number')
-                                        <div class="invalid-feedback d-block">
-                                            {{ $message }}
-                                        </div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Semestral Report Fields -->
-                    <div id="semestral-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Report Period
-                                </h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Semester</label>
-                                    <select class="form-select" name="sem_number" required>
-                                        <option value="">Select Semester</option>
-                                        <option value="1">First Semester (January - June)</option>
-                                        <option value="2">Second Semester (July - December)</option>
-                                    </select>
-                                    @error('sem_number')
-                                        <div class="invalid-feedback d-block">
-                                            {{ $message }}
-                                        </div>
-                                    @enderror
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="text-end mt-4">
-                        <a href="{{ route('barangay.dashboard') }}" class="btn btn-secondary me-2">
+                    </form>
+                @else
+                    <div class="text-center py-5">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5 class="mb-3">All Reports Submitted</h5>
+                        <p class="text-muted mb-4">You have submitted all available reports. Check the table above for any reports that need resubmission.</p>
+                        <a href="{{ route('barangay.dashboard') }}" class="btn btn-primary">
                             <i class="fas fa-arrow-left me-2"></i>
                             Back to Dashboard
                         </a>
-                        <button type="submit" class="btn btn-primary" id="submitBtn">
-                            <i class="fas fa-paper-plane me-2"></i>
-                            Submit Report
-                        </button>
                     </div>
-                </form>
+                @endif
             </div>
         </div>
     </div>
@@ -334,102 +405,74 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const dropZoneElement = document.querySelector('.drop-zone');
-    const inputElement = dropZoneElement.querySelector('.drop-zone__input');
     const reportTypeSelect = document.getElementById('report_type');
-    const weeklyFields = document.getElementById('weekly-fields');
-    const monthlyFields = document.getElementById('monthly-fields');
-    const quarterlyFields = document.getElementById('quarterly-fields');
-    const semestralFields = document.getElementById('semestral-fields');
+    const reportFields = document.querySelectorAll('.report-fields');
+    const dropZone = document.getElementById('dropZone');
+    const inputElement = document.getElementById('file');
     const submitBtn = document.getElementById('submitBtn');
-    const form = document.querySelector('form');
 
-    // Handle file drop
-    dropZoneElement.addEventListener('click', e => {
-        inputElement.click();
-    });
-
-    inputElement.addEventListener('change', e => {
-        if (inputElement.files.length) {
-            updateThumbnail(dropZoneElement, inputElement.files[0]);
-        }
-    });
-
-    dropZoneElement.addEventListener('dragover', e => {
-        e.preventDefault();
-        dropZoneElement.classList.add('dragover');
-    });
-
-    ['dragleave', 'dragend'].forEach(type => {
-        dropZoneElement.addEventListener(type, e => {
-            dropZoneElement.classList.remove('dragover');
+    // Function to hide all report fields
+    function hideAllFields() {
+        reportFields.forEach(field => {
+            field.style.display = 'none';
         });
-    });
-
-    dropZoneElement.addEventListener('drop', e => {
-        e.preventDefault();
-
-        if (e.dataTransfer.files.length) {
-            inputElement.files = e.dataTransfer.files;
-            updateThumbnail(dropZoneElement, e.dataTransfer.files[0]);
-        }
-
-        dropZoneElement.classList.remove('dragover');
-    });
-
-    function updateThumbnail(dropZoneElement, file) {
-        let thumbnailElement = dropZoneElement.querySelector('.drop-zone__thumb');
-
-        if (dropZoneElement.querySelector('.drop-zone__prompt')) {
-            dropZoneElement.querySelector('.drop-zone__prompt').remove();
-        }
-
-        if (!thumbnailElement) {
-            thumbnailElement = document.createElement('div');
-            thumbnailElement.classList.add('drop-zone__thumb');
-            dropZoneElement.appendChild(thumbnailElement);
-        }
-
-        thumbnailElement.dataset.label = file.name;
-
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                thumbnailElement.style.backgroundImage = `url('${reader.result}')`;
-            };
-        } else {
-            thumbnailElement.style.backgroundImage = null;
-        }
     }
 
     // Handle report type change
     reportTypeSelect.addEventListener('change', function() {
+        hideAllFields();
         const frequency = this.options[this.selectedIndex].dataset.frequency;
-
-        // Hide all fields first
-        [weeklyFields, monthlyFields, quarterlyFields, semestralFields].forEach(field => {
-            field.style.display = 'none';
-        });
-
-        // Show relevant fields
-        switch(frequency) {
-            case 'weekly':
-                weeklyFields.style.display = 'block';
-                break;
-            case 'monthly':
-                monthlyFields.style.display = 'block';
-                break;
-            case 'quarterly':
-                quarterlyFields.style.display = 'block';
-                break;
-            case 'semestral':
-                semestralFields.style.display = 'block';
-                break;
+        if (frequency) {
+            document.getElementById(`${frequency}-fields`).style.display = 'block';
         }
     });
 
-    // Handle form submission
+    // Handle file drop
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('drop-zone--over');
+    });
+
+    ['dragleave', 'dragend'].forEach(type => {
+        dropZone.addEventListener(type, function() {
+            this.classList.remove('drop-zone--over');
+        });
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drop-zone--over');
+
+        if (e.dataTransfer.files.length) {
+            inputElement.files = e.dataTransfer.files;
+            updateThumbnail(this, e.dataTransfer.files[0]);
+        }
+    });
+
+    dropZone.addEventListener('click', function() {
+        inputElement.click();
+    });
+
+    inputElement.addEventListener('change', function() {
+        if (this.files.length) {
+            updateThumbnail(dropZone, this.files[0]);
+        }
+    });
+
+    function updateThumbnail(dropZoneElement, file) {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function() {
+                dropZoneElement.style.backgroundImage = `url('${reader.result}')`;
+            };
+        } else {
+            dropZoneElement.style.backgroundImage = '';
+        }
+    }
+
+    // Form submission handling
+    const form = document.querySelector('form');
     form.addEventListener('submit', function(e) {
         // Validate required fields
         const reportType = reportTypeSelect.value;

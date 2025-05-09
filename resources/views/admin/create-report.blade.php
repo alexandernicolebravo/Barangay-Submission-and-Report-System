@@ -105,6 +105,82 @@
     #deleteReportModal .text-muted {
         color: var(--gray-600) !important;
     }
+
+    /* Updated Pagination Styles */
+    .pagination {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .pagination .page-item {
+        margin: 0;
+    }
+
+    .pagination .page-item .page-link {
+        color: var(--gray-700);
+        background-color: white;
+        border: 1px solid var(--border-color);
+        padding: 4px 8px;
+        font-size: 12px;
+        text-decoration: none;
+        border-radius: 3px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+    }
+
+    .pagination .page-item .page-link i {
+        font-size: 10px;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+
+    .pagination .page-item .page-link:hover:not(.disabled) {
+        background-color: var(--primary-light);
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .pagination .page-item.disabled .page-link {
+        color: var(--gray-400);
+        background-color: var(--light);
+        border-color: var(--border-color);
+        cursor: not-allowed;
+    }
+
+    .pagination-container {
+        margin-top: 20px;
+    }
+
+    .pagination-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .pagination-info {
+        color: var(--gray-600);
+        font-size: 13px;
+    }
+
+    .per-page-dropdown .btn {
+        font-size: 13px;
+        padding: 4px 8px;
+    }
+
+    .per-page-dropdown .dropdown-menu {
+        font-size: 13px;
+    }
 </style>
 @endpush
 
@@ -141,23 +217,31 @@
             Report Types
         </h5>
         <div class="d-flex gap-2">
-            <div class="input-group" style="width: 200px;">
-                <span class="input-group-text">
-                    <i class="fas fa-search"></i>
-                </span>
-                <input type="text" class="form-control search-box" id="reportTypeSearch" placeholder="Search...">
-            </div>
-            <div class="input-group" style="width: 200px;">
-                <span class="input-group-text">
-                    <i class="fas fa-filter"></i>
-                </span>
-                <select class="form-select" id="frequencyFilter">
-                    <option value="">All Frequencies</option>
-                    @foreach(App\Models\ReportType::frequencies() as $key => $value)
-                        <option value="{{ $key }}">{{ $value }}</option>
-                    @endforeach
-                </select>
-            </div>
+            <form action="{{ route('admin.create-report') }}" method="GET" class="d-flex gap-2">
+                <div class="input-group" style="width: 200px;">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control search-box" name="search" value="{{ request('search') }}" placeholder="Search...">
+                </div>
+                <div class="input-group" style="width: 200px;">
+                    <span class="input-group-text">
+                        <i class="fas fa-filter"></i>
+                    </span>
+                    <select class="form-select" name="frequency" onchange="this.form.submit()">
+                        <option value="">All Frequencies</option>
+                        @foreach(App\Models\ReportType::frequencies() as $key => $value)
+                            <option value="{{ $key }}" {{ request('frequency') == $key ? 'selected' : '' }}>{{ $value }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @if(request('search') || request('frequency'))
+                    <a href="{{ route('admin.create-report') }}" class="btn btn-light">
+                        <i class="fas fa-times"></i>
+                        Clear
+                    </a>
+                @endif
+            </form>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createReportTypeModal">
                 <i class="fas fa-plus"></i>
                 <span>Add Report Type</span>
@@ -293,6 +377,74 @@
                 </tbody>
             </table>
         </div>
+
+        @if($reportTypes->hasPages())
+            <div class="pagination-container">
+                <div class="pagination-wrapper">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="pagination-info">
+                            Showing {{ $reportTypes->firstItem() ?? 0 }} to {{ $reportTypes->lastItem() ?? 0 }} of {{ $reportTypes->total() }} entries
+                        </div>
+                        <div class="dropdown per-page-dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="perPageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ $reportTypes->perPage() }} per page
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="perPageDropdown">
+                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 10]) }}">10 per page</a></li>
+                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 25]) }}">25 per page</a></li>
+                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 50]) }}">50 per page</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0">
+                            {{-- Previous Page Link --}}
+                            @if($reportTypes->onFirstPage())
+                                <li class="page-item disabled">
+                                    <span class="page-link">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </span>
+                                </li>
+                            @else
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $reportTypes->previousPageUrl() }}" rel="prev">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                            @endif
+
+                            {{-- Pagination Elements --}}
+                            @foreach($reportTypes->getUrlRange(1, $reportTypes->lastPage()) as $page => $url)
+                                @if($page == $reportTypes->currentPage())
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ $page }}</span>
+                                    </li>
+                                @else
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                    </li>
+                                @endif
+                            @endforeach
+
+                            {{-- Next Page Link --}}
+                            @if($reportTypes->hasMorePages())
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $reportTypes->nextPageUrl() }}" rel="next">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            @else
+                                <li class="page-item disabled">
+                                    <span class="page-link">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </span>
+                                </li>
+                            @endif
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        @endif
     </div>
 </div>
 
@@ -559,26 +711,6 @@ $(document).ready(function() {
                 });
             }
         });
-    });
-
-    // Search functionality
-    $('#reportTypeSearch').on('keyup', function() {
-        var value = $(this).val().toLowerCase();
-        $('tbody tr').filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-        });
-    });
-
-    // Frequency filter
-    $('#frequencyFilter').on('change', function() {
-        var value = $(this).val().toLowerCase();
-        if (value === '') {
-            $('tbody tr').show();
-        } else {
-            $('tbody tr').filter(function() {
-                $(this).toggle($(this).data('frequency') === value);
-            });
-        }
     });
 });
 </script>
