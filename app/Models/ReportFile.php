@@ -9,12 +9,16 @@ class ReportFile extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'report_type_id', '','file_path','file_name','deadline', 'status', 'remarks'];
+    const STATUS_SUBMITTED = 'submitted';
+    const STATUS_NO_SUBMISSION = 'no submission';
+
+    protected $fillable = ['user_id', 'report_type_id', 'file_path', 'file_name', 'deadline', 'status', 'remarks'];
 
     public function reportType()
     {
         return $this->belongsTo(ReportType::class);
     }
+
     public function user()
     {
         return $this->belongsTo(User::class);

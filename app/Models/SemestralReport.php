@@ -2,18 +2,34 @@
 
 namespace App\Models;
 
+use App\Models\Traits\ReportStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SemestralReport extends Model
 {
-    protected $fillable = ['user_id', 'report_type_id', 'sem_number','file_path','file_name','deadline', 'status', 'remarks'];
+    use HasFactory, ReportStatus;
+
+    protected $fillable = [
+        'user_id',
+        'report_type_id',
+        'semester',
+        'year',
+        'file_name',
+        'file_path',
+        'deadline',
+        'status',
+        'remarks',
+        'sem_number'
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function reportType()
     {
         return $this->belongsTo(ReportType::class);
-    }
-    public function user()
-    {
-        return $this->belongsTo(User::class);
     }
 }

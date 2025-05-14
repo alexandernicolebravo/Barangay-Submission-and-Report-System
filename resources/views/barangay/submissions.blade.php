@@ -148,14 +148,15 @@
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body">
-                                                        <form action="{{ route('barangay.submissions.resubmit', $report->id) }}" method="POST" enctype="multipart/form-data">
+                                                        <form action="{{ route('barangay.submissions.resubmit', $report->id) }}" method="POST" enctype="multipart/form-data" id="resubmitForm{{ $report->id }}">
                                                             @csrf
                                                             <input type="hidden" name="report_type_id" value="{{ $report->report_type_id }}">
+                                                            <input type="hidden" name="report_type" value="{{ $report->type }}">
 
                                                             <div class="mb-3">
                                                                 <label for="file" class="form-label">Upload New Report</label>
                                                                 <div class="file-upload-container" id="dropZone{{ $report->id }}">
-                                                                    <input type="file" name="file" class="d-none" id="fileInput{{ $report->id }}" required>
+                                                                    <input type="file" name="file" class="d-none" id="fileInput{{ $report->id }}" required accept=".pdf,.doc,.docx,.xlsx">
                                                                     <div class="text-center p-4 border rounded">
                                                                         <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
                                                                         <p class="mb-2">Drag and drop your file here or</p>
@@ -175,7 +176,7 @@
 
                                                             <div class="text-end">
                                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                <button type="submit" class="btn btn-primary">
+                                                                <button type="submit" class="btn btn-primary" id="submitBtn{{ $report->id }}">
                                                                     <i class="fas fa-upload me-2"></i>Resubmit
                                                                 </button>
                                                             </div>
@@ -459,6 +460,100 @@
                 fileInput.value = '';
                 fileInfo.classList.add('d-none');
             };
+
+            // File upload handling for report {{ $report->id }}
+            const dropZone{{ $report->id }} = document.getElementById('dropZone{{ $report->id }}');
+            const fileInput{{ $report->id }} = document.getElementById('fileInput{{ $report->id }}');
+            const fileInfo{{ $report->id }} = document.getElementById('fileInfo{{ $report->id }}');
+            const fileName{{ $report->id }} = document.getElementById('fileName{{ $report->id }}');
+            const submitBtn{{ $report->id }} = document.getElementById('submitBtn{{ $report->id }}');
+
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone{{ $report->id }}.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            // Highlight drop zone when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone{{ $report->id }}.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone{{ $report->id }}.addEventListener(eventName, unhighlight, false);
+            });
+
+            // Handle dropped files
+            dropZone{{ $report->id }}.addEventListener('drop', handleDrop, false);
+
+            function preventDefaults (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function highlight(e) {
+                dropZone{{ $report->id }}.classList.add('dragover');
+            }
+
+            function unhighlight(e) {
+                dropZone{{ $report->id }}.classList.remove('dragover');
+            }
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                fileInput{{ $report->id }}.files = files;
+                handleFiles(files);
+            }
+
+            fileInput{{ $report->id }}.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+
+            function handleFiles(files) {
+                if (files.length > 0) {
+                    const file = files[0];
+                    const fileSize = file.size / 1024 / 1024; // in MB
+
+                    if (fileSize > 2) {
+                        alert('File size must be less than 2MB');
+                        clearFile({{ $report->id }});
+                        return;
+                    }
+
+                    const validTypes = ['.pdf', '.doc', '.docx', '.xlsx'];
+                    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+                    if (!validTypes.includes(fileExtension)) {
+                        alert('Invalid file type. Please upload PDF, DOC, DOCX, or XLSX files only.');
+                        clearFile({{ $report->id }});
+                        return;
+                    }
+
+                    fileName{{ $report->id }}.textContent = file.name;
+                    fileInfo{{ $report->id }}.classList.remove('d-none');
+                    submitBtn{{ $report->id }}.disabled = false;
+                }
+            }
+
+            function clearFile(id) {
+                const fileInput = document.getElementById('fileInput' + id);
+                const fileInfo = document.getElementById('fileInfo' + id);
+                const submitBtn = document.getElementById('submitBtn' + id);
+
+                fileInput.value = '';
+                fileInfo.classList.add('d-none');
+                submitBtn.disabled = true;
+            }
+
+            // Form submission handling
+            document.getElementById('resubmitForm{{ $report->id }}').addEventListener('submit', function(e) {
+                const fileInput = document.getElementById('fileInput{{ $report->id }}');
+                if (!fileInput.files.length) {
+                    e.preventDefault();
+                    alert('Please select a file to upload');
+                }
+            });
         });
     </script>
     @endpush

@@ -35,7 +35,9 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status,
+                    'status' => $report->status === 'submitted' 
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                        : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
                     'file_path' => $report->file_path,
@@ -51,7 +53,9 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status,
+                    'status' => $report->status === 'submitted' 
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                        : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
                     'file_path' => $report->file_path,
@@ -67,7 +71,9 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status,
+                    'status' => $report->status === 'submitted' 
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                        : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
                     'file_path' => $report->file_path,
@@ -83,7 +89,9 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status,
+                    'status' => $report->status === 'submitted' 
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                        : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
                     'file_path' => $report->file_path,
@@ -99,7 +107,9 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status,
+                    'status' => $report->status === 'submitted' 
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                        : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
                     'file_path' => $report->file_path,
@@ -228,13 +238,12 @@ class ReportController extends Controller
     }
 
     /**
-     * Update report status and remarks.
+     * Update report remarks.
      */
     public function update(Request $request, $id)
     {
         try {
             $validated = $request->validate([
-                'status' => 'required|in:pending,approved,rejected',
                 'remarks' => 'nullable|string|max:1000',
                 'type' => 'required|in:weekly,monthly,quarterly,semestral,annual'
             ]);
@@ -248,22 +257,18 @@ class ReportController extends Controller
                 'annual' => AnnualReport::class
             ];
 
-            // Get the appropriate model
             $model = $reportModels[$validated['type']];
             $report = $model::findOrFail($id);
 
-            // Update the report
+            // Only update remarks
             $report->update([
-                'status' => $validated['status'],
                 'remarks' => $validated['remarks']
             ]);
 
-            return redirect()->route('admin.view.submissions')
-                ->with('success', 'Report status updated successfully.');
+            return redirect()->back()->with('success', 'Report remarks updated successfully.');
         } catch (\Exception $e) {
             Log::error('Error updating report: ' . $e->getMessage());
-            return redirect()->route('admin.view.submissions')
-                ->with('error', 'Error updating report. Please try again.');
+            return redirect()->back()->with('error', 'Failed to update report remarks.');
         }
     }
 
@@ -312,46 +317,77 @@ class ReportController extends Controller
         try {
             $validated = $request->validate([
                 'report_type_id' => 'required|exists:report_types,id',
-                'file' => 'required|file|max:10240', // 10MB max
+                'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:10240',
+                'type' => 'required|in:weekly,monthly,quarterly,semestral,annual'
             ]);
 
+            // Get the report type
             $reportType = ReportType::findOrFail($validated['report_type_id']);
+
+            // Store the file
             $file = $request->file('file');
             $fileName = time() . '_' . $file->getClientOriginalName();
-            $file->storeAs('public/reports', $fileName);
+            $filePath = $file->storeAs('reports', $fileName, 'public');
 
-            $data = [
-                'user_id' => Auth::id(),
-                'report_type_id' => $validated['report_type_id'],
-                'file_path' => 'reports/' . $fileName,
-                'status' => 'pending'
+            // Map report types to their models
+            $reportModels = [
+                'weekly' => WeeklyReport::class,
+                'monthly' => MonthlyReport::class,
+                'quarterly' => QuarterlyReport::class,
+                'semestral' => SemestralReport::class,
+                'annual' => AnnualReport::class
             ];
 
-            switch ($reportType->frequency) {
+            // Create the report
+            $model = $reportModels[$validated['type']];
+
+            // Prepare base data
+            $reportData = [
+                'user_id' => Auth::id(),
+                'report_type_id' => $validated['report_type_id'],
+                'file_path' => $filePath,
+                'file_name' => $fileName,
+                'deadline' => $reportType->deadline,
+                'status' => 'submitted',
+                'remarks' => null
+            ];
+
+            // Add frequency-specific data
+            switch ($validated['type']) {
                 case 'weekly':
-                    WeeklyReport::create($data);
+                    $reportData['month'] = now()->format('F');
+                    $reportData['week_number'] = now()->weekOfMonth;
+                    $reportData['num_of_clean_up_sites'] = 0;
+                    $reportData['num_of_participants'] = 0;
+                    $reportData['num_of_barangays'] = 0;
+                    $reportData['total_volume'] = 0;
                     break;
                 case 'monthly':
-                    MonthlyReport::create($data);
+                    $reportData['month'] = now()->format('F');
+                    $reportData['year'] = now()->year;
                     break;
                 case 'quarterly':
-                    QuarterlyReport::create($data);
+                    $reportData['quarter_number'] = ceil(now()->month / 3);
+                    $reportData['year'] = now()->year;
                     break;
                 case 'semestral':
-                    SemestralReport::create($data);
+                    $reportData['semester'] = now()->month <= 6 ? 1 : 2;
+                    $reportData['year'] = now()->year;
                     break;
                 case 'annual':
-                    AnnualReport::create($data);
+                    $reportData['year'] = now()->year;
                     break;
-                default:
-                    throw new \Exception('Invalid report frequency');
             }
 
-            return redirect()->route('barangay.submit-report')
+            $report = $model::create($reportData);
+
+            return redirect()->route('barangay.submit.report')
                 ->with('success', 'Report submitted successfully.');
         } catch (\Exception $e) {
-            return redirect()->route('barangay.submit-report')
-                ->with('error', 'Error submitting report. Please try again.');
+            Log::error('Error submitting report: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Failed to submit report. Please try again.')
+                ->withInput();
         }
     }
 
@@ -448,7 +484,7 @@ class ReportController extends Controller
             $report->update([
                 'file_name' => $request->file('file')->getClientOriginalName(),
                 'file_path' => $filePath,
-                'status' => 'pending',
+                'status' => 'submitted',
                 'remarks' => null,
             ]);
 

@@ -57,17 +57,27 @@ class BarangayController extends Controller
 
             // Calculate statistics
             $totalReports = $allReports->count();
-            $approvedReports = $allReports->where('status', 'approved')->count();
-            $pendingReports = $allReports->where('status', 'pending')->count();
-            $rejectedReports = $allReports->where('status', 'rejected')->count();
+            $submittedReports = $allReports->where('status', 'submitted')->count();
+            $noSubmissionReports = $allReports->where('status', 'no submission')->count();
 
             // Get recent reports (last 5)
             $recentReports = $allReports
                 ->sortByDesc('created_at')
                 ->take(5);
 
+            // Get submitted report type IDs
+            $submittedReportTypeIds = collect()
+                ->merge($weeklyReports->pluck('report_type_id'))
+                ->merge($monthlyReports->pluck('report_type_id'))
+                ->merge($quarterlyReports->pluck('report_type_id'))
+                ->merge($semestralReports->pluck('report_type_id'))
+                ->merge($annualReports->pluck('report_type_id'))
+                ->unique();
+
             // Get upcoming deadlines and ensure they are Carbon instances
+            // Filter out already submitted report types
             $upcomingDeadlines = ReportType::where('deadline', '>=', now())
+                ->whereNotIn('id', $submittedReportTypeIds)
                 ->orderBy('deadline')
                 ->take(5)
                 ->get()
@@ -78,9 +88,8 @@ class BarangayController extends Controller
 
             return view('barangay.dashboard', compact(
                 'totalReports',
-                'approvedReports',
-                'pendingReports',
-                'rejectedReports',
+                'submittedReports',
+                'noSubmissionReports',
                 'recentReports',
                 'upcomingDeadlines',
                 'reportTypes'
@@ -192,26 +201,46 @@ class BarangayController extends Controller
         $userId = Auth::id();
         $perPage = request()->get('per_page', 10);
 
-        // Get all reports for the current user
+        // Get all reports for the current user with their relationships
         $weeklyReports = WeeklyReport::with('reportType')
             ->where('user_id', $userId)
-            ->get();
+            ->get()
+            ->map(function ($report) {
+                $report->type = 'weekly';
+                return $report;
+            });
 
         $monthlyReports = MonthlyReport::with('reportType')
             ->where('user_id', $userId)
-            ->get();
+            ->get()
+            ->map(function ($report) {
+                $report->type = 'monthly';
+                return $report;
+            });
 
         $quarterlyReports = QuarterlyReport::with('reportType')
             ->where('user_id', $userId)
-            ->get();
+            ->get()
+            ->map(function ($report) {
+                $report->type = 'quarterly';
+                return $report;
+            });
 
         $semestralReports = SemestralReport::with('reportType')
             ->where('user_id', $userId)
-            ->get();
+            ->get()
+            ->map(function ($report) {
+                $report->type = 'semestral';
+                return $report;
+            });
 
         $annualReports = AnnualReport::with('reportType')
             ->where('user_id', $userId)
-            ->get();
+            ->get()
+            ->map(function ($report) {
+                $report->type = 'annual';
+                return $report;
+            });
 
         // Combine all reports
         $reports = collect()
@@ -241,7 +270,6 @@ class BarangayController extends Controller
     public function submitReport()
     {
         $userId = Auth::id();
-        $reportTypes = ReportType::where('deadline', '>=', now())->get();
         $allReportTypes = ReportType::all();
 
         // Get all reports for the current user
@@ -260,6 +288,11 @@ class BarangayController extends Controller
             ->merge($semestralReports->pluck('report_type_id'))
             ->merge($annualReports->pluck('report_type_id'))
             ->unique();
+
+        // Filter out already submitted report types and only show those with valid deadlines
+        $reportTypes = ReportType::where('deadline', '>=', now())
+            ->whereNotIn('id', $submittedReportTypeIds)
+            ->get();
 
         // Organize submitted reports by frequency
         $submittedReportsByFrequency = [
@@ -492,7 +525,7 @@ class BarangayController extends Controller
                         'report_type_id' => $request->report_type_id,
                         'file_path' => $filePath,
                         'file_name' => $fileName,
-                        'status' => 'pending',
+                        'status' => 'submitted',
                         'deadline' => $reportType->deadline,
                         'month' => $request->month,
                         'week_number' => $request->week_number,
@@ -520,7 +553,7 @@ class BarangayController extends Controller
                         'report_type_id' => $request->report_type_id,
                         'file_path' => $filePath,
                         'file_name' => $fileName,
-                        'status' => 'pending',
+                        'status' => 'submitted',
                         'deadline' => $reportType->deadline,
                         'month' => $request->month
                     ]);
@@ -543,7 +576,7 @@ class BarangayController extends Controller
                         'report_type_id' => $request->report_type_id,
                         'file_path' => $filePath,
                         'file_name' => $fileName,
-                        'status' => 'pending',
+                        'status' => 'submitted',
                         'deadline' => $reportType->deadline,
                         'quarter_number' => $request->quarter_number
                     ]);
@@ -566,9 +599,9 @@ class BarangayController extends Controller
                         'report_type_id' => $request->report_type_id,
                         'file_path' => $filePath,
                         'file_name' => $fileName,
-                        'status' => 'pending',
+                        'status' => 'submitted',
                         'deadline' => $reportType->deadline,
-                        'sem_number' => $request->sem_number
+                        'sem_number' => $request->input('sem_number', 1)
                     ]);
                     break;
 
@@ -589,7 +622,7 @@ class BarangayController extends Controller
                         'report_type_id' => $request->report_type_id,
                         'file_path' => $filePath,
                         'file_name' => $fileName,
-                        'status' => 'pending',
+                        'status' => 'submitted',
                         'deadline' => $reportType->deadline
                     ]);
                     break;
@@ -623,37 +656,73 @@ class BarangayController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
+
             // Try to find the report in each table
+            $report = null;
+            $reportType = null;
+
+            // Check weekly reports
             $report = WeeklyReport::where('id', $id)
                 ->where('user_id', Auth::id())
                 ->first();
+            if ($report) {
+                $reportType = 'weekly';
+            }
 
+            // Check monthly reports
             if (!$report) {
                 $report = MonthlyReport::where('id', $id)
                     ->where('user_id', Auth::id())
                     ->first();
+                if ($report) {
+                    $reportType = 'monthly';
+                }
             }
 
+            // Check quarterly reports
             if (!$report) {
                 $report = QuarterlyReport::where('id', $id)
                     ->where('user_id', Auth::id())
                     ->first();
+                if ($report) {
+                    $reportType = 'quarterly';
+                }
             }
 
+            // Check semestral reports
             if (!$report) {
                 $report = SemestralReport::where('id', $id)
                     ->where('user_id', Auth::id())
                     ->first();
+                if ($report) {
+                    $reportType = 'semestral';
+                }
             }
 
+            // Check annual reports
             if (!$report) {
                 $report = AnnualReport::where('id', $id)
                     ->where('user_id', Auth::id())
                     ->first();
+                if ($report) {
+                    $reportType = 'annual';
+                }
             }
 
             if (!$report) {
                 return back()->with('error', 'Report not found');
+            }
+
+            // Check if the report is rejected
+            if ($report->status !== 'rejected') {
+                return back()->with('error', 'Only rejected reports can be resubmitted');
+            }
+
+            // Check if the report type is still within deadline
+            $reportTypeModel = ReportType::find($report->report_type_id);
+            if (!$reportTypeModel || $reportTypeModel->deadline < now()) {
+                return back()->with('error', 'The deadline for this report has passed');
             }
 
             $file = $request->file('file');
@@ -669,11 +738,15 @@ class BarangayController extends Controller
                 'file_path' => $path,
                 'file_name' => $filename,
                 'status' => 'pending',
-                'remarks' => null
+                'remarks' => null,
+                'resubmitted_at' => now()
             ]);
 
-            return redirect()->route('barangay.submissions')->with('success', 'Report resubmitted successfully');
+            DB::commit();
+
+            return redirect()->route('barangay.submissions')->with('success', 'Report resubmitted successfully. It will be reviewed by the admin.');
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error('Report resubmission error: ' . $e->getMessage());
             return back()->with('error', 'Failed to resubmit report. Please try again.');
         }

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('report_type_id')->constrained()->onDelete('cascade');
             $table->string('file_name');
             $table->string('quarter_number');
+            $table->string('year');
             $table->string('file_path');
             $table->date('deadline');
             $table->string('status')->default('pending');

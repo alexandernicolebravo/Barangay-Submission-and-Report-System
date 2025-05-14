@@ -26,34 +26,38 @@ class AdminController extends Controller
                           QuarterlyReport::count() +
                           AnnualReport::count();
 
-        // Get approved submissions count
-        $approvedSubmissions = WeeklyReport::where('status', 'approved')->count() +
-                             MonthlyReport::where('status', 'approved')->count() +
-                             QuarterlyReport::where('status', 'approved')->count() +
-                             AnnualReport::where('status', 'approved')->count();
+        // Get submitted reports count
+        $submittedReports = WeeklyReport::where('status', 'submitted')->count() +
+                            MonthlyReport::where('status', 'submitted')->count() +
+                            QuarterlyReport::where('status', 'submitted')->count() +
+                            AnnualReport::where('status', 'submitted')->count();
 
-        // Get pending submissions count
-        $pendingSubmissions = WeeklyReport::where('status', 'pending')->count() +
-                            MonthlyReport::where('status', 'pending')->count() +
-                            QuarterlyReport::where('status', 'pending')->count() +
-                            AnnualReport::where('status', 'pending')->count();
+        // Get no submission reports count
+        $noSubmissionReports = WeeklyReport::where('status', 'no submission')->count() +
+                               MonthlyReport::where('status', 'no submission')->count() +
+                               QuarterlyReport::where('status', 'no submission')->count() +
+                               AnnualReport::where('status', 'no submission')->count();
 
         // Get late submissions count
         $lateSubmissions = DB::table('weekly_reports')
             ->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id')
             ->where('weekly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('weekly_reports.status', 'submitted')
             ->count() +
             DB::table('monthly_reports')
             ->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id')
             ->where('monthly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('monthly_reports.status', 'submitted')
             ->count() +
             DB::table('quarterly_reports')
             ->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id')
             ->where('quarterly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('quarterly_reports.status', 'submitted')
             ->count() +
             DB::table('annual_reports')
             ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
             ->where('annual_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('annual_reports.status', 'submitted')
             ->count();
 
         // Get recent submissions
@@ -66,7 +70,7 @@ class AdminController extends Controller
                 'weekly_reports.created_at as submitted_at',
                 'users.name as submitter',
                 'report_types.name as report_type',
-                DB::raw('CASE WHEN weekly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
+                DB::raw('CASE WHEN weekly_reports.status = "pending" AND weekly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
             ])
             ->join('users', 'weekly_reports.user_id', '=', 'users.id')
             ->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id')
@@ -80,7 +84,7 @@ class AdminController extends Controller
                     'monthly_reports.created_at as submitted_at',
                     'users.name as submitter',
                     'report_types.name as report_type',
-                    DB::raw('CASE WHEN monthly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
+                    DB::raw('CASE WHEN monthly_reports.status = "submitted" AND monthly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
                 ])
                 ->join('users', 'monthly_reports.user_id', '=', 'users.id')
                 ->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id')
@@ -95,7 +99,7 @@ class AdminController extends Controller
                     'quarterly_reports.created_at as submitted_at',
                     'users.name as submitter',
                     'report_types.name as report_type',
-                    DB::raw('CASE WHEN quarterly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
+                    DB::raw('CASE WHEN quarterly_reports.status = "submitted" AND quarterly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
                 ])
                 ->join('users', 'quarterly_reports.user_id', '=', 'users.id')
                 ->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id')
@@ -110,7 +114,7 @@ class AdminController extends Controller
                     'annual_reports.created_at as submitted_at',
                     'users.name as submitter',
                     'report_types.name as report_type',
-                    DB::raw('CASE WHEN annual_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
+                    DB::raw('CASE WHEN annual_reports.status = "submitted" AND annual_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
                 ])
                 ->join('users', 'annual_reports.user_id', '=', 'users.id')
                 ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
@@ -127,8 +131,8 @@ class AdminController extends Controller
 
         return view('admin.dashboard', compact(
             'totalSubmissions',
-            'approvedSubmissions',
-            'pendingSubmissions',
+            'submittedReports',
+            'noSubmissionReports',
             'lateSubmissions',
             'recentSubmissions',
             'weeklyCount',

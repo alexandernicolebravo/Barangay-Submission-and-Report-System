@@ -6,16 +6,16 @@
 <div class="dashboard">
     <!-- Welcome Section -->
     <div class="welcome-section mb-4">
-        <h1 class="h3 mb-2">Welcome back, {{ auth()->user()->name }}!</h1>
-        <p class="text-muted">Here's an overview of your reports and upcoming deadlines.</p>
+        <h1 class="h3 mb-2 text-primary">Welcome back, {{ auth()->user()->name }}!</h1>
+        <p class="text-secondary">Here's an overview of your reports and upcoming deadlines.</p>
     </div>
 
     <!-- Statistics Cards -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="stat-card">
-                <div class="stat-icon bg-primary-light">
-                    <i class="fas fa-file-alt text-primary"></i>
+                <div class="stat-icon">
+                    <i class="fas fa-file-alt text-info"></i>
                 </div>
                 <div class="stat-content">
                     <h3 class="stat-value">{{ $totalReports }}</h3>
@@ -23,36 +23,25 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="stat-card">
-                <div class="stat-icon bg-success-light">
+                <div class="stat-icon">
                     <i class="fas fa-check-circle text-success"></i>
                 </div>
                 <div class="stat-content">
-                    <h3 class="stat-value">{{ $approvedReports }}</h3>
-                    <p class="stat-label">Approved</p>
+                    <h3 class="stat-value">{{ $submittedReports }}</h3>
+                    <p class="stat-label">Submitted Reports</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="stat-card">
-                <div class="stat-icon bg-warning-light">
-                    <i class="fas fa-clock text-warning"></i>
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-triangle text-warning"></i>
                 </div>
                 <div class="stat-content">
-                    <h3 class="stat-value">{{ $pendingReports }}</h3>
-                    <p class="stat-label">Pending</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-icon bg-danger-light">
-                    <i class="fas fa-times-circle text-danger"></i>
-                </div>
-                <div class="stat-content">
-                    <h3 class="stat-value">{{ $rejectedReports }}</h3>
-                    <p class="stat-label">Rejected</p>
+                    <h3 class="stat-value">{{ $noSubmissionReports }}</h3>
+                    <p class="stat-label">No Submission Reports</p>
                 </div>
             </div>
         </div>
@@ -92,7 +81,7 @@
                                             <h6 class="mb-1">{{ $report->reportType->name }}</h6>
                                             <small class="text-muted">Submitted: {{ $report->created_at->format('M d, Y') }}</small>
                                         </div>
-                                        <span class="badge bg-{{ $report->status === 'approved' ? 'success' : ($report->status === 'pending' ? 'warning' : 'danger') }}">
+                                        <span class="badge text-{{ $report->status === 'submitted' ? 'success' : 'warning' }}">
                                             {{ ucfirst($report->status) }}
                                         </span>
                                     </div>

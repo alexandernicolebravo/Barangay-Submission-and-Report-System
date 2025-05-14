@@ -99,8 +99,8 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="ms-3">
-                        <div class="stat-value">{{ $approvedSubmissions }}</div>
-                        <div class="stat-label">Approved Reports</div>
+                        <div class="stat-value">{{ $submittedReports }}</div>
+                        <div class="stat-label">Submitted Reports</div>
                     </div>
                 </div>
             </div>
@@ -111,11 +111,11 @@
             <div class="card-body">
                 <div class="d-flex align-items-center">
                     <div class="stat-icon" style="background: var(--warning-light); color: var(--warning);">
-                        <i class="fas fa-clock"></i>
+                        <i class="fas fa-times-circle"></i>
                     </div>
                     <div class="ms-3">
-                        <div class="stat-value">{{ $pendingSubmissions }}</div>
-                        <div class="stat-label">Pending Reports</div>
+                        <div class="stat-value">{{ $noSubmissionReports }}</div>
+                        <div class="stat-label">No Submission Reports</div>
                     </div>
                 </div>
             </div>
@@ -163,7 +163,7 @@
                                 </small>
                             </div>
                             <div class="text-end">
-                                <span class="badge {{ $submission->status === 'approved' ? 'bg-success' : ($submission->status === 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                                <span class="badge {{ $submission->status === 'submitted' ? 'bg-success' : 'bg-warning' }}">
                                     {{ ucfirst($submission->status) }}
                                 </span>
                                 @if($submission->is_late)

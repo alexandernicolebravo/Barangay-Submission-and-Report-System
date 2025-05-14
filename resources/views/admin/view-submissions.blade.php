@@ -82,25 +82,20 @@
     }
 
     .status-badge {
-            padding: 0.5em 0.75em;
-            font-weight: 500;
+        padding: 0.5em 0.75em;
+        font-weight: 500;
         border-radius: 0.375rem;
     }
 
-    .status-badge.pending {
-        background-color: var(--warning-light);
-        color: var(--warning);
-    }
-
-    .status-badge.approved {
+    .status-badge.submitted {
         background-color: var(--success-light);
         color: var(--success);
     }
 
-    .status-badge.rejected {
+    .status-badge.no-submission {
         background-color: var(--danger-light);
         color: var(--danger);
-        }
+    }
 
     /* Modal Styles */
     .modal-content {
@@ -206,9 +201,8 @@
                 </span>
                 <select class="form-select" name="status">
                     <option value="">All Status</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
-                    <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                    <option value="submitted" {{ request('status') == 'submitted' ? 'selected' : '' }}>Submitted</option>
+                    <option value="no submission" {{ request('status') == 'no submission' ? 'selected' : '' }}>No Submission</option>
                 </select>
             </div>
             <div class="input-group" style="width: 200px;">
@@ -239,10 +233,10 @@
                                     <thead>
                                         <tr>
                         <th>Report Type</th>
-                                            <th>Submitted By</th>
-                        <th>Submitted At</th>
+                        <th>Submitted By</th>
+                        <th>Submitted Date</th>
                         <th>Deadline</th>
-                                            <th>Status</th>
+                        <th>Status</th>
                         <th>Actions</th>
                                         </tr>
                                     </thead>
@@ -394,9 +388,8 @@
                                                                 <div class="mb-3">
                                             <label class="form-label">Status</label>
                                             <select class="form-select" name="status" required>
-                                                <option value="pending" {{ $submission['status'] == 'pending' ? 'selected' : '' }}>Pending</option>
-                                                <option value="approved" {{ $submission['status'] == 'approved' ? 'selected' : '' }}>Approved</option>
-                                                <option value="rejected" {{ $submission['status'] == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                                                <option value="submitted" {{ $submission['status'] == 'submitted' ? 'selected' : '' }}>Submitted</option>
+                                                <option value="no submission" {{ $submission['status'] == 'no submission' ? 'selected' : '' }}>No Submission</option>
                                                                     </select>
                                                                 </div>
                                                                 <div class="mb-3">
