@@ -175,6 +175,82 @@
             <i class="fas fa-file-alt me-2" style="color: var(--primary);"></i>
             All Submissions
         </h5>
+        @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Get all filter elements
+                const filterForm = document.getElementById('filterForm');
+                const searchInput = document.querySelector('input[name="search"]');
+                const filterSelects = document.querySelectorAll('select');
+                const tableBody = document.querySelector('.table tbody');
+
+                // Function to handle AJAX requests
+                const handleAjaxRequest = (params) => {
+                    // Show loading state
+                    tableBody.style.opacity = '0.5';
+
+                    fetch(`${filterForm.action}?${new URLSearchParams(params).toString()}`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        const tempContainer = document.createElement('div');
+                        tempContainer.innerHTML = html;
+
+                        const newTableBody = tempContainer.querySelector('.table tbody');
+                        if (newTableBody) {
+                            const oldContent = tableBody.innerHTML;
+                            const newContent = newTableBody.innerHTML;
+
+                            // Only update if content is different
+                            if (oldContent !== newContent) {
+                                tableBody.innerHTML = newContent;
+
+                                // Re-initialize any interactive elements
+                                document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                                    new bootstrap.Tooltip(el);
+                                });
+                            }
+                        }
+                        // Restore opacity
+                        tableBody.style.opacity = '1';
+                    })
+                    .catch(error => {
+                        console.error('Search request failed:', error);
+                        tableBody.style.opacity = '1';
+                    });
+                };
+
+                // Add event listener for search input
+                searchInput.addEventListener('input', function() {
+                    const currentValue = this.value;
+                    handleAjaxRequest({
+                        search: currentValue,
+                        type: document.querySelector('select[name="type"]').value,
+                        status: document.querySelector('select[name="status"]').value,
+                        timeliness: document.querySelector('select[name="timeliness"]').value,
+                        ajax: true
+                    });
+                });
+
+                // Add event listeners for all select elements
+                filterSelects.forEach(select => {
+                    select.addEventListener('change', function() {
+                        handleAjaxRequest({
+                            search: searchInput.value.trim(),
+                            type: document.querySelector('select[name="type"]').value,
+                            status: document.querySelector('select[name="status"]').value,
+                            timeliness: document.querySelector('select[name="timeliness"]').value,
+                            ajax: true
+                        });
+                    });
+                });
+            });
+        </script>
+        @endpush
+
         <form id="filterForm" class="d-flex gap-2" method="GET" action="{{ route('admin.view.submissions') }}">
             <div class="input-group" style="width: 200px;">
                 <span class="input-group-text">
@@ -215,10 +291,6 @@
                     <option value="ontime" {{ request('timeliness') == 'ontime' ? 'selected' : '' }}>On Time</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-filter"></i>
-                Apply Filters
-            </button>
             @if(request()->hasAny(['search', 'type', 'status', 'timeliness']))
                 <a href="{{ route('admin.view.submissions') }}" class="btn btn-light">
                     <i class="fas fa-times"></i>
@@ -229,23 +301,22 @@
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-            <table class="table">
-                                    <thead>
-                                        <tr>
-                        <th>Report Type</th>
-                        <th>Submitted By</th>
-                        <th>Submitted Date</th>
-                        <th>Deadline</th>
+                <table class="table">
+                <thead>
+                    <tr>
+                        <th>Report</th>
+                        <th>User</th>
+                        <th>Date</th>
                         <th>Status</th>
                         <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                    </tr>
+                </thead>
+                <tbody>
                     @forelse($submissions as $submission)
                     <tr>
                         <td>
                             <div class="d-flex align-items-center">
-                                <div class="me-3" style="width: 40px; height: 40px; border-radius: 10px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                                <div class="me-2" style="width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
                                     @php
                                         $extension = strtolower(pathinfo($submission['file_name'], PATHINFO_EXTENSION));
                                         $icon = match($extension) {
@@ -257,44 +328,38 @@
                                             default => 'fa-file'
                                         };
                                     @endphp
-                                    <i class="fas {{ $icon }}"></i>
+                                    <i class="fas {{ $icon }} fa-sm"></i>
                                 </div>
                                 <div>
                                     <div style="font-weight: 500; color: var(--dark);">{{ $submission['report_type'] }}</div>
-                                    <small class="text-muted">
-                                        {{ ucfirst($submission['type']) }} Report
-                                        <span class="ms-2">
-                                            <i class="fas fa-file me-1"></i>
-                                            {{ strtoupper($extension) }}
-                                        </span>
-                                    </small>
+                                    <small class="text-muted">{{ ucfirst($submission['type']) }}</small>
                                 </div>
                             </div>
                         </td>
                         <td>{{ $submission['submitted_by'] }}</td>
+                        <td>{{ \Carbon\Carbon::parse($submission['submitted_at'])->format('M d, Y') }}</td>
                         <td>
-                            {{ \Carbon\Carbon::parse($submission['submitted_at'])->format('M d, Y h:i A') }}
-                            <span class="timeliness-badge {{ $submission['is_late'] ? 'late' : 'ontime' }}">
-                                {{ $submission['is_late'] ? 'Late' : 'On Time' }}
-                                                    </span>
-                                                </td>
-                        <td>{{ \Carbon\Carbon::parse($submission['deadline'])->format('M d, Y h:i A') }}</td>
-                        <td>
-                            <span class="status-badge {{ $submission['status'] }}">
+                            @php
+                                $statusColor = match($submission['status']) {
+                                    'submitted' => 'var(--success)',
+                                    'no submission' => 'var(--danger)',
+                                    default => 'var(--gray)'
+                                };
+                            @endphp
+                            <div class="d-flex align-items-center">
+                                <div class="me-2" style="width: 8px; height: 8px; border-radius: 50%; background: {{ $statusColor }};"></div>
                                 {{ ucfirst($submission['status']) }}
-                                                    </span>
-                                                </td>
-                                                <td>
+                            </div>
+                        </td>
+                        <td>
                             <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $submission['id'] }}">
                                 <i class="fas fa-eye"></i>
-                                <span>View</span>
                             </button>
                             <button type="button" class="btn btn-sm" style="background: var(--info-light); color: var(--info); border: none;" data-bs-toggle="modal" data-bs-target="#updateStatusModal{{ $submission['id'] }}">
                                 <i class="fas fa-edit"></i>
-                                <span>Update</span>
-                                                    </button>
-                                                </td>
-                                            </tr>
+                            </button>
+                        </td>
+                    </tr>
 
                     <!-- View Submission Modal -->
                     <div class="modal fade" id="viewSubmissionModal{{ $submission['id'] }}" tabindex="-1">
@@ -302,6 +367,17 @@
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h5 class="modal-title">
+                                        @php
+                                            $extension = strtolower(pathinfo($submission['file_name'], PATHINFO_EXTENSION));
+                                            $icon = match($extension) {
+                                                'pdf' => 'fa-file-pdf',
+                                                'doc', 'docx' => 'fa-file-word',
+                                                'xls', 'xlsx' => 'fa-file-excel',
+                                                'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
+                                                'txt' => 'fa-file-alt',
+                                                default => 'fa-file'
+                                            };
+                                        @endphp
                                         <i class="fas {{ $icon }} me-2" style="color: var(--primary);"></i>
                                         View Submission
                                     </h5>

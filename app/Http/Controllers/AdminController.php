@@ -263,4 +263,41 @@ class AdminController extends Controller
 
         return back()->with('success', 'User updated successfully.');
     }
+
+    public function viewSubmissions(Request $request)
+    {
+        $query = Submission::query();
+
+        // Handle search
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('report_type', 'like', "%{$search}%")
+                  ->orWhere('submitted_by', 'like', "%{$search}%");
+            });
+        }
+
+        // Handle type filter
+        if ($request->has('type') && !empty($request->type)) {
+            $query->where('type', $request->type);
+        }
+
+        // Handle status filter
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
+        // Handle timeliness filter
+        if ($request->has('timeliness') && !empty($request->timeliness)) {
+            if ($request->timeliness === 'late') {
+                $query->where('is_late', true);
+            } else if ($request->timeliness === 'ontime') {
+                $query->where('is_late', false);
+            }
+        }
+
+        $submissions = $query->paginate(10)->withQueryString();
+
+        return view('admin.view-submissions', compact('submissions'));
+    }
 }
