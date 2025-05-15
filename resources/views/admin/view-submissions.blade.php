@@ -4,6 +4,16 @@
 
 @push('styles')
     <style>
+    /* Define CSS variables for status colors */
+    :root {
+        --success-rgb: 25, 135, 84;
+        --danger-rgb: 220, 53, 69;
+        --warning-rgb: 255, 193, 7;
+        --primary-rgb: 13, 110, 253;
+        --secondary-rgb: 108, 117, 125;
+        --info-rgb: 13, 202, 240;
+    }
+
     .table th {
         background: var(--light);
         font-weight: 600;
@@ -85,16 +95,70 @@
         padding: 0.5em 0.75em;
         font-weight: 500;
         border-radius: 0.375rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8125rem;
+        line-height: 1;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .status-badge::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+        transform: translateX(-100%);
+        transition: transform 0.6s ease;
+    }
+
+    .status-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-badge:hover::before {
+        transform: translateX(100%);
+    }
+
+    .status-badge i {
+        font-size: 0.875rem;
     }
 
     .status-badge.submitted {
         background-color: var(--success-light);
         color: var(--success);
+        border: 1px solid rgba(var(--success-rgb), 0.2);
     }
 
     .status-badge.no-submission {
         background-color: var(--danger-light);
         color: var(--danger);
+        border: 1px solid rgba(var(--danger-rgb), 0.2);
+    }
+
+    .status-badge.pending {
+        background-color: var(--warning-light);
+        color: var(--warning);
+        border: 1px solid rgba(var(--warning-rgb), 0.2);
+    }
+
+    .status-badge.approved {
+        background-color: var(--primary-light);
+        color: var(--primary);
+        border: 1px solid rgba(var(--primary-rgb), 0.2);
+    }
+
+    .status-badge.rejected {
+        background-color: var(--secondary-light);
+        color: var(--secondary);
+        border: 1px solid rgba(var(--secondary-rgb), 0.2);
     }
 
     /* Modal Styles */
@@ -102,25 +166,48 @@
         border: none;
         border-radius: 1rem;
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    .modal-header {
+        border-bottom: none;
+        padding: 1.5rem 2rem;
     }
 
     .modal-body {
-        padding: 2rem;
+        padding: 0 2rem 2rem;
     }
 
     .modal-footer {
         border-top: none;
-        padding: 1rem 2rem 2rem;
+        padding: 1rem 2rem 1.5rem;
+        background-color: var(--light);
     }
 
     .modal .btn {
-        padding: 0.5rem 2rem;
+        padding: 0.5rem 1.5rem;
         border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .modal .btn:hover {
+        transform: translateY(-1px);
     }
 
     .modal .btn-primary {
         background-color: var(--primary);
         border-color: var(--primary);
+    }
+
+    .modal .btn-outline-primary {
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .modal .btn-outline-primary:hover {
+        background-color: var(--primary-light);
+        color: var(--primary);
     }
 
     .modal .btn-danger {
@@ -139,7 +226,94 @@
 
     .modal .text-warning {
         color: var(--warning) !important;
-        }
+    }
+
+    /* Submission Info Cards */
+    .submission-info-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        background-color: #f8f9fa;
+        width: 48%;
+        transition: all 0.2s ease;
+    }
+
+    .submission-info-card:hover {
+        background-color: #f0f0f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .info-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+
+    .submission-info-card:hover .info-icon {
+        transform: scale(1.1);
+    }
+
+    .bg-primary-light { background-color: rgba(var(--primary-rgb), 0.1); }
+    .bg-success-light { background-color: rgba(var(--success-rgb), 0.1); }
+    .bg-danger-light { background-color: rgba(var(--danger-rgb), 0.1); }
+    .bg-warning-light { background-color: rgba(var(--warning-rgb), 0.1); }
+    .bg-info-light { background-color: rgba(var(--info-rgb), 0.1); }
+
+    .text-primary { color: var(--primary); }
+    .text-success { color: var(--success); }
+    .text-danger { color: var(--danger); }
+    .text-warning { color: var(--warning); }
+    .text-info { color: var(--info); }
+
+    .info-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        font-weight: 500;
+        color: #212529;
+    }
+
+    .file-section {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .file-section:hover {
+        background-color: #f0f0f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .remarks-section {
+        height: 100%;
+        border-radius: 0.5rem;
+        background-color: rgba(var(--primary-rgb), 0.03);
+        border: 1px solid rgba(var(--primary-rgb), 0.1);
+        padding: 1.5rem;
+    }
+
+    .current-remarks {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
     </style>
 @endpush
 
@@ -275,10 +449,13 @@
                 <span class="input-group-text">
                     <i class="fas fa-filter"></i>
                 </span>
-                <select class="form-select" name="status">
+                <select class="form-select status-select" name="status">
                     <option value="">All Status</option>
-                    <option value="submitted" {{ request('status') == 'submitted' ? 'selected' : '' }}>Submitted</option>
-                    <option value="no submission" {{ request('status') == 'no submission' ? 'selected' : '' }}>No Submission</option>
+                    <option value="submitted" data-icon="fa-check-circle" {{ request('status') == 'submitted' ? 'selected' : '' }}>Submitted</option>
+                    <option value="no submission" data-icon="fa-times-circle" {{ request('status') == 'no submission' ? 'selected' : '' }}>No Submission</option>
+                    <option value="pending" data-icon="fa-clock" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="approved" data-icon="fa-thumbs-up" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
+                    <option value="rejected" data-icon="fa-thumbs-down" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
                 </select>
             </div>
             <div class="input-group" style="width: 200px;">
@@ -340,150 +517,203 @@
                         <td>{{ \Carbon\Carbon::parse($submission['submitted_at'])->format('M d, Y') }}</td>
                         <td>
                             @php
-                                $statusColor = match($submission['status']) {
-                                    'submitted' => 'var(--success)',
-                                    'no submission' => 'var(--danger)',
-                                    default => 'var(--gray)'
+                                $statusIcon = match($submission['status']) {
+                                    'submitted' => 'fa-check-circle',
+                                    'no submission' => 'fa-times-circle',
+                                    'pending' => 'fa-clock',
+                                    'approved' => 'fa-thumbs-up',
+                                    'rejected' => 'fa-thumbs-down',
+                                    default => 'fa-info-circle'
                                 };
+                                $statusClass = str_replace(' ', '-', $submission['status']);
                             @endphp
-                            <div class="d-flex align-items-center">
-                                <div class="me-2" style="width: 8px; height: 8px; border-radius: 50%; background: {{ $statusColor }};"></div>
+                            <span class="status-badge {{ $statusClass }}">
+                                <i class="fas {{ $statusIcon }}"></i>
                                 {{ ucfirst($submission['status']) }}
-                            </div>
+                            </span>
                         </td>
                         <td>
                             <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $submission['id'] }}">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm" style="background: var(--info-light); color: var(--info); border: none;" data-bs-toggle="modal" data-bs-target="#updateStatusModal{{ $submission['id'] }}">
-                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-eye me-1"></i>
+                                View
                             </button>
                         </td>
                     </tr>
 
                     <!-- View Submission Modal -->
                     <div class="modal fade" id="viewSubmissionModal{{ $submission['id'] }}" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">
-                                        @php
-                                            $extension = strtolower(pathinfo($submission['file_name'], PATHINFO_EXTENSION));
-                                            $icon = match($extension) {
-                                                'pdf' => 'fa-file-pdf',
-                                                'doc', 'docx' => 'fa-file-word',
-                                                'xls', 'xlsx' => 'fa-file-excel',
-                                                'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
-                                                'txt' => 'fa-file-alt',
-                                                default => 'fa-file'
-                                            };
-                                        @endphp
-                                        <i class="fas {{ $icon }} me-2" style="color: var(--primary);"></i>
-                                        View Submission
-                                    </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="mb-3">
-                                        <label class="form-label">Report Type</label>
-                                        <p class="form-control-static">{{ $submission['report_type'] }}</p>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Submitted By</label>
-                                        <p class="form-control-static">{{ $submission['submitted_by'] }}</p>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Submitted At</label>
-                                        <p class="form-control-static">
-                                            {{ \Carbon\Carbon::parse($submission['submitted_at'])->format('M d, Y h:i A') }}
-                                            <span class="timeliness-badge {{ $submission['is_late'] ? 'late' : 'ontime' }}">
-                                                {{ $submission['is_late'] ? 'Late' : 'On Time' }}
-                                            </span>
-                                        </p>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Deadline</label>
-                                        <p class="form-control-static">{{ \Carbon\Carbon::parse($submission['deadline'])->format('M d, Y h:i A') }}</p>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Status</label>
-                                        <p class="form-control-static">
-                                            <span class="status-badge {{ $submission['status'] }}">
-                                                {{ ucfirst($submission['status']) }}
-                                            </span>
-                                        </p>
-                                    </div>
-                                    @if($submission['remarks'])
-                                    <div class="mb-3">
-                                        <label class="form-label">Remarks</label>
-                                        <p class="form-control-static">{{ $submission['remarks'] }}</p>
-                                    </div>
-                                    @endif
-                                    <div class="mb-3">
-                                        <label class="form-label">File</label>
-                                        <div class="d-flex gap-2">
-                                            <button type="button"
-                                                    class="btn btn-sm"
-                                                    style="background: var(--primary-light); color: var(--primary); border: none;"
-                                                    onclick="previewFile('{{ route('admin.files.download', ['id' => $submission['id']]) }}', '{{ $submission['file_name'] }}')">
-                                                <i class="fas fa-eye"></i>
-                                                <span>View File</span>
-                                            </button>
-                                            <a href="{{ route('admin.files.download', ['id' => $submission['id'], 'download' => true]) }}"
-                                               class="btn btn-sm"
-                                               style="background: var(--info-light); color: var(--info); border: none;">
-                                                <i class="fas fa-download"></i>
-                                                <span>Download File</span>
-                                            </a>
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-content border-0 shadow">
+                                <div class="modal-header bg-light">
+                                    @php
+                                        $extension = strtolower(pathinfo($submission['file_name'], PATHINFO_EXTENSION));
+                                        $icon = match($extension) {
+                                            'pdf' => 'fa-file-pdf',
+                                            'doc', 'docx' => 'fa-file-word',
+                                            'xls', 'xlsx' => 'fa-file-excel',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
+                                            'txt' => 'fa-file-alt',
+                                            default => 'fa-file'
+                                        };
+
+                                        $statusIcon = match($submission['status']) {
+                                            'submitted' => 'fa-check-circle',
+                                            'no submission' => 'fa-times-circle',
+                                            'pending' => 'fa-clock',
+                                            'approved' => 'fa-thumbs-up',
+                                            'rejected' => 'fa-thumbs-down',
+                                            default => 'fa-info-circle'
+                                        };
+                                        $statusClass = str_replace(' ', '-', $submission['status']);
+
+                                        $statusColor = match($submission['status']) {
+                                            'submitted' => 'var(--success)',
+                                            'no submission' => 'var(--danger)',
+                                            'pending' => 'var(--warning)',
+                                            'approved' => 'var(--primary)',
+                                            'rejected' => 'var(--secondary)',
+                                            default => 'var(--gray)'
+                                        };
+                                    @endphp
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
+                                            <i class="fas {{ $icon }} fa-lg" style="color: var(--primary);"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="modal-title mb-0 fw-bold">{{ $submission['report_type'] }}</h5>
+                                            <div class="text-muted small">{{ ucfirst($submission['type']) }} Report</div>
                                         </div>
                                     </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                                <div class="modal-body p-4">
+                                    <div class="row">
+                                        <div class="col-md-7">
+                                            <div class="submission-details">
+                                                <div class="d-flex justify-content-between mb-4">
+                                                    <div class="submission-info-card">
+                                                        <div class="info-icon bg-primary-light text-primary">
+                                                            <i class="fas fa-user"></i>
+                                                        </div>
+                                                        <div class="info-content">
+                                                            <div class="info-label">Submitted By</div>
+                                                            <div class="info-value">{{ $submission['submitted_by'] }}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="submission-info-card">
+                                                        <div class="info-icon bg-success-light text-success">
+                                                            <i class="fas fa-calendar-check"></i>
+                                                        </div>
+                                                        <div class="info-content">
+                                                            <div class="info-label">Status</div>
+                                                            <div class="info-value">
+                                                                <span class="status-badge {{ $statusClass }}">
+                                                                    <i class="fas {{ $statusIcon }}"></i>
+                                                                    {{ ucfirst($submission['status']) }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex justify-content-between mb-4">
+                                                    <div class="submission-info-card">
+                                                        <div class="info-icon bg-info-light text-info">
+                                                            <i class="fas fa-clock"></i>
+                                                        </div>
+                                                        <div class="info-content">
+                                                            <div class="info-label">Submitted At</div>
+                                                            <div class="info-value">
+                                                                {{ \Carbon\Carbon::parse($submission['submitted_at'])->format('M d, Y h:i A') }}
+                                                                <span class="timeliness-badge {{ $submission['is_late'] ? 'late' : 'ontime' }}">
+                                                                    {{ $submission['is_late'] ? 'Late' : 'On Time' }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="submission-info-card">
+                                                        <div class="info-icon bg-warning-light text-warning">
+                                                            <i class="fas fa-hourglass-end"></i>
+                                                        </div>
+                                                        <div class="info-content">
+                                                            <div class="info-label">Deadline</div>
+                                                            <div class="info-value">{{ \Carbon\Carbon::parse($submission['deadline'])->format('M d, Y h:i A') }}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="file-section p-3 rounded mb-4">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <i class="fas {{ $icon }} me-2" style="color: {{ $statusColor }};"></i>
+                                                        <span class="fw-medium">{{ $submission['file_name'] }}</span>
+                                                    </div>
+                                                    <div class="d-flex gap-2">
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-primary"
+                                                                onclick="previewFile('{{ route('admin.files.download', ['id' => $submission['id']]) }}', '{{ $submission['file_name'] }}')">
+                                                            <i class="fas fa-eye me-1"></i>
+                                                            <span>View File</span>
+                                                        </button>
+                                                        <a href="{{ route('admin.files.download', ['id' => $submission['id'], 'download' => true]) }}"
+                                                           class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-download me-1"></i>
+                                                            <span>Download</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+
+                                                @if($submission['remarks'])
+                                                <div class="current-remarks p-3 rounded bg-light-subtle border mb-4">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <i class="fas fa-comment-alt me-2 text-primary"></i>
+                                                        <span class="fw-medium">Current Remarks</span>
+                                                    </div>
+                                                    <p class="mb-0 text-muted">{{ $submission['remarks'] }}</p>
+                                                </div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-5">
+                                            <div class="remarks-section p-3 rounded h-100">
+                                                <form action="{{ route('admin.update.report', $submission['id']) }}" method="POST">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <input type="hidden" name="type" value="{{ $submission['type'] }}">
+
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-bold">
+                                                            <i class="fas fa-pen me-1 text-primary"></i>
+                                                            Add/Edit Remarks
+                                                        </label>
+                                                        <textarea class="form-control border-0 bg-white shadow-sm"
+                                                                  name="remarks"
+                                                                  rows="8"
+                                                                  placeholder="Enter your remarks or feedback here...">{{ $submission['remarks'] }}</textarea>
+                                                        <small class="text-muted mt-2 d-block">
+                                                            <i class="fas fa-info-circle me-1"></i>
+                                                            These remarks will be visible to the user who submitted the report.
+                                                        </small>
+                                                    </div>
+
+                                                    <div class="d-grid">
+                                                        <button type="submit" class="btn btn-primary">
+                                                            <i class="fas fa-save me-1"></i>
+                                                            Save Remarks
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                                            <!-- Update Status Modal -->
-                    <div class="modal fade" id="updateStatusModal{{ $submission['id'] }}" tabindex="-1">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                    <h5 class="modal-title">
-                                        <i class="fas fa-edit me-2" style="color: var(--primary);"></i>
-                                        Update Status
-                                    </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                        </div>
-                                <form action="{{ route('admin.update.report', $submission['id']) }}" method="POST">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="type" value="{{ $submission['type'] }}">
-                                                            <div class="modal-body">
-                                                                <div class="mb-3">
-                                            <label class="form-label">Status</label>
-                                            <select class="form-select" name="status" required>
-                                                <option value="submitted" {{ $submission['status'] == 'submitted' ? 'selected' : '' }}>Submitted</option>
-                                                <option value="no submission" {{ $submission['status'] == 'no submission' ? 'selected' : '' }}>No Submission</option>
-                                                                    </select>
-                                                                </div>
-                                                                <div class="mb-3">
-                                            <label class="form-label">Remarks</label>
-                                            <textarea class="form-control" name="remarks" rows="3">{{ $submission['remarks'] }}</textarea>
-                                                                </div>
-                                                            </div>
-                                                            <div class="modal-footer">
-                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save"></i>
-                                            <span>Save Changes</span>
-                                        </button>
-                                                            </div>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
+
 
                     <!-- File Preview Modal -->
                     <div class="modal fade" id="filePreviewModal" tabindex="-1">
@@ -578,17 +808,17 @@
     </div>
 </div>
 
-<!-- Status Update Success Modal -->
-<div class="modal fade" id="statusUpdateSuccessModal" tabindex="-1">
+<!-- Remarks Update Success Modal -->
+<div class="modal fade" id="remarksUpdateSuccessModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-body text-center p-4">
                 <div class="mb-4">
                     <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
                 </div>
-                <h5 class="mb-3">Status Updated</h5>
-                <p class="text-muted mb-0">The report status has been updated successfully.</p>
-                    </div>
+                <h5 class="mb-3">Remarks Saved</h5>
+                <p class="text-muted mb-0">The report remarks have been saved successfully.</p>
+            </div>
             <div class="modal-footer justify-content-center">
                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
             </div>
@@ -598,6 +828,32 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for success message in URL and show modal
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('remarks_updated') && urlParams.get('remarks_updated') === 'true') {
+        showRemarksUpdateSuccessModal();
+
+        // Clean URL without refreshing the page
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }
+
+    // Add animation to the remarks textarea
+    const remarksTextareas = document.querySelectorAll('textarea[name="remarks"]');
+    remarksTextareas.forEach(textarea => {
+        textarea.addEventListener('focus', function() {
+            this.style.boxShadow = '0 0 0 0.25rem rgba(13, 110, 253, 0.25)';
+            this.style.borderColor = '#86b7fe';
+        });
+
+        textarea.addEventListener('blur', function() {
+            this.style.boxShadow = '';
+            this.style.borderColor = '';
+        });
+    });
+});
+
 function previewFile(url, fileName) {
     // Set the file name in the modal
     document.getElementById('previewFileName').textContent = fileName;
@@ -709,10 +965,10 @@ function showSuccessModal(message) {
     successModal.show();
 }
 
-// Function to show status update success modal
-function showStatusUpdateSuccessModal() {
-    const statusUpdateSuccessModal = new bootstrap.Modal(document.getElementById('statusUpdateSuccessModal'));
-    statusUpdateSuccessModal.show();
+// Function to show remarks update success modal
+function showRemarksUpdateSuccessModal() {
+    const remarksUpdateSuccessModal = new bootstrap.Modal(document.getElementById('remarksUpdateSuccessModal'));
+    remarksUpdateSuccessModal.show();
 }
 
 // Function to show delete confirmation modal

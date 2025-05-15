@@ -35,8 +35,8 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted' 
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                    'status' => $report->status === 'submitted'
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
                         : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
@@ -53,8 +53,8 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted' 
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                    'status' => $report->status === 'submitted'
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
                         : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
@@ -71,8 +71,8 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted' 
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                    'status' => $report->status === 'submitted'
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
                         : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
@@ -89,8 +89,8 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted' 
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                    'status' => $report->status === 'submitted'
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
                         : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
@@ -107,8 +107,8 @@ class ReportController extends Controller
                     'submitted_by' => $report->user->name,
                     'submitted_at' => $report->created_at,
                     'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted' 
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)') 
+                    'status' => $report->status === 'submitted'
+                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
                         : 'no submission',
                     'is_late' => $isLate,
                     'remarks' => $report->remarks,
@@ -265,7 +265,7 @@ class ReportController extends Controller
                 'remarks' => $validated['remarks']
             ]);
 
-            return redirect()->back()->with('success', 'Report remarks updated successfully.');
+            return redirect()->back()->with('success', 'Report remarks updated successfully.')->with('remarks_updated', true);
         } catch (\Exception $e) {
             Log::error('Error updating report: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Failed to update report remarks.');

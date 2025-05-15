@@ -37,29 +37,149 @@
     }
 
     .recent-activity {
-        max-height: 400px;
+        max-height: 450px;
         overflow-y: auto;
+        padding: 0.5rem;
+    }
+
+    .recent-activity::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .recent-activity::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .recent-activity::-webkit-scrollbar-thumb {
+        background: #ddd;
+        border-radius: 10px;
+    }
+
+    .recent-activity::-webkit-scrollbar-thumb:hover {
+        background: #ccc;
     }
 
     .activity-item {
-        padding: 1rem;
-        border-left: 3px solid var(--primary);
+        padding: 1.25rem;
         margin-bottom: 1rem;
-        background: var(--light);
-        border-radius: 0.5rem;
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.05);
     }
 
-    .activity-item.late {
-        border-left-color: var(--danger);
+    .activity-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 4px;
+        background: var(--primary);
     }
 
-    .activity-item.ontime {
-        border-left-color: var(--success);
+    .activity-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .activity-item.late::before {
+        background: var(--danger);
+    }
+
+    .activity-item.ontime::before {
+        background: var(--success);
+    }
+
+    .activity-meta {
+        font-size: 0.8125rem;
+        color: var(--gray-600);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .activity-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--gray-800);
+        font-size: 1rem;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 1;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.03);
+    }
+
+    .status-pill:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .status-pill i {
+        margin-right: 0.375rem;
+        font-size: 0.75rem;
+    }
+
+    .activity-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .activity-status {
+        margin-left: 1rem;
     }
 
     .chart-container {
         position: relative;
-        height: 300px;
+        height: 260px;
+    }
+
+    .stat-items {
+        margin-top: 1.5rem;
+    }
+
+    .stat-item {
+        transition: all 0.2s ease;
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+
+    .stat-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-icon-wrapper {
+        transition: all 0.2s ease;
+    }
+
+    .stat-item:hover .stat-icon-wrapper {
+        transform: scale(1.1);
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--gray-700);
+        font-weight: 500;
+    }
+
+    .stat-value {
+        font-size: 1.1rem;
+        font-weight: 600;
     }
 </style>
 @endpush
@@ -141,43 +261,98 @@
 <div class="row">
     <!-- Recent Submissions -->
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-semibold">
                     <i class="fas fa-history me-2" style="color: var(--primary);"></i>
                     Recent Submissions
                 </h5>
+                <a href="{{ route('admin.view.submissions') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                    <i class="fas fa-eye me-1"></i> View All
+                </a>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="recent-activity">
                     @forelse($recentSubmissions as $submission)
                     <div class="activity-item {{ $submission->is_late ? 'late' : 'ontime' }}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="mb-1">{{ $submission->report_type }}</h6>
-                                <p class="mb-1 text-muted">
-                                    Submitted by {{ $submission->submitter }}
-                                </p>
-                                <small class="text-muted">
-                                    {{ \Carbon\Carbon::parse($submission->submitted_at)->format('M d, Y h:i A') }}
-                                </small>
+                        <div class="d-flex justify-content-between">
+                            <div class="activity-content">
+                                <h6 class="activity-title">{{ $submission->report_type }}</h6>
+                                <div class="activity-meta">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="d-flex align-items-center">
+                                            <i class="fas fa-user-circle me-1"></i>
+                                            {{ $submission->submitter }}
+                                        </span>
+                                        <span class="d-flex align-items-center">
+                                            <i class="far fa-calendar-alt me-1"></i>
+                                            {{ \Carbon\Carbon::parse($submission->submitted_at)->format('M d, Y') }}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-end">
-                                <span class="badge {{ $submission->status === 'submitted' ? 'bg-success' : 'bg-warning' }}">
+                            <div class="activity-status d-flex align-items-center gap-2">
+                                @php
+                                    // Status badge configuration
+                                    $statusConfig = [
+                                        'submitted' => [
+                                            'icon' => 'fa-check-circle',
+                                            'color' => 'var(--success)',
+                                            'bgColor' => 'rgba(25, 135, 84, 0.1)'
+                                        ],
+                                        'no submission' => [
+                                            'icon' => 'fa-times-circle',
+                                            'color' => 'var(--danger)',
+                                            'bgColor' => 'rgba(220, 53, 69, 0.1)'
+                                        ],
+                                        'pending' => [
+                                            'icon' => 'fa-clock',
+                                            'color' => 'var(--warning)',
+                                            'bgColor' => 'rgba(255, 193, 7, 0.1)'
+                                        ]
+                                    ];
+
+                                    // Default values if status is not in the config
+                                    $statusData = $statusConfig[$submission->status] ?? [
+                                        'icon' => 'fa-info-circle',
+                                        'color' => 'var(--gray-600)',
+                                        'bgColor' => 'rgba(108, 117, 125, 0.1)'
+                                    ];
+
+                                    // Timeliness configuration
+                                    $timelinessData = $submission->is_late
+                                        ? [
+                                            'icon' => 'fa-exclamation-circle',
+                                            'text' => 'Late',
+                                            'color' => 'var(--danger)',
+                                            'bgColor' => 'rgba(220, 53, 69, 0.1)'
+                                        ]
+                                        : [
+                                            'icon' => 'fa-check-circle',
+                                            'text' => 'On Time',
+                                            'color' => 'var(--success)',
+                                            'bgColor' => 'rgba(25, 135, 84, 0.1)'
+                                        ];
+                                @endphp
+
+                                <div class="status-pill" style="background-color: {{ $statusData['bgColor'] }}; color: {{ $statusData['color'] }}">
+                                    <i class="fas {{ $statusData['icon'] }}"></i>
                                     {{ ucfirst($submission->status) }}
-                                </span>
-                                @if($submission->is_late)
-                                    <span class="badge bg-danger ms-2">Late</span>
-                                @else
-                                    <span class="badge bg-success ms-2">On Time</span>
-                                @endif
+                                </div>
+
+                                <div class="status-pill" style="background-color: {{ $timelinessData['bgColor'] }}; color: {{ $timelinessData['color'] }}">
+                                    <i class="fas {{ $timelinessData['icon'] }}"></i>
+                                    {{ $timelinessData['text'] }}
+                                </div>
                             </div>
                         </div>
                     </div>
                     @empty
-                    <div class="text-center py-4">
-                        <i class="fas fa-inbox fa-3x mb-3" style="color: var(--gray-400);"></i>
-                        <p class="text-muted">No recent submissions</p>
+                    <div class="text-center py-5">
+                        <div class="mb-3" style="color: var(--gray-300);">
+                            <i class="fas fa-inbox fa-3x"></i>
+                        </div>
+                        <p class="text-muted mb-0">No recent submissions</p>
                     </div>
                     @endforelse
                 </div>
@@ -187,33 +362,61 @@
 
     <!-- Submission Statistics -->
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-semibold">
                     <i class="fas fa-chart-pie me-2" style="color: var(--primary);"></i>
                     Submission Statistics
                 </h5>
             </div>
             <div class="card-body">
-                <div class="chart-container">
+                <div class="chart-container mb-4">
                     <canvas id="submissionChart"></canvas>
                 </div>
                 <div class="mt-4">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Weekly Reports</span>
-                        <span class="fw-bold">{{ $weeklyCount }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Monthly Reports</span>
-                        <span class="fw-bold">{{ $monthlyCount }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Quarterly Reports</span>
-                        <span class="fw-bold">{{ $quarterlyCount }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span>Annual Reports</span>
-                        <span class="fw-bold">{{ $annualCount }}</span>
+                    @php
+                        $reportTypes = [
+                            [
+                                'name' => 'Weekly Reports',
+                                'count' => $weeklyCount,
+                                'icon' => 'fa-clock',
+                                'color' => 'var(--primary)'
+                            ],
+                            [
+                                'name' => 'Monthly Reports',
+                                'count' => $monthlyCount,
+                                'icon' => 'fa-calendar-day',
+                                'color' => 'var(--danger)'
+                            ],
+                            [
+                                'name' => 'Quarterly Reports',
+                                'count' => $quarterlyCount,
+                                'icon' => 'fa-chart-pie',
+                                'color' => 'var(--warning)'
+                            ],
+                            [
+                                'name' => 'Annual Reports',
+                                'count' => $annualCount,
+                                'icon' => 'fa-chart-line',
+                                'color' => 'var(--success)'
+                            ]
+                        ];
+                    @endphp
+
+                    <div class="stat-items">
+                        @foreach($reportTypes as $type)
+                        <div class="stat-item d-flex justify-content-between align-items-center p-3 mb-3 rounded"
+                            style="background-color: {{ $type['color'] }}08; border-left: 3px solid {{ $type['color'] }}">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon-wrapper me-3 d-flex align-items-center justify-content-center rounded-circle"
+                                    style="background-color: {{ $type['color'] }}15; width: 36px; height: 36px;">
+                                    <i class="fas {{ $type['icon'] }}" style="color: {{ $type['color'] }}"></i>
+                                </div>
+                                <span class="stat-label">{{ $type['name'] }}</span>
+                            </div>
+                            <span class="stat-value fw-bold" style="color: {{ $type['color'] }}">{{ $type['count'] }}</span>
+                        </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -239,16 +442,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     {{ $annualCount }}
                 ],
                 backgroundColor: [
-                    'rgba(54, 162, 235, 0.8)',
-                    'rgba(255, 99, 132, 0.8)',
-                    'rgba(255, 206, 86, 0.8)',
-                    'rgba(75, 192, 192, 0.8)'
+                    'rgba(13, 110, 253, 0.8)',  // Primary (blue)
+                    'rgba(220, 53, 69, 0.8)',   // Danger (red)
+                    'rgba(255, 193, 7, 0.8)',   // Warning (yellow)
+                    'rgba(25, 135, 84, 0.8)'    // Success (green)
                 ],
                 borderColor: [
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)'
+                    'rgba(13, 110, 253, 1)',
+                    'rgba(220, 53, 69, 1)',
+                    'rgba(255, 193, 7, 1)',
+                    'rgba(25, 135, 84, 1)'
                 ],
                 borderWidth: 1
             }]
@@ -256,9 +459,32 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '70%',
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    titleColor: '#333',
+                    bodyColor: '#666',
+                    borderColor: 'rgba(0, 0, 0, 0.1)',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    boxPadding: 6,
+                    usePointStyle: true
+                }
+            },
+            elements: {
+                arc: {
+                    borderWidth: 2
                 }
             }
         }

@@ -61,29 +61,58 @@
     <div class="row g-4">
         <!-- Recent Reports -->
         <div class="col-md-6">
-            <div class="card h-100">
+            <div class="card h-100 recent-reports-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Recent Reports</h5>
-                    <a href="{{ route('barangay.submissions') }}" class="btn btn-link btn-sm p-0">View All</a>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-history me-2 text-primary"></i>
+                        <h5 class="card-title mb-0">Recent Reports</h5>
+                    </div>
+                    <a href="{{ route('barangay.submissions') }}" class="btn-view-all">
+                        View All
+                        <i class="fas fa-chevron-right ms-1"></i>
+                    </a>
                 </div>
                 <div class="card-body p-0">
                     @if($recentReports->isEmpty())
-                        <div class="text-center py-5">
-                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
-                            <p class="text-muted mb-0">No recent reports</p>
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <p>No recent reports</p>
+                            <button type="button" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#submitReportModal">
+                                <i class="fas fa-plus-circle me-1"></i>
+                                Submit Your First Report
+                            </button>
                         </div>
                     @else
-                        <div class="list-group list-group-flush">
+                        <div class="report-list">
                             @foreach($recentReports as $report)
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1">{{ $report->reportType->name }}</h6>
-                                            <small class="text-muted">Submitted: {{ $report->created_at->format('M d, Y') }}</small>
+                                <div class="report-item">
+                                    <div class="report-icon">
+                                        @php
+                                            $iconClass = match($report->reportType->frequency) {
+                                                'weekly' => 'fa-calendar-week text-info',
+                                                'monthly' => 'fa-calendar-alt text-primary',
+                                                'quarterly' => 'fa-calendar-check text-success',
+                                                'semestral' => 'fa-calendar-plus text-warning',
+                                                'annual' => 'fa-calendar text-danger',
+                                                default => 'fa-file-alt text-secondary'
+                                            };
+                                        @endphp
+                                        <i class="fas {{ $iconClass }}"></i>
+                                    </div>
+                                    <div class="report-content">
+                                        <h6 class="report-title">{{ $report->reportType->name }}</h6>
+                                        <div class="report-meta">
+                                            <span class="report-date">
+                                                <i class="far fa-clock me-1"></i>
+                                                {{ $report->created_at->format('M d, Y') }}
+                                            </span>
+                                            <span class="report-status status-{{ $report->status }}">
+                                                <i class="fas {{ $report->status === 'submitted' ? 'fa-check-circle' : 'fa-exclamation-circle' }} me-1"></i>
+                                                {{ ucfirst($report->status) }}
+                                            </span>
                                         </div>
-                                        <span class="badge text-{{ $report->status === 'submitted' ? 'success' : 'warning' }}">
-                                            {{ ucfirst($report->status) }}
-                                        </span>
                                     </div>
                                 </div>
                             @endforeach
@@ -95,44 +124,66 @@
 
         <!-- Upcoming Deadlines -->
         <div class="col-md-6">
-            <div class="card h-100">
+            <div class="card h-100 upcoming-deadlines-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Upcoming Deadlines</h5>
-                    <a href="{{ route('barangay.overdue-reports') }}" class="btn btn-link btn-sm p-0">View All</a>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                        <h5 class="card-title mb-0">Upcoming Deadlines</h5>
+                    </div>
+                    <a href="{{ route('barangay.overdue-reports') }}" class="btn-view-all">
+                        View All
+                        <i class="fas fa-chevron-right ms-1"></i>
+                    </a>
                 </div>
                 <div class="card-body p-0">
                     @if($upcomingDeadlines->isEmpty())
-                        <div class="text-center py-5">
-                            <i class="fas fa-calendar-check fa-3x text-muted mb-3"></i>
-                            <p class="text-muted mb-0">No upcoming deadlines</p>
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <p>No upcoming deadlines</p>
+                            <span class="text-muted mt-1 small">You're all caught up!</span>
                         </div>
                     @else
-                        <div class="list-group list-group-flush">
+                        <div class="deadline-list">
                             @foreach($upcomingDeadlines as $deadline)
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1">{{ $deadline->name }}</h6>
-                                            <small class="text-muted">Deadline: {{ $deadline->deadline->format('M d, Y') }}</small>
+                                <div class="deadline-item">
+                                    <div class="deadline-info">
+                                        <div class="deadline-icon">
+                                            @php
+                                                $iconClass = match($deadline->frequency) {
+                                                    'weekly' => 'fa-calendar-week text-info',
+                                                    'monthly' => 'fa-calendar-alt text-primary',
+                                                    'quarterly' => 'fa-calendar-check text-success',
+                                                    'semestral' => 'fa-calendar-plus text-warning',
+                                                    'annual' => 'fa-calendar text-danger',
+                                                    default => 'fa-calendar-day text-secondary'
+                                                };
+                                            @endphp
+                                            <i class="fas {{ $iconClass }}"></i>
                                         </div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-{{ $deadline->frequency === 'weekly' ? 'info' :
-                                                ($deadline->frequency === 'monthly' ? 'primary' :
-                                                ($deadline->frequency === 'quarterly' ? 'success' :
-                                                ($deadline->frequency === 'semestral' ? 'warning' : 'danger'))) }}">
-                                                {{ ucfirst($deadline->frequency) }}
-                                            </span>
-                                            <button type="button"
-                                                    class="btn btn-sm btn-primary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#submitReportModal"
-                                                    data-report-type="{{ $deadline->id }}"
-                                                    data-frequency="{{ $deadline->frequency }}">
-                                                <i class="fas fa-file-upload me-1"></i>
-                                                Submit
-                                            </button>
+                                        <div class="deadline-content">
+                                            <h6 class="deadline-title">{{ $deadline->name }}</h6>
+                                            <div class="deadline-meta">
+                                                <span class="deadline-date">
+                                                    <i class="far fa-clock me-1"></i>
+                                                    Due: {{ $deadline->deadline->format('M d, Y') }}
+                                                </span>
+                                                <span class="deadline-frequency frequency-{{ $deadline->frequency }}">
+                                                    {{ ucfirst($deadline->frequency) }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <button type="button"
+                                            class="btn-submit"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#submitReportModal"
+                                            data-report-type="{{ $deadline->id }}"
+                                            data-frequency="{{ $deadline->frequency }}">
+                                        <i class="fas fa-file-upload me-1"></i>
+                                        Submit
+                                    </button>
                                 </div>
                             @endforeach
                         </div>
@@ -144,6 +195,17 @@
 </div>
 
 <style>
+:root {
+    --primary-rgb: 13, 110, 253;
+    --success-rgb: 25, 135, 84;
+    --warning-rgb: 255, 193, 7;
+    --danger-rgb: 220, 53, 69;
+    --info-rgb: 13, 202, 240;
+    --secondary-rgb: 108, 117, 125;
+    --gray-rgb: 173, 181, 189;
+    --primary-dark: #0b5ed7;
+}
+
 .dashboard {
     max-width: 1400px;
     margin: 0 auto;
@@ -346,6 +408,296 @@
 .drop-zone__prompt i {
     color: #0d6efd;
 }
+
+/* Modern Recent Reports Styles */
+.recent-reports-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.recent-reports-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.recent-reports-card .card-header {
+    padding: 1.25rem 1.5rem;
+    background: white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.btn-view-all {
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.btn-view-all:hover {
+    color: var(--primary);
+    transform: translateX(2px);
+}
+
+.btn-view-all i {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+.btn-view-all:hover i {
+    transform: translateX(2px);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.empty-state-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(var(--primary-rgb), 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+.empty-state p {
+    color: var(--gray-600);
+    margin-bottom: 0;
+}
+
+.report-list {
+    padding: 0.5rem 0;
+}
+
+.report-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.report-item:last-child {
+    border-bottom: none;
+}
+
+.report-item:hover {
+    background-color: rgba(var(--primary-rgb), 0.02);
+}
+
+.report-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(var(--primary-rgb), 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+}
+
+.report-content {
+    flex: 1;
+}
+
+.report-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--gray-800);
+}
+
+.report-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.8125rem;
+}
+
+.report-date {
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+}
+
+.report-status {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 50px;
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+.report-status.status-submitted {
+    background-color: rgba(var(--success-rgb), 0.1);
+    color: var(--success);
+}
+
+.report-status.status-no-submission {
+    background-color: rgba(var(--danger-rgb), 0.1);
+    color: var(--danger);
+}
+
+.report-status.status-pending {
+    background-color: rgba(var(--warning-rgb), 0.1);
+    color: var(--warning);
+}
+
+/* Upcoming Deadlines Styles */
+.upcoming-deadlines-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.upcoming-deadlines-card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.upcoming-deadlines-card .card-header {
+    padding: 1.25rem 1.5rem;
+    background: white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.deadline-list {
+    padding: 0.5rem 0;
+}
+
+.deadline-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.deadline-item:last-child {
+    border-bottom: none;
+}
+
+.deadline-item:hover {
+    background-color: rgba(var(--primary-rgb), 0.02);
+}
+
+.deadline-info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.deadline-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(var(--primary-rgb), 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+}
+
+.deadline-content {
+    flex: 1;
+}
+
+.deadline-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--gray-800);
+}
+
+.deadline-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.8125rem;
+}
+
+.deadline-date {
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+}
+
+.deadline-frequency {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 50px;
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+.frequency-weekly {
+    background-color: rgba(13, 202, 240, 0.1);
+    color: #0dcaf0;
+}
+
+.frequency-monthly {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+}
+
+.frequency-quarterly {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: #198754;
+}
+
+.frequency-semestral {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.frequency-annual {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.btn-submit {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(var(--primary-rgb), 0.2);
+}
+
+.btn-submit:hover {
+    background-color: var(--primary-dark, #0b5ed7);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(var(--primary-rgb), 0.3);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(var(--primary-rgb), 0.2);
+}
 </style>
 
 <!-- Submit Report Modal -->
@@ -401,6 +753,10 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <div id="no-report-types-message" class="alert alert-info mt-2" style="display: none;">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    You have already submitted all available reports for this frequency.
+                                </div>
                                 @error('report_type_id')
                                     <div class="invalid-feedback">
                                         {{ $message }}
@@ -584,6 +940,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function filterReportTypes() {
         const selectedFrequency = frequencyFilter.value;
         const options = reportTypeSelect.options;
+        let visibleOptions = 0;
 
         for (let i = 0; i < options.length; i++) {
             const option = options[i];
@@ -591,6 +948,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!selectedFrequency || option.dataset.frequency === selectedFrequency) {
                 option.style.display = '';
+                visibleOptions++;
             } else {
                 option.style.display = 'none';
             }
@@ -602,6 +960,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (selectedFrequency && selectedOption.dataset.frequency !== selectedFrequency) {
                 reportTypeSelect.value = '';
                 hideAllFields();
+            }
+        }
+
+        // Show a message if no options are available after filtering
+        const noOptionsMessage = document.getElementById('no-report-types-message');
+        if (noOptionsMessage) {
+            if (visibleOptions === 0) {
+                noOptionsMessage.style.display = 'block';
+            } else {
+                noOptionsMessage.style.display = 'none';
             }
         }
     }
@@ -663,6 +1031,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial filter application
     filterReportTypes();
+
+    // Check if there are any report types available
+    const hasReportTypes = Array.from(reportTypeSelect.options).some(option =>
+        option.value !== '' && option.style.display !== 'none'
+    );
+
+    if (!hasReportTypes) {
+        const noOptionsMessage = document.getElementById('no-report-types-message');
+        if (noOptionsMessage) {
+            noOptionsMessage.style.display = 'block';
+            noOptionsMessage.textContent = 'You have already submitted all available reports.';
+        }
+    }
 
     // Enhanced Drop zone functionality
     const dropZone = document.getElementById('dropZone');
@@ -776,6 +1157,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submission handling
     form.addEventListener('submit', function(e) {
         e.preventDefault(); // Prevent default submission
+
+        // Check if there are any report types available
+        const hasReportTypes = Array.from(reportTypeSelect.options).some(option =>
+            option.value !== '' && option.style.display !== 'none'
+        );
+
+        if (!hasReportTypes) {
+            alert('You have already submitted all available reports.');
+            return;
+        }
 
         // Validate file
         if (!fileInput.files.length) {
