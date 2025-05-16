@@ -17,144 +17,201 @@ class ReportController extends Controller
      */
     public function index(Request $request)
     {
-        // Get all submissions from different report types
-        $weeklyReports = WeeklyReport::with(['user', 'reportType'])->get();
-        $monthlyReports = MonthlyReport::with(['user', 'reportType'])->get();
-        $quarterlyReports = QuarterlyReport::with(['user', 'reportType'])->get();
-        $semestralReports = SemestralReport::with(['user', 'reportType'])->get();
-        $annualReports = AnnualReport::with(['user', 'reportType'])->get();
+        try {
+            $perPage = $request->get('per_page', 10);
 
-        // Combine all submissions
-        $submissions = collect()
-            ->concat($weeklyReports->map(function ($report) {
-                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
-                return [
-                    'id' => $report->id,
-                    'type' => 'weekly',
-                    'report_type' => $report->reportType->name,
-                    'submitted_by' => $report->user->name,
-                    'submitted_at' => $report->created_at,
-                    'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted'
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
-                        : 'no submission',
-                    'is_late' => $isLate,
-                    'remarks' => $report->remarks,
-                    'file_path' => $report->file_path,
-                    'file_name' => basename($report->file_path)
-                ];
-            }))
-            ->concat($monthlyReports->map(function ($report) {
-                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
-                return [
-                    'id' => $report->id,
-                    'type' => 'monthly',
-                    'report_type' => $report->reportType->name,
-                    'submitted_by' => $report->user->name,
-                    'submitted_at' => $report->created_at,
-                    'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted'
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
-                        : 'no submission',
-                    'is_late' => $isLate,
-                    'remarks' => $report->remarks,
-                    'file_path' => $report->file_path,
-                    'file_name' => basename($report->file_path)
-                ];
-            }))
-            ->concat($quarterlyReports->map(function ($report) {
-                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
-                return [
-                    'id' => $report->id,
-                    'type' => 'quarterly',
-                    'report_type' => $report->reportType->name,
-                    'submitted_by' => $report->user->name,
-                    'submitted_at' => $report->created_at,
-                    'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted'
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
-                        : 'no submission',
-                    'is_late' => $isLate,
-                    'remarks' => $report->remarks,
-                    'file_path' => $report->file_path,
-                    'file_name' => basename($report->file_path)
-                ];
-            }))
-            ->concat($semestralReports->map(function ($report) {
-                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
-                return [
-                    'id' => $report->id,
-                    'type' => 'semestral',
-                    'report_type' => $report->reportType->name,
-                    'submitted_by' => $report->user->name,
-                    'submitted_at' => $report->created_at,
-                    'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted'
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
-                        : 'no submission',
-                    'is_late' => $isLate,
-                    'remarks' => $report->remarks,
-                    'file_path' => $report->file_path,
-                    'file_name' => basename($report->file_path)
-                ];
-            }))
-            ->concat($annualReports->map(function ($report) {
-                $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
-                return [
-                    'id' => $report->id,
-                    'type' => 'annual',
-                    'report_type' => $report->reportType->name,
-                    'submitted_by' => $report->user->name,
-                    'submitted_at' => $report->created_at,
-                    'deadline' => $report->reportType->deadline,
-                    'status' => $report->status === 'submitted'
-                        ? ($isLate ? 'submitted (late)' : 'submitted (on time)')
-                        : 'no submission',
-                    'is_late' => $isLate,
-                    'remarks' => $report->remarks,
-                    'file_path' => $report->file_path,
-                    'file_name' => basename($report->file_path)
-                ];
-            }))
-            ->sortByDesc('submitted_at');
+            // Initialize queries with relationships
+            $weeklyQuery = WeeklyReport::with(['user', 'reportType']);
+            $monthlyQuery = MonthlyReport::with(['user', 'reportType']);
+            $quarterlyQuery = QuarterlyReport::with(['user', 'reportType']);
+            $semestralQuery = SemestralReport::with(['user', 'reportType']);
+            $annualQuery = AnnualReport::with(['user', 'reportType']);
 
-        // Apply filters if they exist
-        if ($request->filled('type')) {
-            $submissions = $submissions->where('type', $request->type);
-        }
-        if ($request->filled('status')) {
-            $submissions = $submissions->where('status', $request->status);
-        }
-        if ($request->filled('timeliness')) {
-            $submissions = $submissions->where('is_late', $request->timeliness === 'late');
-        }
-        if ($request->filled('search')) {
-            $search = strtolower($request->search);
-            $submissions = $submissions->filter(function ($submission) use ($search) {
-                return str_contains(strtolower($submission['report_type']), $search) ||
-                       str_contains(strtolower($submission['submitted_by']), $search);
+            // Filter by barangay (user) if specified
+            if ($request->filled('barangay_id')) {
+                $barangayId = $request->barangay_id;
+                $weeklyQuery->where('user_id', $barangayId);
+                $monthlyQuery->where('user_id', $barangayId);
+                $quarterlyQuery->where('user_id', $barangayId);
+                $semestralQuery->where('user_id', $barangayId);
+                $annualQuery->where('user_id', $barangayId);
+            }
+
+            // Apply type filter if specified
+            if ($request->filled('type')) {
+                $type = $request->type;
+                // Only get reports of the specified type
+                if ($type == 'weekly') {
+                    $monthlyQuery->whereRaw('1=0'); // Force empty result
+                    $quarterlyQuery->whereRaw('1=0');
+                    $semestralQuery->whereRaw('1=0');
+                    $annualQuery->whereRaw('1=0');
+                } elseif ($type == 'monthly') {
+                    $weeklyQuery->whereRaw('1=0');
+                    $quarterlyQuery->whereRaw('1=0');
+                    $semestralQuery->whereRaw('1=0');
+                    $annualQuery->whereRaw('1=0');
+                } elseif ($type == 'quarterly') {
+                    $weeklyQuery->whereRaw('1=0');
+                    $monthlyQuery->whereRaw('1=0');
+                    $semestralQuery->whereRaw('1=0');
+                    $annualQuery->whereRaw('1=0');
+                } elseif ($type == 'semestral') {
+                    $weeklyQuery->whereRaw('1=0');
+                    $monthlyQuery->whereRaw('1=0');
+                    $quarterlyQuery->whereRaw('1=0');
+                    $annualQuery->whereRaw('1=0');
+                } elseif ($type == 'annual') {
+                    $weeklyQuery->whereRaw('1=0');
+                    $monthlyQuery->whereRaw('1=0');
+                    $quarterlyQuery->whereRaw('1=0');
+                    $semestralQuery->whereRaw('1=0');
+                }
+            }
+
+            // Apply status filter if specified
+            if ($request->filled('status')) {
+                $status = $request->status;
+                $weeklyQuery->where('status', $status);
+                $monthlyQuery->where('status', $status);
+                $quarterlyQuery->where('status', $status);
+                $semestralQuery->where('status', $status);
+                $annualQuery->where('status', $status);
+            }
+
+            // Apply search filter if specified
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $weeklyQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+
+                $monthlyQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+
+                $quarterlyQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+
+                $semestralQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+
+                $annualQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+            }
+
+            // Get all reports with their relationships and add unique identifiers
+            $weeklyReports = $weeklyQuery->get()->map(function ($report) {
+                $report->model_type = 'WeeklyReport';
+                $report->unique_id = 'weekly_' . $report->id;
+                return $report;
             });
+
+            $monthlyReports = $monthlyQuery->get()->map(function ($report) {
+                $report->model_type = 'MonthlyReport';
+                $report->unique_id = 'monthly_' . $report->id;
+                return $report;
+            });
+
+            $quarterlyReports = $quarterlyQuery->get()->map(function ($report) {
+                $report->model_type = 'QuarterlyReport';
+                $report->unique_id = 'quarterly_' . $report->id;
+                return $report;
+            });
+
+            $semestralReports = $semestralQuery->get()->map(function ($report) {
+                $report->model_type = 'SemestralReport';
+                $report->unique_id = 'semestral_' . $report->id;
+                return $report;
+            });
+
+            $annualReports = $annualQuery->get()->map(function ($report) {
+                $report->model_type = 'AnnualReport';
+                $report->unique_id = 'annual_' . $report->id;
+                return $report;
+            });
+
+            // Combine all reports
+            $reports = collect()
+                ->concat($weeklyReports)
+                ->concat($monthlyReports)
+                ->concat($quarterlyReports)
+                ->concat($semestralReports)
+                ->concat($annualReports)
+                ->sortByDesc('created_at');
+
+            // Apply timeliness filter if specified
+            if ($request->filled('timeliness')) {
+                $timeliness = $request->timeliness;
+                $reports = $reports->filter(function($report) use ($timeliness) {
+                    $isLate = Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
+                    return ($timeliness === 'late') ? $isLate : !$isLate;
+                });
+            }
+
+            // Create a paginator
+            $page = $request->get('page', 1);
+
+            // Only create a paginator if there are reports
+            if ($reports->count() > 0) {
+                $reports = new \Illuminate\Pagination\LengthAwarePaginator(
+                    $reports->forPage($page, $perPage),
+                    $reports->count(),
+                    $perPage,
+                    $page,
+                    [
+                        'path' => $request->url(),
+                        'query' => $request->query()
+                    ]
+                );
+            } else {
+                // Create an empty paginator
+                $reports = new \Illuminate\Pagination\LengthAwarePaginator(
+                    collect(),
+                    0,
+                    $perPage,
+                    $page,
+                    [
+                        'path' => $request->url(),
+                        'query' => $request->query()
+                    ]
+                );
+            }
+
+            // Get all barangay users for the filter dropdown
+            $barangays = \App\Models\User::where('role', 'barangay')
+                                        ->where('is_active', true)
+                                        ->orderBy('name')
+                                        ->get();
+
+            // Get the selected barangay if any
+            $selectedBarangay = null;
+            if ($request->filled('barangay_id')) {
+                $selectedBarangay = \App\Models\User::find($request->barangay_id);
+            }
+
+            return view('admin.view-submissions', compact('reports', 'barangays', 'selectedBarangay'));
+        } catch (\Exception $e) {
+            Log::error('Error in admin view submissions: ' . $e->getMessage());
+            return view('admin.view-submissions', [
+                'reports' => collect(),
+                'barangays' => \App\Models\User::where('role', 'barangay')->where('is_active', true)->get(),
+                'selectedBarangay' => null
+            ])->with('error', 'An error occurred while loading submissions.');
         }
-
-        // Convert to pagination
-        $page = $request->get('page', 1);
-        $perPage = 10;
-        $total = $submissions->count();
-        $submissions = $submissions->forPage($page, $perPage);
-
-        // Create paginator
-        $submissions = new \Illuminate\Pagination\LengthAwarePaginator(
-            $submissions,
-            $total,
-            $perPage,
-            $page,
-            [
-                'path' => $request->url(),
-                'query' => $request->query()
-            ]
-        );
-
-        return view('admin.view-submissions', compact('submissions'));
     }
 
     public function showSubmitReport()
@@ -243,22 +300,33 @@ class ReportController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            Log::info('Updating report remarks for ID: ' . $id);
+
             $validated = $request->validate([
                 'remarks' => 'nullable|string|max:1000',
                 'type' => 'required|in:weekly,monthly,quarterly,semestral,annual'
             ]);
 
-            // Map report types to their models
-            $reportModels = [
-                'weekly' => WeeklyReport::class,
-                'monthly' => MonthlyReport::class,
-                'quarterly' => QuarterlyReport::class,
-                'semestral' => SemestralReport::class,
-                'annual' => AnnualReport::class
-            ];
+            // Check if the user is an admin
+            $isAdmin = Auth::user()->role === 'admin';
+            if (!$isAdmin) {
+                Log::error('Non-admin user attempted to update report: ' . Auth::id());
+                return redirect()->back()->with('error', 'You do not have permission to update this report.');
+            }
 
-            $model = $reportModels[$validated['type']];
-            $report = $model::findOrFail($id);
+            // Use the findReport helper method to locate the report
+            $report = $this->findReport($id);
+
+            if (!$report) {
+                Log::error('Report not found with ID: ' . $id);
+                return redirect()->back()->with('error', 'Report not found. Please try again.');
+            }
+
+            Log::info('Found report', [
+                'id' => $report->id,
+                'type' => get_class($report),
+                'remarks' => $validated['remarks']
+            ]);
 
             // Only update remarks
             $report->update([
@@ -267,8 +335,11 @@ class ReportController extends Controller
 
             return redirect()->back()->with('success', 'Report remarks updated successfully.')->with('remarks_updated', true);
         } catch (\Exception $e) {
-            Log::error('Error updating report: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to update report remarks.');
+            Log::error('Error updating report: ' . $e->getMessage(), [
+                'id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Failed to update report remarks: ' . $e->getMessage());
         }
     }
 
@@ -445,9 +516,10 @@ class ReportController extends Controller
      */
     public function showResubmit($id)
     {
-        $report = $this->findReport($id);
+        // Always check user ID for resubmission to ensure users can only resubmit their own reports
+        $report = $this->findReport($id, true);
         if (!$report) {
-            return back()->with('error', 'Report not found.');
+            return back()->with('error', 'Report not found or you do not have permission to resubmit this report.');
         }
 
         $reportTypes = ReportType::all();
@@ -459,9 +531,10 @@ class ReportController extends Controller
      */
     public function resubmit(Request $request, $id)
     {
-        $report = $this->findReport($id);
+        // Always check user ID for resubmission to ensure users can only resubmit their own reports
+        $report = $this->findReport($id, true);
         if (!$report) {
-            return back()->with('error', 'Report not found.');
+            return back()->with('error', 'Report not found or you do not have permission to resubmit this report.');
         }
 
         $request->validate([
@@ -525,23 +598,104 @@ class ReportController extends Controller
     /**
      * Helper method to find a report by ID.
      */
-    private function findReport($id)
+    private function findReport($id, $checkUserId = false)
     {
-        $models = [
-            WeeklyReport::class,
-            MonthlyReport::class,
-            QuarterlyReport::class,
-            SemestralReport::class,
-            AnnualReport::class
+        // Parse the unique identifier to get the table name and ID
+        $parts = explode('_', $id);
+
+        if (count($parts) < 2) {
+            // If the ID doesn't contain an underscore, it's an old-style ID
+            // In this case, we'll try to find the report in each table
+            $reportId = $id;
+            $reportTable = null;
+        } else {
+            // Extract the table name and ID from the unique identifier
+            $reportTable = $parts[0];
+            $reportId = $parts[1];
+        }
+
+        Log::info('Parsed report ID: ' . $reportId . ', Table: ' . ($reportTable ?? 'unknown'));
+
+        // Get the current user ID if we need to check permissions
+        $userId = $checkUserId ? Auth::id() : null;
+        Log::info('User ID for permission check: ' . ($userId ?? 'not checking'));
+
+        $reportTypes = [
+            'weekly' => WeeklyReport::class,
+            'monthly' => MonthlyReport::class,
+            'quarterly' => QuarterlyReport::class,
+            'semestral' => SemestralReport::class,
+            'annual' => AnnualReport::class
         ];
 
-        foreach ($models as $model) {
-            $report = $model::find($id);
-            if ($report) {
-                return $report;
+        if ($reportTable && isset($reportTypes[$reportTable])) {
+            // If we know the table, we can directly query that table
+            $model = $reportTypes[$reportTable];
+            Log::info("Directly checking {$reportTable} reports table for ID: {$reportId}");
+
+            try {
+                // Build the query
+                $query = $model::where('id', $reportId);
+
+                // Add user ID check if needed
+                if ($checkUserId && $userId) {
+                    $query->where('user_id', $userId);
+                    Log::info("Adding user_id filter: {$userId}");
+                }
+
+                $report = $query->first();
+
+                if ($report) {
+                    Log::info("Found report in {$reportTable} reports table", [
+                        'report_id' => $report->id,
+                        'report_type' => get_class($report),
+                        'user_id' => $report->user_id
+                    ]);
+                    return $report;
+                } else {
+                    Log::warning("No report found in {$reportTable} table with ID {$reportId}" .
+                        ($checkUserId ? " for user {$userId}" : ""));
+                }
+            } catch (\Exception $e) {
+                Log::warning("Failed to find report in {$reportTable} table with ID {$reportId}: " . $e->getMessage());
+                // Continue to check other tables
             }
         }
 
+        // If we don't know the table or didn't find the report in the specified table,
+        // we need to check all tables
+        foreach ($reportTypes as $type => $model) {
+            if ($reportTable && $type === $reportTable) {
+                // Skip if we already checked this table
+                continue;
+            }
+
+            Log::info("Checking {$type} reports table for ID: {$reportId}");
+            try {
+                // Build the query
+                $query = $model::where('id', $reportId);
+
+                // Add user ID check if needed
+                if ($checkUserId && $userId) {
+                    $query->where('user_id', $userId);
+                }
+
+                $report = $query->first();
+
+                if ($report) {
+                    Log::info("Found report in {$type} reports table", [
+                        'report_id' => $report->id,
+                        'report_type' => get_class($report),
+                        'user_id' => $report->user_id
+                    ]);
+                    return $report;
+                }
+            } catch (\Exception $e) {
+                Log::warning("Error checking {$type} table: " . $e->getMessage());
+            }
+        }
+
+        Log::warning("Report not found with ID: {$id}" . ($checkUserId ? " for user " . $userId : ""));
         return null;
     }
 
@@ -568,51 +722,102 @@ class ReportController extends Controller
     public function downloadFile($id)
     {
         try {
-            \Log::info('Attempting to find report with ID: ' . $id);
+            Log::info('Attempting to find report with ID: ' . $id);
 
-            // Try to find the report in each table
+            // Check if the user is an admin
+            $isAdmin = Auth::user()->role === 'admin';
+            $userId = Auth::id();
+            Log::info('User role: ' . Auth::user()->role . ', User ID: ' . $userId);
+
+            // Parse the unique identifier to get the table name and ID
+            $parts = explode('_', $id);
+
+            if (count($parts) < 2) {
+                // If the ID doesn't contain an underscore, it's an old-style ID
+                $reportId = $id;
+                $reportTable = null;
+            } else {
+                // Extract the table name and ID from the unique identifier
+                $reportTable = $parts[0];
+                $reportId = $parts[1];
+            }
+
+            Log::info('Parsed report ID: ' . $reportId . ', Table: ' . ($reportTable ?? 'unknown'));
+
+            // Find the report based on the user's role
             $report = null;
-            $reportTypes = [
-                'weekly' => WeeklyReport::class,
-                'monthly' => MonthlyReport::class,
-                'quarterly' => QuarterlyReport::class,
-                'semestral' => SemestralReport::class,
-                'annual' => AnnualReport::class
-            ];
 
-            foreach ($reportTypes as $type => $model) {
-                \Log::info("Checking {$type} reports table");
-                $foundReport = $model::find($id);
-                if ($foundReport) {
-                    $report = $foundReport;
-                    \Log::info("Found report in {$type} reports table");
-                    break;
+            if ($isAdmin) {
+                // Admins can access any report
+                $report = $this->findReport($id, false);
+                Log::info('Admin user, finding report without user ID check');
+            } else {
+                // For barangay users, we need to check the user ID
+                Log::info('Barangay user, finding report with user ID check: ' . $userId);
+
+                // Use a direct query approach for better control
+                $reportTypes = [
+                    'weekly' => WeeklyReport::class,
+                    'monthly' => MonthlyReport::class,
+                    'quarterly' => QuarterlyReport::class,
+                    'semestral' => SemestralReport::class,
+                    'annual' => AnnualReport::class
+                ];
+
+                if ($reportTable && isset($reportTypes[$reportTable])) {
+                    // If we know the table, we can directly query that table
+                    $model = $reportTypes[$reportTable];
+                    Log::info("Directly checking {$reportTable} reports table for ID: {$reportId} and user_id: {$userId}");
+
+                    $report = $model::where('id', $reportId)
+                        ->where('user_id', $userId)
+                        ->first();
+
+                    if ($report) {
+                        Log::info("Found report in {$reportTable} reports table for user {$userId}");
+                    } else {
+                        Log::warning("No report found in {$reportTable} table with ID {$reportId} for user {$userId}");
+                    }
+                } else {
+                    // If we don't know the table, we need to check all tables
+                    foreach ($reportTypes as $type => $model) {
+                        Log::info("Checking {$type} reports table for ID: {$reportId} and user_id: {$userId}");
+
+                        $report = $model::where('id', $reportId)
+                            ->where('user_id', $userId)
+                            ->first();
+
+                        if ($report) {
+                            Log::info("Found report in {$type} reports table for user {$userId}");
+                            break;
+                        }
+                    }
                 }
             }
 
             if (!$report) {
-                \Log::error('Report not found in any table for ID: ' . $id);
-                return response()->json(['error' => 'Report not found.'], 404);
+                Log::error('Report not found in any table for ID: ' . $id . ' and user ' . $userId);
+                return response()->json(['error' => 'Report not found or you do not have permission to access it.'], 404);
             }
 
             // Log the file path from the database
-            \Log::info('File path from database: ' . $report->file_path);
+            Log::info('File path from database: ' . $report->file_path);
 
             // Check if the file exists in storage
             if (!Storage::disk('public')->exists($report->file_path)) {
-                \Log::error('File not found in storage: ' . $report->file_path);
+                Log::error('File not found in storage: ' . $report->file_path);
                 return response()->json(['error' => 'File not found in storage.'], 404);
             }
 
             // Get the full path to the file
             $path = Storage::disk('public')->path($report->file_path);
-            \Log::info('Full file path: ' . $path);
+            Log::info('Full file path: ' . $path);
 
             // Get the file's mime type
             $mimeType = mime_content_type($path);
             $fileName = basename($report->file_path);
 
-            \Log::info('File details:', [
+            Log::info('File details:', [
                 'path' => $path,
                 'mime_type' => $mimeType,
                 'file_name' => $fileName,
@@ -658,11 +863,11 @@ class ReportController extends Controller
             // If mime_content_type fails, try to determine from extension
             if (!$mimeType && isset($extensionMimeTypes[$extension])) {
                 $mimeType = $extensionMimeTypes[$extension];
-                \Log::info('Using mime type from extension: ' . $mimeType);
+                Log::info('Using mime type from extension: ' . $mimeType);
             }
 
             if (in_array($mimeType, $viewableTypes)) {
-                \Log::info('Serving file as viewable type: ' . $mimeType);
+                Log::info('Serving file as viewable type: ' . $mimeType);
                 return response()->file($path, [
                     'Content-Type' => $mimeType,
                     'Content-Disposition' => 'inline; filename="' . $fileName . '"',
@@ -671,11 +876,11 @@ class ReportController extends Controller
                 ]);
             }
 
-            \Log::info('File type not viewable, forcing download: ' . $mimeType);
+            Log::info('File type not viewable, forcing download: ' . $mimeType);
             // For non-viewable types, force download
             return response()->download($path, $fileName);
         } catch (\Exception $e) {
-            \Log::error('File access error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+            Log::error('File access error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return response()->json(['error' => 'Error accessing file: ' . $e->getMessage()], 500);
         }
     }

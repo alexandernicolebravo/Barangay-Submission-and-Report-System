@@ -145,47 +145,58 @@
                             <span class="text-muted mt-1 small">You're all caught up!</span>
                         </div>
                     @else
-                        <div class="deadline-list">
-                            @foreach($upcomingDeadlines as $deadline)
-                                <div class="deadline-item">
-                                    <div class="deadline-info">
-                                        <div class="deadline-icon">
-                                            @php
-                                                $iconClass = match($deadline->frequency) {
-                                                    'weekly' => 'fa-calendar-week text-info',
-                                                    'monthly' => 'fa-calendar-alt text-primary',
-                                                    'quarterly' => 'fa-calendar-check text-success',
-                                                    'semestral' => 'fa-calendar-plus text-warning',
-                                                    'annual' => 'fa-calendar text-danger',
-                                                    default => 'fa-calendar-day text-secondary'
-                                                };
-                                            @endphp
-                                            <i class="fas {{ $iconClass }}"></i>
-                                        </div>
-                                        <div class="deadline-content">
-                                            <h6 class="deadline-title">{{ $deadline->name }}</h6>
-                                            <div class="deadline-meta">
-                                                <span class="deadline-date">
-                                                    <i class="far fa-clock me-1"></i>
-                                                    Due: {{ $deadline->deadline->format('M d, Y') }}
-                                                </span>
-                                                <span class="deadline-frequency frequency-{{ $deadline->frequency }}">
-                                                    {{ ucfirst($deadline->frequency) }}
-                                                </span>
+                        <div class="deadline-list-container">
+                            <div class="deadline-list">
+                                @foreach($upcomingDeadlines as $deadline)
+                                    <div class="deadline-item">
+                                        <div class="deadline-info">
+                                            <div class="deadline-icon">
+                                                @php
+                                                    $iconClass = match($deadline->frequency) {
+                                                        'weekly' => 'fa-calendar-week text-info',
+                                                        'monthly' => 'fa-calendar-alt text-primary',
+                                                        'quarterly' => 'fa-calendar-check text-success',
+                                                        'semestral' => 'fa-calendar-plus text-warning',
+                                                        'annual' => 'fa-calendar text-danger',
+                                                        default => 'fa-calendar-day text-secondary'
+                                                    };
+
+                                                    // Check if this report type has been submitted
+                                                    $isSubmitted = $submittedReportTypeIds->contains($deadline->id);
+                                                @endphp
+                                                <i class="fas {{ $iconClass }}"></i>
+                                            </div>
+                                            <div class="deadline-content">
+                                                <h6 class="deadline-title">{{ $deadline->name }}</h6>
+                                                <div class="deadline-meta">
+                                                    <span class="deadline-date">
+                                                        <i class="far fa-clock me-1"></i>
+                                                        Due: {{ $deadline->deadline->format('M d, Y') }}
+                                                    </span>
+                                                    <span class="deadline-frequency frequency-{{ $deadline->frequency }}">
+                                                        {{ ucfirst($deadline->frequency) }}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
+                                        <button type="button"
+                                                class="btn-submit"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#submitReportModal"
+                                                data-report-type="{{ $deadline->id }}"
+                                                data-frequency="{{ $deadline->frequency }}">
+                                            <i class="fas fa-file-upload me-1"></i>
+                                            Submit
+                                        </button>
                                     </div>
-                                    <button type="button"
-                                            class="btn-submit"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#submitReportModal"
-                                            data-report-type="{{ $deadline->id }}"
-                                            data-frequency="{{ $deadline->frequency }}">
-                                        <i class="fas fa-file-upload me-1"></i>
-                                        Submit
-                                    </button>
+                                @endforeach
+                            </div>
+                            @if(count($upcomingDeadlines) > 5)
+                                <div class="scroll-indicator">
+                                    <i class="fas fa-chevron-down"></i>
+                                    <span>Scroll for more</span>
                                 </div>
-                            @endforeach
+                            @endif
                         </div>
                     @endif
                 </div>
@@ -580,6 +591,64 @@
 
 .deadline-list {
     padding: 0.5rem 0;
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.deadline-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.deadline-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.deadline-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+.deadline-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.deadline-list-container {
+    position: relative;
+}
+
+.scroll-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,1) 100%);
+    padding: 30px 0 10px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    animation: pulse 2s infinite;
+}
+
+.scroll-indicator i {
+    margin-bottom: 5px;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.7;
+    }
 }
 
 .deadline-item {
@@ -756,6 +825,28 @@
                                 <div id="no-report-types-message" class="alert alert-info mt-2" style="display: none;">
                                     <i class="fas fa-info-circle me-2"></i>
                                     You have already submitted all available reports for this frequency.
+                                </div>
+
+                                @if($availableReportTypeCounts['total'] == 0)
+                                <div class="alert alert-info mt-2">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    You have already submitted all available reports. Check your submissions for any reports that need resubmission.
+                                </div>
+                                @endif
+
+                                <!-- Debug information for submitted report types (hidden) -->
+                                <div class="d-none">
+                                    <p>Submitted Report Type IDs:
+                                        @foreach($submittedReportTypeIds as $id)
+                                            {{ $id }},
+                                        @endforeach
+                                    </p>
+                                    <p>Available Report Types by Frequency:</p>
+                                    <ul>
+                                        @foreach($reportTypesByFrequency as $frequency => $types)
+                                            <li>{{ $frequency }}: {{ $types->count() }}</li>
+                                        @endforeach
+                                    </ul>
                                 </div>
                                 @error('report_type_id')
                                     <div class="invalid-feedback">
@@ -968,6 +1059,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (noOptionsMessage) {
             if (visibleOptions === 0) {
                 noOptionsMessage.style.display = 'block';
+                if (selectedFrequency) {
+                    noOptionsMessage.innerHTML = `
+                        <i class="fas fa-info-circle me-2"></i>
+                        You have already submitted all available ${selectedFrequency} reports.
+                    `;
+                } else {
+                    noOptionsMessage.innerHTML = `
+                        <i class="fas fa-info-circle me-2"></i>
+                        You have already submitted all available reports.
+                    `;
+                }
             } else {
                 noOptionsMessage.style.display = 'none';
             }
@@ -1032,6 +1134,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial filter application
     filterReportTypes();
 
+    // Handle scroll indicator for upcoming deadlines
+    const deadlineList = document.querySelector('.deadline-list');
+    const scrollIndicator = document.querySelector('.scroll-indicator');
+
+    if (deadlineList && scrollIndicator) {
+        deadlineList.addEventListener('scroll', function() {
+            // If user has scrolled down, hide the indicator
+            if (deadlineList.scrollTop > 50) {
+                scrollIndicator.style.opacity = '0';
+                scrollIndicator.style.transition = 'opacity 0.5s ease';
+            } else {
+                scrollIndicator.style.opacity = '1';
+            }
+        });
+    }
+
     // Check if there are any report types available
     const hasReportTypes = Array.from(reportTypeSelect.options).some(option =>
         option.value !== '' && option.style.display !== 'none'
@@ -1041,7 +1159,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const noOptionsMessage = document.getElementById('no-report-types-message');
         if (noOptionsMessage) {
             noOptionsMessage.style.display = 'block';
-            noOptionsMessage.textContent = 'You have already submitted all available reports.';
+            noOptionsMessage.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                You have already submitted all available reports.
+            `;
+        }
+
+        // Disable the submit button if no report types are available
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('btn-secondary');
+            submitBtn.classList.remove('btn-primary');
         }
     }
 

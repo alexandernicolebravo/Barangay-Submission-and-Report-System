@@ -4,21 +4,45 @@
 @section('page-title', 'Overdue Reports')
 
 @section('content')
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Overdue Reports</h5>
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                            Overdue Reports
+                        </h5>
                         <div class="d-flex gap-2">
-                            <select class="form-select" id="frequencyFilter" style="width: auto;">
-                                <option value="">All Frequencies</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="quarterly">Quarterly</option>
-                                <option value="semestral">Semestral</option>
-                                <option value="annual">Annual</option>
-                            </select>
+                            <div class="input-group">
+                                <select class="form-select" id="frequencyFilter" style="width: auto; border-top-right-radius: 0; border-bottom-right-radius: 0;">
+                                    <option value="">All Frequencies</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="quarterly">Quarterly</option>
+                                    <option value="semestral">Semestral</option>
+                                    <option value="annual">Annual</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" type="button" id="filterButton">
+                                    <i class="fas fa-filter"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -41,16 +65,22 @@
 
                     @if ($reports->isEmpty())
                         <div class="text-center py-5">
-                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                            <h5 class="text-muted">No overdue reports</h5>
+                            <div class="mb-3" style="width: 64px; height: 64px; border-radius: 50%; background: rgba(var(--success-rgb), 0.1); display: flex; align-items: center; justify-content: center; color: var(--success); margin: 0 auto;">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <h5 class="mb-2">No overdue reports</h5>
                             <p class="text-muted">You have submitted all required reports on time.</p>
+                            <a href="{{ route('barangay.dashboard') }}" class="btn btn-sm btn-primary mt-2">
+                                <i class="fas fa-home me-1"></i>
+                                Return to Dashboard
+                            </a>
                         </div>
                     @else
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
-                                <thead class="table-light">
+                                <thead>
                                     <tr>
-                                        <th>Report Type</th>
+                                        <th>Report</th>
                                         <th>Frequency</th>
                                         <th>Deadline</th>
                                         <th>Status</th>
@@ -62,12 +92,18 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <i class="fas fa-file-alt text-primary me-2"></i>
-                                                    {{ $report->name }}
+                                                    <div class="me-2" style="width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                                                        <i class="fas fa-file-alt fa-sm"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div style="font-weight: 500; color: var(--dark);">{{ $report->name }}</div>
+                                                        <small class="text-muted">{{ ucfirst($report->frequency) }} Report</small>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge bg-info">
+                                                <span class="status-badge frequency-{{ $report->frequency }}">
+                                                    <i class="fas fa-calendar-alt"></i>
                                                     {{ ucfirst($report->frequency) }}
                                                 </span>
                                             </td>
@@ -81,15 +117,16 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <span class="badge bg-danger">
-                                                    <i class="fas fa-exclamation-circle me-1"></i>
+                                                <span class="status-badge overdue">
+                                                    <i class="fas fa-exclamation-circle"></i>
                                                     Overdue
                                                 </span>
                                             </td>
                                             <td>
                                                 <div class="d-flex justify-content-end gap-2">
                                                     <button type="button"
-                                                            class="btn btn-sm btn-primary"
+                                                            class="btn btn-sm"
+                                                            style="background: var(--warning-light); color: var(--warning); border: none;"
                                                             data-bs-toggle="modal"
                                                             data-bs-target="#submitModal{{ $report->id }}">
                                                         <i class="fas fa-upload me-1"></i>
@@ -109,9 +146,10 @@
                                                         </h5>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
-                                                    <form action="{{ route('barangay.store-report') }}" method="POST" enctype="multipart/form-data">
+                                                    <form action="{{ route('barangay.submissions.store') }}" method="POST" enctype="multipart/form-data">
                                                         @csrf
                                                         <input type="hidden" name="report_type_id" value="{{ $report->id }}">
+                                                        <input type="hidden" name="report_type" value="{{ $report->frequency }}">
                                                         <div class="modal-body">
                                                             <div class="mb-3">
                                                                 <label for="file{{ $report->id }}" class="form-label">Upload Report File</label>
@@ -261,17 +299,84 @@
 
     @push('styles')
     <style>
+        /* Table styles */
         .table th {
             background-color: #f8f9fa;
             font-weight: 600;
-        }
-        .badge {
-            font-weight: 500;
-            padding: 0.5em 0.75em;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e9ecef;
         }
         .table > :not(caption) > * > * {
             padding: 1rem;
         }
+        .table tr:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        /* Status badge styles */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 50rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            line-height: 1;
+        }
+
+        .status-badge.submitted {
+            background-color: rgba(var(--success-rgb), 0.1);
+            color: var(--success);
+        }
+
+        .status-badge.pending {
+            background-color: rgba(var(--info-rgb), 0.1);
+            color: var(--info);
+        }
+
+        .status-badge.approved {
+            background-color: rgba(var(--success-rgb), 0.1);
+            color: var(--success);
+        }
+
+        .status-badge.rejected {
+            background-color: rgba(var(--danger-rgb), 0.1);
+            color: var(--danger);
+        }
+
+        .status-badge.overdue {
+            background-color: rgba(var(--danger-rgb), 0.1);
+            color: var(--danger);
+        }
+
+        /* Frequency badge styles */
+        .status-badge.frequency-weekly {
+            background-color: rgba(var(--info-rgb), 0.1);
+            color: var(--info);
+        }
+
+        .status-badge.frequency-monthly {
+            background-color: rgba(var(--primary-rgb), 0.1);
+            color: var(--primary);
+        }
+
+        .status-badge.frequency-quarterly {
+            background-color: rgba(var(--success-rgb), 0.1);
+            color: var(--success);
+        }
+
+        .status-badge.frequency-semestral {
+            background-color: rgba(var(--warning-rgb), 0.1);
+            color: var(--warning);
+        }
+
+        .status-badge.frequency-annual {
+            background-color: rgba(var(--danger-rgb), 0.1);
+            color: var(--danger);
+        }
+
+        /* Pagination styles */
         .pagination {
             margin-bottom: 0;
         }
@@ -292,6 +397,8 @@
             background-color: #fff;
             border-color: #dee2e6;
         }
+
+        /* Form and dropdown styles */
         .form-select {
             border-radius: 0.375rem;
         }
@@ -304,6 +411,8 @@
         .dropdown-item:hover {
             background-color: #f8f9fa;
         }
+
+        /* Modal styles */
         .modal-content {
             border-radius: 0.5rem;
         }
@@ -323,6 +432,8 @@
             border-color: #86b7fe;
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
+
+        /* Responsive styles */
         @media (max-width: 768px) {
             .card-header .d-flex {
                 flex-direction: column;
@@ -358,25 +469,37 @@
             // Filter functionality
             const frequencyFilter = document.getElementById('frequencyFilter');
             const table = document.querySelector('table');
-            const rows = table.getElementsByTagName('tr');
 
-            function filterTable() {
-                const frequencyValue = frequencyFilter.value.toLowerCase();
+            if (table) {
+                const rows = table.getElementsByTagName('tr');
 
-                for (let i = 1; i < rows.length; i++) {
-                    const row = rows[i];
-                    const cells = row.getElementsByTagName('td');
-                    const frequency = cells[1].textContent.toLowerCase();
+                function filterTable() {
+                    const frequencyValue = frequencyFilter.value.toLowerCase();
 
-                    if (!frequencyValue || frequency.includes(frequencyValue)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        const cells = row.getElementsByTagName('td');
+                        if (cells.length > 1) {
+                            const frequency = cells[1].textContent.toLowerCase();
+
+                            if (!frequencyValue || frequency.includes(frequencyValue)) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
+                        }
                     }
                 }
-            }
 
-            frequencyFilter.addEventListener('change', filterTable);
+                // Apply filter when the filter button is clicked
+                const filterButton = document.getElementById('filterButton');
+                if (filterButton) {
+                    filterButton.addEventListener('click', filterTable);
+                }
+
+                // Also apply filter when the frequency filter changes
+                frequencyFilter.addEventListener('change', filterTable);
+            }
 
             // File input validation
             const fileInputs = document.querySelectorAll('input[type="file"]');
@@ -401,6 +524,19 @@
                             this.value = '';
                             return;
                         }
+                    }
+                });
+            });
+
+            // Handle form submission with loading state
+            const submitForms = document.querySelectorAll('form[action*="submissions.store"]');
+            submitForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        // Disable button and show loading state
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Submitting...';
                     }
                 });
             });

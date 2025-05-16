@@ -109,11 +109,38 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    <div id="no-report-types-message" class="alert alert-info mt-2" style="display: none;">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        You have already submitted all available reports for this frequency.
+                                    </div>
+
+                                    @if($availableReportTypeCounts['total'] == 0)
+                                    <div class="alert alert-info mt-2">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        You have already submitted all available reports. Check your submissions for any reports that need resubmission.
+                                    </div>
+                                    @endif
+
                                     @error('report_type_id')
                                         <div class="invalid-feedback">
                                             {{ $message }}
                                         </div>
                                     @enderror
+
+                                    <!-- Debug information for submitted report types (hidden) -->
+                                    <div class="d-none">
+                                        <p>Submitted Report Type IDs:
+                                            @foreach($submittedReportTypeIds as $id)
+                                                {{ $id }},
+                                            @endforeach
+                                        </p>
+                                        <p>Available Report Types by Frequency:</p>
+                                        <ul>
+                                            @foreach($reportTypesByFrequency as $frequency => $types)
+                                                <li>{{ $frequency }}: {{ $types->count() }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
 
@@ -416,6 +443,99 @@ document.addEventListener('DOMContentLoaded', function() {
         reportFields.forEach(field => {
             field.style.display = 'none';
         });
+    }
+
+    // Add frequency filter
+    const frequencyFilter = document.createElement('select');
+    frequencyFilter.className = 'form-select mb-3';
+    frequencyFilter.id = 'frequency_filter';
+    frequencyFilter.innerHTML = `
+        <option value="">All Frequencies</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="quarterly">Quarterly</option>
+        <option value="semestral">Semestral</option>
+        <option value="annual">Annual</option>
+    `;
+    reportTypeSelect.parentNode.insertBefore(frequencyFilter, reportTypeSelect);
+
+    // Function to filter report types based on frequency
+    function filterReportTypes() {
+        const selectedFrequency = frequencyFilter.value;
+        const options = reportTypeSelect.options;
+        let visibleOptions = 0;
+
+        for (let i = 0; i < options.length; i++) {
+            const option = options[i];
+            if (option.value === '') continue; // Skip the default option
+
+            if (!selectedFrequency || option.dataset.frequency === selectedFrequency) {
+                option.style.display = '';
+                visibleOptions++;
+            } else {
+                option.style.display = 'none';
+            }
+        }
+
+        // Reset report type selection if the current selection doesn't match the filter
+        if (reportTypeSelect.value) {
+            const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
+            if (selectedFrequency && selectedOption.dataset.frequency !== selectedFrequency) {
+                reportTypeSelect.value = '';
+                hideAllFields();
+            }
+        }
+
+        // Show a message if no options are available after filtering
+        const noOptionsMessage = document.getElementById('no-report-types-message');
+        if (noOptionsMessage) {
+            if (visibleOptions === 0) {
+                noOptionsMessage.style.display = 'block';
+                if (selectedFrequency) {
+                    noOptionsMessage.innerHTML = `
+                        <i class="fas fa-info-circle me-2"></i>
+                        You have already submitted all available ${selectedFrequency} reports.
+                    `;
+                } else {
+                    noOptionsMessage.innerHTML = `
+                        <i class="fas fa-info-circle me-2"></i>
+                        You have already submitted all available reports.
+                    `;
+                }
+            } else {
+                noOptionsMessage.style.display = 'none';
+            }
+        }
+    }
+
+    // Add event listener for frequency filter
+    frequencyFilter.addEventListener('change', filterReportTypes);
+
+    // Initial filter application
+    filterReportTypes();
+
+    // Check if there are any report types available
+    const hasReportTypes = Array.from(reportTypeSelect.options).some(option =>
+        option.value !== '' && option.style.display !== 'none'
+    );
+
+    if (!hasReportTypes) {
+        const noOptionsMessage = document.getElementById('no-report-types-message');
+        if (noOptionsMessage) {
+            noOptionsMessage.style.display = 'block';
+            noOptionsMessage.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                You have already submitted all available reports.
+            `;
+        }
+
+        // Disable the submit button if no report types are available
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('btn-secondary');
+            submitBtn.classList.remove('btn-primary');
+        }
     }
 
     // Handle report type change

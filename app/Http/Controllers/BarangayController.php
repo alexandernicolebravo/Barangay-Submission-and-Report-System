@@ -75,23 +75,53 @@ class BarangayController extends Controller
                 ->merge($annualReports->pluck('report_type_id'))
                 ->unique();
 
+            // Log the submitted report type IDs for debugging
+            Log::info('Submitted report type IDs:', ['ids' => $submittedReportTypeIds->toArray()]);
+
+            // Get all report types
+            $allReportTypes = ReportType::all();
+
             // Get upcoming deadlines and ensure they are Carbon instances
-            // Filter out already submitted report types
+            // Include all report types with deadlines in the future, regardless of submission status
             $upcomingDeadlines = ReportType::where('deadline', '>=', now())
-                ->whereNotIn('id', $submittedReportTypeIds)
                 ->orderBy('deadline')
-                ->take(5)
+                ->take(20)
                 ->get()
                 ->map(function ($reportType) {
                     $reportType->deadline = \Carbon\Carbon::parse($reportType->deadline);
                     return $reportType;
                 });
 
+            // Filter out already submitted report types
+            $upcomingDeadlines = $upcomingDeadlines->filter(function ($reportType) use ($submittedReportTypeIds) {
+                return !$submittedReportTypeIds->contains($reportType->id);
+            })->take(10);
+
             // Filter out already submitted report types for the dropdown menu
-            $reportTypes = ReportType::where('deadline', '>=', now())
-                ->whereNotIn('id', $submittedReportTypeIds)
+            $reportTypes = ReportType::whereNotIn('id', $submittedReportTypeIds)
                 ->orderBy('name')
                 ->get();
+
+            // Group report types by frequency for easier filtering in the frontend
+            $reportTypesByFrequency = [
+                'weekly' => $reportTypes->where('frequency', 'weekly'),
+                'monthly' => $reportTypes->where('frequency', 'monthly'),
+                'quarterly' => $reportTypes->where('frequency', 'quarterly'),
+                'semestral' => $reportTypes->where('frequency', 'semestral'),
+                'annual' => $reportTypes->where('frequency', 'annual'),
+            ];
+
+            // Count available report types by frequency
+            $availableReportTypeCounts = [
+                'weekly' => $reportTypesByFrequency['weekly']->count(),
+                'monthly' => $reportTypesByFrequency['monthly']->count(),
+                'quarterly' => $reportTypesByFrequency['quarterly']->count(),
+                'semestral' => $reportTypesByFrequency['semestral']->count(),
+                'annual' => $reportTypesByFrequency['annual']->count(),
+                'total' => $reportTypes->count()
+            ];
+
+            Log::info('Available report type counts:', $availableReportTypeCounts);
 
             return view('barangay.dashboard', compact(
                 'totalReports',
@@ -99,7 +129,11 @@ class BarangayController extends Controller
                 'noSubmissionReports',
                 'recentReports',
                 'upcomingDeadlines',
-                'reportTypes'
+                'reportTypes',
+                'reportTypesByFrequency',
+                'submittedReportTypeIds',
+                'allReportTypes',
+                'availableReportTypeCounts'
             ));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'An error occurred while loading the dashboard: ' . $e->getMessage());
@@ -159,163 +193,301 @@ class BarangayController extends Controller
 
     public function overdueReports()
     {
-        $userId = Auth::id();
-        $perPage = request()->get('per_page', 10);
+        try {
+            $userId = Auth::id();
+            $perPage = request()->get('per_page', 10);
 
-        // Get all report types that are past their deadline
-        $overdueReportTypes = ReportType::where('deadline', '<', now())
-            ->get();
+            Log::info('Fetching overdue reports for user ID: ' . $userId);
 
-        // Get all submitted reports for the current user
-        $weeklyReports = WeeklyReport::where('user_id', $userId)->pluck('report_type_id');
-        $monthlyReports = MonthlyReport::where('user_id', $userId)->pluck('report_type_id');
-        $quarterlyReports = QuarterlyReport::where('user_id', $userId)->pluck('report_type_id');
-        $semestralReports = SemestralReport::where('user_id', $userId)->pluck('report_type_id');
-        $annualReports = AnnualReport::where('user_id', $userId)->pluck('report_type_id');
+            // Get all report types that are past their deadline
+            $overdueReportTypes = ReportType::where('deadline', '<', now())
+                ->orderBy('deadline', 'desc')
+                ->get();
 
-        // Combine all submitted report type IDs
-        $submittedReportTypeIds = collect()
-            ->concat($weeklyReports)
-            ->concat($monthlyReports)
-            ->concat($quarterlyReports)
-            ->concat($semestralReports)
-            ->concat($annualReports)
-            ->unique();
+            Log::info('Found ' . $overdueReportTypes->count() . ' report types with past deadlines');
 
-        // Filter out report types that have already been submitted
-        $overdueReports = $overdueReportTypes->filter(function ($reportType) use ($submittedReportTypeIds) {
-            return !$submittedReportTypeIds->contains($reportType->id);
-        });
+            // Get all submitted reports for the current user
+            $weeklyReports = WeeklyReport::where('user_id', $userId)->pluck('report_type_id');
+            $monthlyReports = MonthlyReport::where('user_id', $userId)->pluck('report_type_id');
+            $quarterlyReports = QuarterlyReport::where('user_id', $userId)->pluck('report_type_id');
+            $semestralReports = SemestralReport::where('user_id', $userId)->pluck('report_type_id');
+            $annualReports = AnnualReport::where('user_id', $userId)->pluck('report_type_id');
 
-        // Create a new paginator instance
-        $page = request()->get('page', 1);
-        $reports = new \Illuminate\Pagination\LengthAwarePaginator(
-            $overdueReports->forPage($page, $perPage),
-            $overdueReports->count(),
-            $perPage,
-            $page,
-            [
-                'path' => request()->url(),
-                'query' => request()->query()
-            ]
-        );
+            // Combine all submitted report type IDs
+            $submittedReportTypeIds = collect()
+                ->concat($weeklyReports)
+                ->concat($monthlyReports)
+                ->concat($quarterlyReports)
+                ->concat($semestralReports)
+                ->concat($annualReports)
+                ->unique();
 
-        return view('barangay.overdue-reports', compact('reports'));
+            Log::info('User has submitted ' . $submittedReportTypeIds->count() . ' report types', [
+                'submitted_ids' => $submittedReportTypeIds->toArray()
+            ]);
+
+            // Filter out report types that have already been submitted
+            $overdueReports = $overdueReportTypes->filter(function ($reportType) use ($submittedReportTypeIds) {
+                return !$submittedReportTypeIds->contains($reportType->id);
+            });
+
+            Log::info('After filtering, found ' . $overdueReports->count() . ' overdue reports that need submission');
+
+            // Create a new paginator instance
+            $page = request()->get('page', 1);
+            $reports = new \Illuminate\Pagination\LengthAwarePaginator(
+                $overdueReports->forPage($page, $perPage),
+                $overdueReports->count(),
+                $perPage,
+                $page,
+                [
+                    'path' => request()->url(),
+                    'query' => request()->query()
+                ]
+            );
+
+            return view('barangay.overdue-reports', compact('reports'));
+        } catch (\Exception $e) {
+            Log::error('Error in overdueReports method: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return view('barangay.overdue-reports', ['reports' => collect()]);
+        }
     }
 
-    public function submissions()
+    public function submissions(Request $request)
     {
         $userId = Auth::id();
-        $perPage = request()->get('per_page', 10);
+        $perPage = $request->get('per_page', 10);
+        $search = $request->get('search', '');
+        $frequency = $request->get('frequency', '');
+        $sortBy = $request->get('sort_by', 'newest');
 
-        // Get all reports for the current user with their relationships
-        $weeklyReports = WeeklyReport::with('reportType')
-            ->where('user_id', $userId)
-            ->get()
-            ->map(function ($report) {
-                $report->type = 'weekly';
-                return $report;
-            });
+        try {
+            // Get all reports for the current user with their relationships
+            $weeklyReports = WeeklyReport::with('reportType')
+                ->where('user_id', $userId)
+                ->get()
+                ->map(function ($report) {
+                    $report->model_type = 'WeeklyReport';
+                    // Add a unique identifier that includes the table name and ID
+                    $report->unique_id = 'weekly_' . $report->id;
+                    return $report;
+                });
 
-        $monthlyReports = MonthlyReport::with('reportType')
-            ->where('user_id', $userId)
-            ->get()
-            ->map(function ($report) {
-                $report->type = 'monthly';
-                return $report;
-            });
+            $monthlyReports = MonthlyReport::with('reportType')
+                ->where('user_id', $userId)
+                ->get()
+                ->map(function ($report) {
+                    $report->model_type = 'MonthlyReport';
+                    // Add a unique identifier that includes the table name and ID
+                    $report->unique_id = 'monthly_' . $report->id;
+                    return $report;
+                });
 
-        $quarterlyReports = QuarterlyReport::with('reportType')
-            ->where('user_id', $userId)
-            ->get()
-            ->map(function ($report) {
-                $report->type = 'quarterly';
-                return $report;
-            });
+            $quarterlyReports = QuarterlyReport::with('reportType')
+                ->where('user_id', $userId)
+                ->get()
+                ->map(function ($report) {
+                    $report->model_type = 'QuarterlyReport';
+                    // Add a unique identifier that includes the table name and ID
+                    $report->unique_id = 'quarterly_' . $report->id;
+                    return $report;
+                });
 
-        $semestralReports = SemestralReport::with('reportType')
-            ->where('user_id', $userId)
-            ->get()
-            ->map(function ($report) {
-                $report->type = 'semestral';
-                return $report;
-            });
+            $semestralReports = SemestralReport::with('reportType')
+                ->where('user_id', $userId)
+                ->get()
+                ->map(function ($report) {
+                    $report->model_type = 'SemestralReport';
+                    // Add a unique identifier that includes the table name and ID
+                    $report->unique_id = 'semestral_' . $report->id;
+                    return $report;
+                });
 
-        $annualReports = AnnualReport::with('reportType')
-            ->where('user_id', $userId)
-            ->get()
-            ->map(function ($report) {
-                $report->type = 'annual';
-                return $report;
-            });
+            $annualReports = AnnualReport::with('reportType')
+                ->where('user_id', $userId)
+                ->get()
+                ->map(function ($report) {
+                    $report->model_type = 'AnnualReport';
+                    // Add a unique identifier that includes the table name and ID
+                    $report->unique_id = 'annual_' . $report->id;
+                    return $report;
+                });
 
-        // Combine all reports
-        $reports = collect()
-            ->concat($weeklyReports)
-            ->concat($monthlyReports)
-            ->concat($quarterlyReports)
-            ->concat($semestralReports)
-            ->concat($annualReports)
-            ->sortByDesc('created_at');
+            // Combine all reports
+            $reports = collect()
+                ->concat($weeklyReports)
+                ->concat($monthlyReports)
+                ->concat($quarterlyReports)
+                ->concat($semestralReports)
+                ->concat($annualReports);
 
-        // Create a new paginator instance
-        $page = request()->get('page', 1);
-        $reports = new \Illuminate\Pagination\LengthAwarePaginator(
-            $reports->forPage($page, $perPage),
-            $reports->count(),
-            $perPage,
-            $page,
-            [
-                'path' => request()->url(),
-                'query' => request()->query()
-            ]
-        );
+            // Apply search filter if provided
+            if (!empty($search)) {
+                $search = strtolower($search);
+                $reports = $reports->filter(function ($report) use ($search) {
+                    // Search in report type name
+                    if (stripos($report->reportType->name, $search) !== false) {
+                        return true;
+                    }
 
-        return view('barangay.submissions', compact('reports'));
+                    // Search in status
+                    if (stripos($report->status, $search) !== false) {
+                        return true;
+                    }
+
+                    // Search in frequency
+                    if (stripos($report->reportType->frequency, $search) !== false) {
+                        return true;
+                    }
+
+                    // Search in file name if available
+                    if ($report->file_name && stripos($report->file_name, $search) !== false) {
+                        return true;
+                    }
+
+                    return false;
+                });
+            }
+
+            // Apply frequency filter if provided
+            if (!empty($frequency)) {
+                $reports = $reports->filter(function ($report) use ($frequency) {
+                    return strtolower($report->reportType->frequency) === strtolower($frequency);
+                });
+            }
+
+            // Apply sorting
+            switch ($sortBy) {
+                case 'oldest':
+                    $reports = $reports->sortBy('created_at');
+                    break;
+                case 'type':
+                    $reports = $reports->sortBy(function ($report) {
+                        return $report->reportType->name;
+                    });
+                    break;
+                case 'status':
+                    $reports = $reports->sortBy('status');
+                    break;
+                case 'newest':
+                default:
+                    $reports = $reports->sortByDesc('created_at');
+                    break;
+            }
+
+            // Create a new paginator instance
+            $page = $request->get('page', 1);
+
+            // Only create a paginator if there are reports
+            if ($reports->count() > 0) {
+                $reports = new \Illuminate\Pagination\LengthAwarePaginator(
+                    $reports->forPage($page, $perPage),
+                    $reports->count(),
+                    $perPage,
+                    $page,
+                    [
+                        'path' => $request->url(),
+                        'query' => $request->query()
+                    ]
+                );
+            } else {
+                // Create an empty paginator
+                $reports = new \Illuminate\Pagination\LengthAwarePaginator(
+                    collect(),
+                    0,
+                    $perPage,
+                    $page,
+                    [
+                        'path' => $request->url(),
+                        'query' => $request->query()
+                    ]
+                );
+            }
+
+            return view('barangay.submissions', compact('reports', 'search', 'frequency', 'sortBy'));
+        } catch (\Exception $e) {
+            Log::error('Error in submissions method: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return view('barangay.submissions', ['reports' => collect()]);
+        }
     }
 
     public function submitReport()
     {
-        $userId = Auth::id();
-        $allReportTypes = ReportType::all();
+        try {
+            $userId = Auth::id();
+            $allReportTypes = ReportType::all();
 
-        // Get all reports for the current user
-        $weeklyReports = WeeklyReport::where('user_id', $userId)->get();
-        $monthlyReports = MonthlyReport::where('user_id', $userId)->get();
-        $quarterlyReports = QuarterlyReport::where('user_id', $userId)->get();
-        $semestralReports = SemestralReport::where('user_id', $userId)->get();
-        $annualReports = AnnualReport::where('user_id', $userId)->get();
+            // Get all reports for the current user
+            $weeklyReports = WeeklyReport::where('user_id', $userId)->get();
+            $monthlyReports = MonthlyReport::where('user_id', $userId)->get();
+            $quarterlyReports = QuarterlyReport::where('user_id', $userId)->get();
+            $semestralReports = SemestralReport::where('user_id', $userId)->get();
+            $annualReports = AnnualReport::where('user_id', $userId)->get();
 
-        // Get the report type IDs that have already been submitted
-        $submittedReportTypeIds = collect();
-        $submittedReportTypeIds = $submittedReportTypeIds
-            ->merge($weeklyReports->pluck('report_type_id'))
-            ->merge($monthlyReports->pluck('report_type_id'))
-            ->merge($quarterlyReports->pluck('report_type_id'))
-            ->merge($semestralReports->pluck('report_type_id'))
-            ->merge($annualReports->pluck('report_type_id'))
-            ->unique();
+            // Get the report type IDs that have already been submitted
+            $submittedReportTypeIds = collect();
+            $submittedReportTypeIds = $submittedReportTypeIds
+                ->merge($weeklyReports->pluck('report_type_id'))
+                ->merge($monthlyReports->pluck('report_type_id'))
+                ->merge($quarterlyReports->pluck('report_type_id'))
+                ->merge($semestralReports->pluck('report_type_id'))
+                ->merge($annualReports->pluck('report_type_id'))
+                ->unique();
 
-        // Filter out already submitted report types and only show those with valid deadlines
-        $reportTypes = ReportType::where('deadline', '>=', now())
-            ->whereNotIn('id', $submittedReportTypeIds)
-            ->get();
+            // Log the submitted report type IDs for debugging
+            Log::info('Submit Report - Submitted report type IDs:', ['ids' => $submittedReportTypeIds->toArray()]);
 
-        // Organize submitted reports by frequency
-        $submittedReportsByFrequency = [
-            'weekly' => $weeklyReports,
-            'monthly' => $monthlyReports,
-            'quarterly' => $quarterlyReports,
-            'semestral' => $semestralReports,
-            'annual' => $annualReports
-        ];
+            // Filter out already submitted report types
+            $reportTypes = ReportType::whereNotIn('id', $submittedReportTypeIds)
+                ->orderBy('name')
+                ->get();
 
-        return view('barangay.submit-report', compact(
-            'reportTypes',
-            'allReportTypes',
-            'submittedReportTypeIds',
-            'submittedReportsByFrequency'
-        ));
+            // Group report types by frequency for easier filtering in the frontend
+            $reportTypesByFrequency = [
+                'weekly' => $reportTypes->where('frequency', 'weekly'),
+                'monthly' => $reportTypes->where('frequency', 'monthly'),
+                'quarterly' => $reportTypes->where('frequency', 'quarterly'),
+                'semestral' => $reportTypes->where('frequency', 'semestral'),
+                'annual' => $reportTypes->where('frequency', 'annual'),
+            ];
+
+            // Count available report types by frequency
+            $availableReportTypeCounts = [
+                'weekly' => $reportTypesByFrequency['weekly']->count(),
+                'monthly' => $reportTypesByFrequency['monthly']->count(),
+                'quarterly' => $reportTypesByFrequency['quarterly']->count(),
+                'semestral' => $reportTypesByFrequency['semestral']->count(),
+                'annual' => $reportTypesByFrequency['annual']->count(),
+                'total' => $reportTypes->count()
+            ];
+
+            Log::info('Submit Report - Available report type counts:', $availableReportTypeCounts);
+
+            // Organize submitted reports by frequency
+            $submittedReportsByFrequency = [
+                'weekly' => $weeklyReports,
+                'monthly' => $monthlyReports,
+                'quarterly' => $quarterlyReports,
+                'semestral' => $semestralReports,
+                'annual' => $annualReports
+            ];
+
+            return view('barangay.submit-report', compact(
+                'reportTypes',
+                'allReportTypes',
+                'submittedReportTypeIds',
+                'submittedReportsByFrequency',
+                'reportTypesByFrequency',
+                'availableReportTypeCounts'
+            ));
+        } catch (\Exception $e) {
+            Log::error('Error in submitReport method: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'An error occurred while loading the submit report page: ' . $e->getMessage());
+        }
     }
 
     public function storeFile(Request $request)
@@ -347,33 +519,87 @@ class BarangayController extends Controller
     public function downloadFile($id)
     {
         try {
-            // Try to find the report in each table
-            $report = WeeklyReport::where('id', $id)
-                ->where('user_id', Auth::id())
-                ->first();
+            // Parse the unique identifier to get the table name and ID
+            $parts = explode('_', $id);
 
-            if (!$report) {
-                $report = MonthlyReport::where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->first();
+            if (count($parts) < 2) {
+                // If the ID doesn't contain an underscore, it's an old-style ID
+                // In this case, we'll try to find the report in each table
+                $reportId = $id;
+                $reportTable = null;
+            } else {
+                // Extract the table name and ID from the unique identifier
+                $reportTable = $parts[0];
+                $reportId = $parts[1];
             }
 
-            if (!$report) {
-                $report = QuarterlyReport::where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->first();
-            }
+            Log::info('Parsed report ID for download: ' . $reportId . ', Table: ' . ($reportTable ?? 'unknown'));
 
-            if (!$report) {
-                $report = SemestralReport::where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->first();
-            }
+            $report = null;
 
-            if (!$report) {
-                $report = AnnualReport::where('id', $id)
+            // If we know the table, we can directly query that table
+            if ($reportTable) {
+                switch ($reportTable) {
+                    case 'weekly':
+                        $report = WeeklyReport::where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+                        break;
+
+                    case 'monthly':
+                        $report = MonthlyReport::where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+                        break;
+
+                    case 'quarterly':
+                        $report = QuarterlyReport::where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+                        break;
+
+                    case 'semestral':
+                        $report = SemestralReport::where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+                        break;
+
+                    case 'annual':
+                        $report = AnnualReport::where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+                        break;
+                }
+            } else {
+                // If we don't know the table, we need to check all tables
+                // Try to find the report in each table
+                $report = WeeklyReport::where('id', $reportId)
                     ->where('user_id', Auth::id())
                     ->first();
+
+                if (!$report) {
+                    $report = MonthlyReport::where('id', $reportId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+                }
+
+                if (!$report) {
+                    $report = QuarterlyReport::where('id', $reportId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+                }
+
+                if (!$report) {
+                    $report = SemestralReport::where('id', $reportId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+                }
+
+                if (!$report) {
+                    $report = AnnualReport::where('id', $reportId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+                }
             }
 
             if (!$report) {
@@ -690,15 +916,231 @@ class BarangayController extends Controller
 
     public function resubmit(Request $request, $id)
     {
-        // Basic validation for file
+        try {
+            // Log the request data for debugging
+            Log::info('Resubmit request data:', $request->all());
+            Log::info('Report ID being resubmitted: ' . $id);
+
+            // Log the request method and headers
+            Log::info('Request method: ' . $request->method());
+            Log::info('Request headers:', $request->headers->all());
+
+            // Log the form data
+            Log::info('Form data:', $request->post());
+
+            // Log the files
+            if ($request->hasFile('file')) {
+                Log::info('File uploaded: ' . $request->file('file')->getClientOriginalName());
+            } else {
+                Log::info('No file uploaded');
+            }
+
+            // Debug response - commented out to allow the function to continue
+            // return response()->json(['success' => true, 'message' => 'Debug: Controller method reached', 'data' => $request->all()]);
+
+
+            // Parse the unique identifier to get the table name and ID
+            $parts = explode('_', $id);
+
+            if (count($parts) < 2) {
+                // If the ID doesn't contain an underscore, it's an old-style ID
+                // In this case, we'll try to find the report in each table
+                $reportId = $id;
+                $reportTable = null;
+            } else {
+                // Extract the table name and ID from the unique identifier
+                $reportTable = $parts[0];
+                $reportId = $parts[1];
+            }
+
+            Log::info('Parsed report ID: ' . $reportId . ', Table: ' . ($reportTable ?? 'unknown'));
+        } catch (\Exception $e) {
+            Log::error('Error in resubmit method: ' . $e->getMessage());
+            return back()->with('error', 'An error occurred while processing your request. Please try again.');
+        }
+
+        // Find the report first to determine its type
+        $report = null;
+        $reportType = null;
+        $reportModel = null;
+
+        try {
+            // If we know the table, we can directly query that table
+            if ($reportTable) {
+                switch ($reportTable) {
+                    case 'weekly':
+                        $report = WeeklyReport::with('reportType')
+                            ->where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+
+                        if ($report) {
+                            $reportType = 'weekly';
+                            $reportModel = 'WeeklyReport';
+                            Log::info('Found report in WeeklyReport table', ['id' => $report->id, 'type' => $reportType]);
+                        }
+                        break;
+
+                    case 'monthly':
+                        $report = MonthlyReport::with('reportType')
+                            ->where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+
+                        if ($report) {
+                            $reportType = 'monthly';
+                            $reportModel = 'MonthlyReport';
+                            Log::info('Found report in MonthlyReport table', ['id' => $report->id, 'type' => $reportType]);
+                        }
+                        break;
+
+                    case 'quarterly':
+                        $report = QuarterlyReport::with('reportType')
+                            ->where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+
+                        if ($report) {
+                            $reportType = 'quarterly';
+                            $reportModel = 'QuarterlyReport';
+                            Log::info('Found report in QuarterlyReport table', ['id' => $report->id, 'type' => $reportType]);
+                        }
+                        break;
+
+                    case 'semestral':
+                        $report = SemestralReport::with('reportType')
+                            ->where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+
+                        if ($report) {
+                            $reportType = 'semestral';
+                            $reportModel = 'SemestralReport';
+                            Log::info('Found report in SemestralReport table', ['id' => $report->id, 'type' => $reportType]);
+                        }
+                        break;
+
+                    case 'annual':
+                        $report = AnnualReport::with('reportType')
+                            ->where('id', $reportId)
+                            ->where('user_id', Auth::id())
+                            ->first();
+
+                        if ($report) {
+                            $reportType = 'annual';
+                            $reportModel = 'AnnualReport';
+                            Log::info('Found report in AnnualReport table', ['id' => $report->id, 'type' => $reportType]);
+                        }
+                        break;
+                }
+            } else {
+                // If we don't know the table, we need to check all tables
+                // Try to find the report in each table
+                $report = WeeklyReport::with('reportType')
+                    ->where('id', $reportId)
+                    ->where('user_id', Auth::id())
+                    ->first();
+
+                if ($report) {
+                    $reportType = 'weekly';
+                    $reportModel = 'WeeklyReport';
+                    Log::info('Found report in WeeklyReport table', ['id' => $report->id, 'type' => $reportType]);
+                }
+
+                if (!$report) {
+                    $report = MonthlyReport::with('reportType')
+                        ->where('id', $reportId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+
+                    if ($report) {
+                        $reportType = 'monthly';
+                        $reportModel = 'MonthlyReport';
+                        Log::info('Found report in MonthlyReport table', ['id' => $report->id, 'type' => $reportType]);
+                    }
+                }
+
+                if (!$report) {
+                    $report = QuarterlyReport::with('reportType')
+                        ->where('id', $reportId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+
+                    if ($report) {
+                        $reportType = 'quarterly';
+                        $reportModel = 'QuarterlyReport';
+                        Log::info('Found report in QuarterlyReport table', ['id' => $report->id, 'type' => $reportType]);
+                    }
+                }
+
+                if (!$report) {
+                    $report = SemestralReport::with('reportType')
+                        ->where('id', $reportId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+
+                    if ($report) {
+                        $reportType = 'semestral';
+                        $reportModel = 'SemestralReport';
+                        Log::info('Found report in SemestralReport table', ['id' => $report->id, 'type' => $reportType]);
+                    }
+                }
+
+                if (!$report) {
+                    $report = AnnualReport::with('reportType')
+                        ->where('id', $reportId)
+                        ->where('user_id', Auth::id())
+                        ->first();
+
+                    if ($report) {
+                        $reportType = 'annual';
+                        $reportModel = 'AnnualReport';
+                        Log::info('Found report in AnnualReport table', ['id' => $report->id, 'type' => $reportType]);
+                    }
+                }
+            }
+
+            // If no report is found, return with an error message
+            if (!$report) {
+                Log::warning("No report found with ID: {$reportId} for user: " . Auth::id());
+                return back()->with('error', 'Report not found. It may have been deleted or you do not have permission to access it.');
+            }
+        } catch (\Exception $e) {
+            Log::error('Error finding report: ' . $e->getMessage());
+            return back()->with('error', 'An error occurred while retrieving the report. Please try again.');
+        }
+
+        try {
+            // Log the report type and model for debugging
+            Log::info("Found report: ID={$reportId}, Type={$reportType}, Model={$reportModel}");
+
+            // Log the report data for debugging
+            Log::info("Report data:", $report->toArray());
+
+            // Override the report type from the request with the actual report type
+            // Ensure report type is lowercase for consistent comparison
+            $reportType = strtolower($reportType);
+            $request->merge(['report_type' => $reportType]);
+
+            // Log the normalized report type
+            Log::info("Normalized report type: {$reportType}");
+        } catch (\Exception $e) {
+            Log::error('Error processing report data: ' . $e->getMessage());
+            // Continue execution as this is just logging
+        }
+
+        // Basic validation for file - make file optional for resubmission
         $validationRules = [
-            'file' => 'required|file|mimes:pdf,doc,docx,xlsx|max:2048',
+            'file' => 'nullable|file|mimes:pdf,doc,docx,xlsx|max:2048',
             'report_type_id' => 'required|exists:report_types,id',
             'report_type' => 'required|string|in:weekly,monthly,quarterly,semestral,annual'
         ];
 
         // Add specific validation rules based on report type
-        if ($request->report_type === 'weekly') {
+        // Use strtolower for case-insensitive comparison
+        $reportTypeLC = strtolower($request->report_type);
+
+        if ($reportTypeLC == 'weekly') {
             $validationRules = array_merge($validationRules, [
                 'month' => 'required|string',
                 'week_number' => 'required|integer|min:1|max:52',
@@ -707,41 +1149,40 @@ class BarangayController extends Controller
                 'num_of_barangays' => 'required|integer|min:0',
                 'total_volume' => 'required|numeric|min:0'
             ]);
-        } elseif ($request->report_type === 'monthly') {
+        } elseif ($reportTypeLC == 'monthly') {
             $validationRules = array_merge($validationRules, [
                 'month' => 'required|string'
             ]);
-        } elseif ($request->report_type === 'quarterly') {
+        } elseif ($reportTypeLC == 'quarterly') {
             $validationRules = array_merge($validationRules, [
                 'quarter_number' => 'required|integer|in:1,2,3,4'
             ]);
-        } elseif ($request->report_type === 'semestral') {
+        } elseif ($reportTypeLC == 'semestral') {
             $validationRules = array_merge($validationRules, [
                 'sem_number' => 'required|integer|in:1,2'
             ]);
-        } elseif ($request->report_type === 'annual') {
-            $validationRules = array_merge($validationRules, [
-                'year' => 'required|integer|min:2020|max:' . date('Y')
-            ]);
+        } elseif ($reportTypeLC == 'annual') {
+            // No additional validation rules needed for annual reports
         }
 
         // Filter the request data to only include fields relevant to the report type
         $filteredData = $request->only(['file', 'report_type_id', 'report_type']);
 
         // Add specific fields based on report type
-        if ($request->report_type === 'weekly') {
+        // Use the same reportTypeLC variable for consistency
+        if ($reportTypeLC == 'weekly') {
             $filteredData = array_merge($filteredData, $request->only([
                 'month', 'week_number', 'num_of_clean_up_sites',
                 'num_of_participants', 'num_of_barangays', 'total_volume'
             ]));
-        } elseif ($request->report_type === 'monthly') {
+        } elseif ($reportTypeLC == 'monthly') {
             $filteredData = array_merge($filteredData, $request->only(['month']));
-        } elseif ($request->report_type === 'quarterly') {
+        } elseif ($reportTypeLC == 'quarterly') {
             $filteredData = array_merge($filteredData, $request->only(['quarter_number']));
-        } elseif ($request->report_type === 'semestral') {
+        } elseif ($reportTypeLC == 'semestral') {
             $filteredData = array_merge($filteredData, $request->only(['sem_number']));
-        } elseif ($request->report_type === 'annual') {
-            $filteredData = array_merge($filteredData, $request->only(['year']));
+        } elseif ($reportTypeLC == 'annual') {
+            // No additional fields needed for annual reports
         }
 
         // Create a new request with only the filtered data
@@ -754,6 +1195,15 @@ class BarangayController extends Controller
         $validator = Validator::make($filteredRequest->all(), $validationRules);
 
         if ($validator->fails()) {
+            // Check if the request is an AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
@@ -762,69 +1212,40 @@ class BarangayController extends Controller
         try {
             DB::beginTransaction();
 
-            // Try to find the report in each table
-            $report = null;
-
             // Get the report type object for validation
             $reportTypeObj = ReportType::findOrFail($filteredRequest->report_type_id);
+            Log::info('Report type object found', ['id' => $reportTypeObj->id, 'name' => $reportTypeObj->name]);
 
-            // Check if the report type is still within deadline
+            // Log if the report deadline has passed, but still allow updates
             if ($reportTypeObj->deadline < now()) {
-                return back()->with('error', 'The deadline for this report has passed');
+                Log::warning('Report deadline has passed, but allowing update', ['deadline' => $reportTypeObj->deadline, 'now' => now()]);
+                // We're removing the return statement to allow updates even after deadline
             }
 
-            // Find the report based on the report type
-            switch ($filteredRequest->report_type) {
-                case 'weekly':
-                    $report = WeeklyReport::where('id', $id)
-                        ->where('user_id', Auth::id())
-                        ->first();
-                    break;
-                case 'monthly':
-                    $report = MonthlyReport::where('id', $id)
-                        ->where('user_id', Auth::id())
-                        ->first();
-                    break;
-                case 'quarterly':
-                    $report = QuarterlyReport::where('id', $id)
-                        ->where('user_id', Auth::id())
-                        ->first();
-                    break;
-                case 'semestral':
-                    $report = SemestralReport::where('id', $id)
-                        ->where('user_id', Auth::id())
-                        ->first();
-                    break;
-                case 'annual':
-                    $report = AnnualReport::where('id', $id)
-                        ->where('user_id', Auth::id())
-                        ->first();
-                    break;
-            }
-
-            if (!$report) {
-                return back()->with('error', 'Report not found');
-            }
+            // We already found the report at the beginning of the method
+            // No need to find it again
+            Log::info('Using previously found report', ['id' => $report->id, 'type' => $reportType]);
 
             // Allow resubmission for any status except approved
             if ($report->status === 'approved') {
+                Log::warning('Attempt to update approved report', ['report_id' => $report->id, 'status' => $report->status]);
                 return back()->with('error', 'Approved reports cannot be updated');
             }
 
-            // Check if the report type is still within deadline
+            // Get the report type model for reference
             $reportTypeModel = ReportType::find($report->report_type_id);
-            if (!$reportTypeModel || $reportTypeModel->deadline < now()) {
-                return back()->with('error', 'The deadline for this report has passed');
-            }
-
-            // Handle file upload
-            $file = $filteredRequest->file('file');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('reports', $filename, 'public');
-
-            // Delete old file
-            if ($report->file_path) {
-                Storage::delete('public/' . $report->file_path);
+            if (!$reportTypeModel) {
+                Log::warning('Report type model not found', [
+                    'report_type_id' => $report->report_type_id
+                ]);
+                // Continue anyway since we already have the report
+            } elseif ($reportTypeModel->deadline < now()) {
+                Log::warning('Report deadline has passed (second check), but allowing update', [
+                    'report_type_id' => $report->report_type_id,
+                    'deadline' => $reportTypeModel->deadline,
+                    'now' => now()
+                ]);
+                // We're removing the return statement to allow updates even after deadline
             }
 
             // Set appropriate status based on current status
@@ -832,16 +1253,65 @@ class BarangayController extends Controller
 
             // Prepare update data with common fields
             $updateData = [
-                'file_path' => $path,
-                'file_name' => $filename,
                 'status' => $newStatus,
                 'remarks' => null,
-                'updated_at' => now(), // Update the timestamp
-                'created_at' => now() // Also update the created_at timestamp to show as the new submission date
+                'updated_at' => now(), // Update the updated_at timestamp
+                'created_at' => now() // Update the created_at timestamp to reflect the resubmission date
             ];
 
+            // Handle file upload if a new file is provided
+            if ($filteredRequest->hasFile('file')) {
+                try {
+                    $file = $filteredRequest->file('file');
+
+                    // Log file information
+                    Log::info('Processing file upload', [
+                        'original_name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType()
+                    ]);
+
+                    $filename = time() . '_' . $file->getClientOriginalName();
+                    $path = $file->storeAs('reports', $filename, 'public');
+
+                    Log::info('File stored successfully', [
+                        'path' => $path,
+                        'filename' => $filename
+                    ]);
+
+                    // Delete old file
+                    if ($report->file_path) {
+                        try {
+                            if (Storage::exists('public/' . $report->file_path)) {
+                                Storage::delete('public/' . $report->file_path);
+                                Log::info('Old file deleted', ['old_path' => $report->file_path]);
+                            } else {
+                                Log::warning('Old file not found for deletion', ['old_path' => $report->file_path]);
+                            }
+                        } catch (\Exception $e) {
+                            Log::warning('Error deleting old file: ' . $e->getMessage(), [
+                                'old_path' => $report->file_path
+                            ]);
+                            // Continue execution even if old file deletion fails
+                        }
+                    }
+
+                    // Add file data to update data
+                    $updateData['file_path'] = $path;
+                    $updateData['file_name'] = $filename;
+                } catch (\Exception $e) {
+                    Log::error('File upload error: ' . $e->getMessage(), [
+                        'file' => $filteredRequest->file('file')->getClientOriginalName()
+                    ]);
+                    throw new \Exception('Error uploading file: ' . $e->getMessage());
+                }
+            } else {
+                Log::info('No new file provided, keeping existing file');
+            }
+
             // Add specific fields based on report type
-            switch ($filteredRequest->report_type) {
+            // Use the reportType variable we determined earlier
+            switch ($reportType) {
                 case 'weekly':
                     // Always update all weekly-specific fields
                     $updateData['month'] = $filteredRequest->month;
@@ -864,29 +1334,278 @@ class BarangayController extends Controller
                     $updateData['sem_number'] = $filteredRequest->sem_number;
                     break;
                 case 'annual':
-                    // Always update all annual-specific fields
-                    $updateData['year'] = $filteredRequest->year;
+                    // No additional fields needed for annual reports
                     break;
             }
 
+            // Log the update data for debugging
+            Log::info('Update data:', $updateData);
+
             // Update the report with all fields
-            $report->update($updateData);
+            try {
+                Log::info('Attempting to update report with data', [
+                    'report_id' => $report->id,
+                    'report_type' => $reportType,
+                    'update_data' => $updateData
+                ]);
+
+                $result = $report->update($updateData);
+
+                Log::info('Report update result', [
+                    'success' => $result,
+                    'report_id' => $report->id,
+                    'updated_at' => $report->updated_at
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error updating report in database', [
+                    'error' => $e->getMessage(),
+                    'report_id' => $report->id,
+                    'report_type' => $reportType
+                ]);
+                throw $e; // Re-throw to be caught by the outer catch block
+            }
 
             DB::commit();
+
+            Log::info('Database transaction committed successfully');
 
             $successMessage = $report->status === 'rejected'
                 ? 'Report resubmitted successfully with all updated fields. It will be reviewed by the admin.'
                 : 'Report updated successfully with all fields.';
 
-            return redirect()->route('barangay.submissions')->with('success', $successMessage);
+            // Store success message in session
+            session()->flash('success', $successMessage);
+            session()->flash('showSuccessModal', true);
+            session()->flash('reportStatus', $report->status);
+
+            // Check if the request is an AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $successMessage,
+                    'redirect' => route('barangay.submissions')
+                ]);
+            }
+
+            return redirect()->route('barangay.submissions');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Report resubmission error: ' . $e->getMessage());
+
+            // Get detailed error information
+            $errorDetails = [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'report_id' => $reportId,
+                'report_type' => $reportType ?? 'unknown',
+                'user_id' => Auth::id()
+            ];
+
+            Log::error('Report resubmission error', $errorDetails);
+
+            // Create a user-friendly error message
             $errorMessage = $report && $report->status === 'rejected'
-                ? 'Failed to resubmit report. Please try again. Error: ' . $e->getMessage()
-                : 'Failed to update report. Please try again. Error: ' . $e->getMessage();
+                ? 'Failed to resubmit report. Please try again.'
+                : 'Failed to update report. Please try again.';
+
+            // Add technical details for development environment
+            if (config('app.debug')) {
+                $errorMessage .= ' Error: ' . $e->getMessage();
+            }
+
+            // Check if the request is an AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage,
+                    'debug' => config('app.debug') ? $errorDetails : null
+                ], 500);
+            }
 
             return back()->with('error', $errorMessage);
+        }
+    }
+
+    /**
+     * Direct file download method that ensures the current user can only access their own files.
+     * This is a simplified version that directly checks the user ID without complex logic.
+     */
+    public function directDownloadFile($id)
+    {
+        try {
+            $userId = Auth::id();
+            Log::info('Direct file download request', [
+                'id' => $id,
+                'user_id' => $userId
+            ]);
+
+            // Parse the unique identifier to get the table name and ID
+            $parts = explode('_', $id);
+
+            if (count($parts) < 2) {
+                // If the ID doesn't contain an underscore, it's an old-style ID
+                $reportId = $id;
+                $reportTable = null;
+                Log::info('Old-style ID detected', ['id' => $id]);
+            } else {
+                // Extract the table name and ID from the unique identifier
+                $reportTable = $parts[0];
+                $reportId = $parts[1];
+                Log::info('Parsed report ID', ['table' => $reportTable, 'id' => $reportId]);
+            }
+
+            // Find the report based on the table name and ID
+            $report = null;
+
+            if ($reportTable) {
+                // If we know the table, directly query that table
+                switch ($reportTable) {
+                    case 'weekly':
+                        $report = WeeklyReport::where('id', $reportId)
+                            ->where('user_id', $userId)
+                            ->first();
+                        break;
+                    case 'monthly':
+                        $report = MonthlyReport::where('id', $reportId)
+                            ->where('user_id', $userId)
+                            ->first();
+                        break;
+                    case 'quarterly':
+                        $report = QuarterlyReport::where('id', $reportId)
+                            ->where('user_id', $userId)
+                            ->first();
+                        break;
+                    case 'semestral':
+                        $report = SemestralReport::where('id', $reportId)
+                            ->where('user_id', $userId)
+                            ->first();
+                        break;
+                    case 'annual':
+                        $report = AnnualReport::where('id', $reportId)
+                            ->where('user_id', $userId)
+                            ->first();
+                        break;
+                }
+            } else {
+                // If we don't know the table, check all tables
+                $report = WeeklyReport::where('id', $reportId)
+                    ->where('user_id', $userId)
+                    ->first();
+
+                if (!$report) {
+                    $report = MonthlyReport::where('id', $reportId)
+                        ->where('user_id', $userId)
+                        ->first();
+                }
+
+                if (!$report) {
+                    $report = QuarterlyReport::where('id', $reportId)
+                        ->where('user_id', $userId)
+                        ->first();
+                }
+
+                if (!$report) {
+                    $report = SemestralReport::where('id', $reportId)
+                        ->where('user_id', $userId)
+                        ->first();
+                }
+
+                if (!$report) {
+                    $report = AnnualReport::where('id', $reportId)
+                        ->where('user_id', $userId)
+                        ->first();
+                }
+            }
+
+            if (!$report) {
+                Log::error('Report not found or access denied', [
+                    'id' => $id,
+                    'user_id' => $userId
+                ]);
+                return response()->json(['error' => 'Report not found or you do not have permission to access it.'], 404);
+            }
+
+            // Check if the file exists
+            if (!Storage::disk('public')->exists($report->file_path)) {
+                Log::error('File not found in storage', [
+                    'file_path' => $report->file_path
+                ]);
+                return response()->json(['error' => 'File not found in storage.'], 404);
+            }
+
+            // Get the full path to the file
+            $path = Storage::disk('public')->path($report->file_path);
+
+            // Get the file's mime type
+            $mimeType = mime_content_type($path);
+            $fileName = basename($report->file_path);
+
+            Log::info('File details', [
+                'path' => $path,
+                'mime_type' => $mimeType,
+                'file_name' => $fileName,
+                'is_download' => request()->has('download')
+            ]);
+
+            // If it's a download request, force download
+            if (request()->has('download')) {
+                return response()->download($path, $fileName);
+            }
+
+            // For viewing, determine if the file type is viewable
+            $viewableTypes = [
+                'application/pdf',
+                'image/jpeg',
+                'image/png',
+                'image/gif',
+                'text/plain',
+                'text/html',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ];
+
+            // Get file extension
+            $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+            // Map common extensions to mime types if mime_content_type fails
+            $extensionMimeTypes = [
+                'pdf' => 'application/pdf',
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'txt' => 'text/plain',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ];
+
+            // If mime_content_type fails, try to determine from extension
+            if (!$mimeType && isset($extensionMimeTypes[$extension])) {
+                $mimeType = $extensionMimeTypes[$extension];
+            }
+
+            if (in_array($mimeType, $viewableTypes)) {
+                return response()->file($path, [
+                    'Content-Type' => $mimeType,
+                    'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+                    'Cache-Control' => 'public, max-age=0',
+                    'Accept-Ranges' => 'bytes'
+                ]);
+            }
+
+            // For non-viewable types, force download
+            return response()->download($path, $fileName);
+        } catch (\Exception $e) {
+            Log::error('Error in directDownloadFile', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Error accessing file: ' . $e->getMessage()], 500);
         }
     }
 }

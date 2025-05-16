@@ -65,8 +65,18 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/overdue-reports', [BarangayController::class, 'overdueReports'])->name('overdue-reports');
         Route::post('/submissions/{id}/resubmit', [BarangayController::class, 'resubmit'])->name('submissions.resubmit');
 
+        // Debug routes for testing form submission
+        Route::get('/test-resubmit', function() {
+            return "Resubmit route is working!";
+        })->name('test.resubmit');
+
+        Route::get('/test-resubmit-form', function() {
+            return view('barangay.test-resubmit');
+        })->name('test.resubmit.form');
+
         // File Management
         Route::get('/files/{id}', [ReportController::class, 'downloadFile'])->name('files.download');
+        Route::get('/direct-files/{id}', [BarangayController::class, 'directDownloadFile'])->name('direct.files.download');
         Route::delete('/files/{id}', [BarangayFileController::class, 'destroy'])->name('files.destroy');
     });
 });

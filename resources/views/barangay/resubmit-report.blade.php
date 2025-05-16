@@ -46,13 +46,13 @@
     <div class="sidebar">
         <h4 class="mb-4">Report Management</h4>
         <nav class="nav flex-column">
-            <a class="nav-link" href="{{ route('reports.submit') }}">
+            <a class="nav-link" href="{{ route('barangay.submit-report') }}">
                 <i class="bi bi-plus-circle"></i> Submit New Report
             </a>
-            <a class="nav-link" href="{{ route('reports.view') }}">
+            <a class="nav-link" href="{{ route('barangay.submissions') }}">
                 <i class="bi bi-list-ul"></i> View Reports
             </a>
-            <a class="nav-link" href="{{ route('dashboard') }}">
+            <a class="nav-link" href="{{ route('barangay.dashboard') }}">
                 <i class="bi bi-house"></i> Dashboard
             </a>
         </nav>
@@ -86,9 +86,8 @@
                     </div>
                 </div>
 
-                <form action="{{ route('reports.resubmit', $report->id) }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('barangay.submissions.resubmit', $report->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
-                    @method('PUT')
 
                     <div class="mb-3">
                         <label for="file" class="form-label">Upload New Report File</label>
@@ -97,7 +96,7 @@
                     </div>
 
                     <div class="d-flex justify-content-between">
-                        <a href="{{ route('reports.view') }}" class="btn btn-secondary">Cancel</a>
+                        <a href="{{ route('barangay.submissions') }}" class="btn btn-secondary">Cancel</a>
                         <button type="submit" class="btn btn-primary">Resubmit Report</button>
                     </div>
                 </form>

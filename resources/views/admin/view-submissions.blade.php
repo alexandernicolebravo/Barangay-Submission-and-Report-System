@@ -397,41 +397,56 @@
                     });
                 };
 
-                // Add event listener for search input
-                searchInput.addEventListener('input', function() {
-                    const currentValue = this.value;
-                    handleAjaxRequest({
-                        search: currentValue,
+                // Function to get all filter values
+                const getFilterValues = () => {
+                    return {
+                        search: searchInput.value.trim(),
+                        barangay_id: document.querySelector('select[name="barangay_id"]').value,
                         type: document.querySelector('select[name="type"]').value,
                         status: document.querySelector('select[name="status"]').value,
                         timeliness: document.querySelector('select[name="timeliness"]').value,
                         ajax: true
-                    });
+                    };
+                };
+
+                // Add event listener for search input
+                searchInput.addEventListener('input', function() {
+                    handleAjaxRequest(getFilterValues());
                 });
 
                 // Add event listeners for all select elements
                 filterSelects.forEach(select => {
                     select.addEventListener('change', function() {
-                        handleAjaxRequest({
-                            search: searchInput.value.trim(),
-                            type: document.querySelector('select[name="type"]').value,
-                            status: document.querySelector('select[name="status"]').value,
-                            timeliness: document.querySelector('select[name="timeliness"]').value,
-                            ajax: true
-                        });
+                        handleAjaxRequest(getFilterValues());
                     });
                 });
             });
         </script>
         @endpush
 
-        <form id="filterForm" class="d-flex gap-2" method="GET" action="{{ route('admin.view.submissions') }}">
+        <form id="filterForm" class="d-flex flex-wrap gap-2" method="GET" action="{{ route('admin.view.submissions') }}">
             <div class="input-group" style="width: 200px;">
                 <span class="input-group-text">
                     <i class="fas fa-search"></i>
                 </span>
                 <input type="text" class="form-control search-box" name="search" value="{{ request('search') }}" placeholder="Search...">
             </div>
+
+            <!-- Barangay Filter -->
+            <div class="input-group" style="width: 250px;">
+                <span class="input-group-text">
+                    <i class="fas fa-building"></i>
+                </span>
+                <select class="form-select" name="barangay_id">
+                    <option value="">All Barangays</option>
+                    @foreach($barangays as $barangay)
+                        <option value="{{ $barangay->id }}" {{ request('barangay_id') == $barangay->id ? 'selected' : '' }}>
+                            {{ $barangay->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             <div class="input-group" style="width: 200px;">
                 <span class="input-group-text">
                     <i class="fas fa-filter"></i>
@@ -468,7 +483,7 @@
                     <option value="ontime" {{ request('timeliness') == 'ontime' ? 'selected' : '' }}>On Time</option>
                 </select>
             </div>
-            @if(request()->hasAny(['search', 'type', 'status', 'timeliness']))
+            @if(request()->hasAny(['search', 'barangay_id', 'type', 'status', 'timeliness']))
                 <a href="{{ route('admin.view.submissions') }}" class="btn btn-light">
                     <i class="fas fa-times"></i>
                     Clear Filters
@@ -477,6 +492,12 @@
         </form>
                         </div>
                         <div class="card-body">
+                            @if(isset($selectedBarangay))
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Showing submissions for <strong>{{ $selectedBarangay->name }}</strong>
+                            </div>
+                            @endif
                             <div class="table-responsive">
                 <table class="table">
                 <thead>
@@ -489,13 +510,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($submissions as $submission)
+                    @forelse($reports as $report)
                     <tr>
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="me-2" style="width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
                                     @php
-                                        $extension = strtolower(pathinfo($submission['file_name'], PATHINFO_EXTENSION));
+                                        $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
                                         $icon = match($extension) {
                                             'pdf' => 'fa-file-pdf',
                                             'doc', 'docx' => 'fa-file-word',
@@ -504,20 +525,31 @@
                                             'txt' => 'fa-file-alt',
                                             default => 'fa-file'
                                         };
+
+                                        $colorClass = match($extension) {
+                                            'pdf' => 'danger',
+                                            'doc', 'docx' => 'primary',
+                                            'xls', 'xlsx' => 'success',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'info',
+                                            'txt' => 'secondary',
+                                            default => 'primary'
+                                        };
+
+                                        $isLate = \Carbon\Carbon::parse($report->updated_at)->isAfter($report->reportType->deadline);
                                     @endphp
                                     <i class="fas {{ $icon }} fa-sm"></i>
                                 </div>
                                 <div>
-                                    <div style="font-weight: 500; color: var(--dark);">{{ $submission['report_type'] }}</div>
-                                    <small class="text-muted">{{ ucfirst($submission['type']) }}</small>
+                                    <div style="font-weight: 500; color: var(--dark);">{{ $report->reportType->name }}</div>
+                                    <small class="text-muted">{{ ucfirst(str_replace('Report', '', class_basename($report->model_type))) }}</small>
                                 </div>
                             </div>
                         </td>
-                        <td>{{ $submission['submitted_by'] }}</td>
-                        <td>{{ \Carbon\Carbon::parse($submission['submitted_at'])->format('M d, Y') }}</td>
+                        <td>{{ $report->user->name }}</td>
+                        <td>{{ \Carbon\Carbon::parse($report->updated_at)->format('M d, Y') }}</td>
                         <td>
                             @php
-                                $statusIcon = match($submission['status']) {
+                                $statusIcon = match($report->status) {
                                     'submitted' => 'fa-check-circle',
                                     'no submission' => 'fa-times-circle',
                                     'pending' => 'fa-clock',
@@ -525,15 +557,15 @@
                                     'rejected' => 'fa-thumbs-down',
                                     default => 'fa-info-circle'
                                 };
-                                $statusClass = str_replace(' ', '-', $submission['status']);
+                                $statusClass = str_replace(' ', '-', $report->status);
                             @endphp
                             <span class="status-badge {{ $statusClass }}">
                                 <i class="fas {{ $statusIcon }}"></i>
-                                {{ ucfirst($submission['status']) }}
+                                {{ ucfirst($report->status) }}
                             </span>
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $submission['id'] }}">
+                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $report->unique_id }}">
                                 <i class="fas fa-eye me-1"></i>
                                 View
                             </button>
@@ -541,13 +573,14 @@
                     </tr>
 
                     <!-- View Submission Modal -->
-                    <div class="modal fade" id="viewSubmissionModal{{ $submission['id'] }}" tabindex="-1">
+                    <div class="modal fade" id="viewSubmissionModal{{ $report->unique_id }}" tabindex="-1">
                         <div class="modal-dialog modal-dialog-centered modal-lg">
                             <div class="modal-content border-0 shadow">
-                                <div class="modal-header bg-light">
+                                <div class="modal-header bg-light py-2">
                                     @php
-                                        $extension = strtolower(pathinfo($submission['file_name'], PATHINFO_EXTENSION));
-                                        $icon = match($extension) {
+                                        $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
+                                        $fileName = basename($report->file_path);
+                                        $iconClass = match($extension) {
                                             'pdf' => 'fa-file-pdf',
                                             'doc', 'docx' => 'fa-file-word',
                                             'xls', 'xlsx' => 'fa-file-excel',
@@ -556,7 +589,16 @@
                                             default => 'fa-file'
                                         };
 
-                                        $statusIcon = match($submission['status']) {
+                                        $colorClass = match($extension) {
+                                            'pdf' => 'danger',
+                                            'doc', 'docx' => 'primary',
+                                            'xls', 'xlsx' => 'success',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'info',
+                                            'txt' => 'secondary',
+                                            default => 'primary'
+                                        };
+
+                                        $statusIcon = match($report->status) {
                                             'submitted' => 'fa-check-circle',
                                             'no submission' => 'fa-times-circle',
                                             'pending' => 'fa-clock',
@@ -564,149 +606,258 @@
                                             'rejected' => 'fa-thumbs-down',
                                             default => 'fa-info-circle'
                                         };
-                                        $statusClass = str_replace(' ', '-', $submission['status']);
-
-                                        $statusColor = match($submission['status']) {
-                                            'submitted' => 'var(--success)',
-                                            'no submission' => 'var(--danger)',
-                                            'pending' => 'var(--warning)',
-                                            'approved' => 'var(--primary)',
-                                            'rejected' => 'var(--secondary)',
-                                            default => 'var(--gray)'
-                                        };
+                                        $statusClass = str_replace(' ', '-', $report->status);
+                                        $isLate = \Carbon\Carbon::parse($report->updated_at)->isAfter($report->reportType->deadline);
                                     @endphp
                                     <div class="d-flex align-items-center">
-                                        <div class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
-                                            <i class="fas {{ $icon }} fa-lg" style="color: var(--primary);"></i>
+                                        <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--{{ $colorClass }}-rgb), 0.1);">
+                                            <i class="fas {{ $iconClass }} text-{{ $colorClass }}"></i>
                                         </div>
                                         <div>
-                                            <h5 class="modal-title mb-0 fw-bold">{{ $submission['report_type'] }}</h5>
-                                            <div class="text-muted small">{{ ucfirst($submission['type']) }} Report</div>
+                                            <h5 class="modal-title mb-0 fw-bold">{{ $report->reportType->name }}</h5>
+                                            <div class="text-muted small">{{ ucfirst(str_replace('Report', '', class_basename($report->model_type))) }} Report</div>
                                         </div>
                                     </div>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
-                                <div class="modal-body p-4">
-                                    <div class="row">
-                                        <div class="col-md-7">
-                                            <div class="submission-details">
-                                                <div class="d-flex justify-content-between mb-4">
-                                                    <div class="submission-info-card">
-                                                        <div class="info-icon bg-primary-light text-primary">
-                                                            <i class="fas fa-user"></i>
+                                <div class="modal-body p-3">
+                                    <div class="row g-3">
+                                        <!-- File Information Section -->
+                                        <div class="col-12">
+                                            <div class="card border-0 bg-light-subtle mb-3">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-title mb-2">
+                                                        <i class="fas fa-file-alt me-2 text-primary"></i>
+                                                        Submitted File
+                                                    </h6>
+                                                    <div class="d-flex align-items-center p-3 bg-white rounded border">
+                                                        <div class="me-3 p-2 rounded" style="background-color: rgba(var(--{{ $colorClass }}-rgb), 0.1);">
+                                                            <i class="fas {{ $iconClass }} fa-lg text-{{ $colorClass }}"></i>
                                                         </div>
-                                                        <div class="info-content">
-                                                            <div class="info-label">Submitted By</div>
-                                                            <div class="info-value">{{ $submission['submitted_by'] }}</div>
+                                                        <div class="flex-grow-1">
+                                                            <p class="mb-0 fw-medium">{{ $fileName }}</p>
+                                                            <small class="text-muted">Last updated on {{ \Carbon\Carbon::parse($report->updated_at)->format('M d, Y h:i A') }}</small>
+                                                            <span class="badge bg-{{ $isLate ? 'danger' : 'success' }} ms-2">
+                                                                {{ $isLate ? 'Late' : 'On Time' }}
+                                                            </span>
+                                                        </div>
+                                                        <div>
+                                                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                                                onclick="previewFile('{{ route('admin.files.download', ['id' => $report->unique_id]) }}', '{{ $fileName }}')">
+                                                                <i class="fas fa-eye me-1"></i> View
+                                                            </button>
+                                                            <a href="{{ route('admin.files.download', ['id' => $report->unique_id, 'download' => true]) }}"
+                                                               class="btn btn-sm btn-outline-secondary ms-1">
+                                                                <i class="fas fa-download me-1"></i> Download
+                                                            </a>
                                                         </div>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                                    <div class="submission-info-card">
-                                                        <div class="info-icon bg-success-light text-success">
-                                                            <i class="fas fa-calendar-check"></i>
+                                        <!-- Submission Details -->
+                                        <div class="col-md-6">
+                                            <div class="card bg-light h-100">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-title mb-2">
+                                                        <i class="fas fa-info-circle me-2 text-primary"></i>
+                                                        Submission Details
+                                                    </h6>
+                                                    <div class="list-group list-group-flush">
+                                                        <div class="list-group-item bg-transparent px-0 py-2 border-0 border-bottom">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span class="text-muted">Submitted By:</span>
+                                                                <span class="fw-medium">{{ $report->user->name }}</span>
+                                                            </div>
                                                         </div>
-                                                        <div class="info-content">
-                                                            <div class="info-label">Status</div>
-                                                            <div class="info-value">
+                                                        <div class="list-group-item bg-transparent px-0 py-2 border-0 border-bottom">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span class="text-muted">Status:</span>
                                                                 <span class="status-badge {{ $statusClass }}">
                                                                     <i class="fas {{ $statusIcon }}"></i>
-                                                                    {{ ucfirst($submission['status']) }}
+                                                                    {{ ucfirst($report->status) }}
                                                                 </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="list-group-item bg-transparent px-0 py-2 border-0 border-bottom">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span class="text-muted">Last Updated:</span>
+                                                                <span>{{ \Carbon\Carbon::parse($report->updated_at)->format('M d, Y h:i A') }}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="list-group-item bg-transparent px-0 py-2 border-0">
+                                                            <div class="d-flex justify-content-between">
+                                                                <span class="text-muted">Deadline:</span>
+                                                                <span>{{ \Carbon\Carbon::parse($report->reportType->deadline)->format('M d, Y h:i A') }}</span>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
 
-                                                <div class="d-flex justify-content-between mb-4">
-                                                    <div class="submission-info-card">
-                                                        <div class="info-icon bg-info-light text-info">
-                                                            <i class="fas fa-clock"></i>
+                                        <!-- Remarks Section -->
+                                        <div class="col-md-6">
+                                            <div class="card bg-light h-100">
+                                                <div class="card-body p-3">
+                                                    <form action="{{ route('admin.update.report', $report->unique_id) }}" method="POST">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        <input type="hidden" name="type" value="{{ strtolower(str_replace('Report', '', class_basename($report->model_type))) }}">
+
+                                                        <h6 class="card-title mb-2">
+                                                            <i class="fas fa-comment-alt me-2 text-primary"></i>
+                                                            Remarks
+                                                        </h6>
+
+                                                        <textarea class="form-control form-control-sm bg-white border"
+                                                                name="remarks"
+                                                                rows="5"
+                                                                placeholder="Enter your remarks or feedback here...">{{ $report->remarks }}</textarea>
+
+                                                        <div class="d-flex justify-content-end mt-3">
+                                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                                <i class="fas fa-save me-1"></i>
+                                                                Save Remarks
+                                                            </button>
                                                         </div>
-                                                        <div class="info-content">
-                                                            <div class="info-label">Submitted At</div>
-                                                            <div class="info-value">
-                                                                {{ \Carbon\Carbon::parse($submission['submitted_at'])->format('M d, Y h:i A') }}
-                                                                <span class="timeliness-badge {{ $submission['is_late'] ? 'late' : 'ontime' }}">
-                                                                    {{ $submission['is_late'] ? 'Late' : 'On Time' }}
-                                                                </span>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Report-Specific Details -->
+                                        <div class="col-12 mt-3">
+                                            <div class="card bg-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-title mb-2">
+                                                        <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                                        Report Details
+                                                    </h6>
+
+                                                    @php
+                                                        $reportType = strtolower(str_replace('Report', '', class_basename($report->model_type)));
+                                                    @endphp
+
+                                                    @if($reportType == 'weekly')
+                                                    <div class="row g-2 mt-2">
+                                                        <div class="col-md-3">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Month</div>
+                                                                <div class="fw-medium">{{ $report->month }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Week Number</div>
+                                                                <div class="fw-medium">{{ $report->week_number }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Clean-up Sites</div>
+                                                                <div class="fw-medium">{{ $report->num_of_clean_up_sites }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Participants</div>
+                                                                <div class="fw-medium">{{ $report->num_of_participants }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Barangays</div>
+                                                                <div class="fw-medium">{{ $report->num_of_barangays }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Total Volume (m³)</div>
+                                                                <div class="fw-medium">{{ $report->total_volume }}</div>
                                                             </div>
                                                         </div>
                                                     </div>
-
-                                                    <div class="submission-info-card">
-                                                        <div class="info-icon bg-warning-light text-warning">
-                                                            <i class="fas fa-hourglass-end"></i>
+                                                    @elseif($reportType == 'monthly')
+                                                    <div class="row g-2 mt-2">
+                                                        <div class="col-md-6">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Month</div>
+                                                                <div class="fw-medium">{{ $report->month }}</div>
+                                                            </div>
                                                         </div>
-                                                        <div class="info-content">
-                                                            <div class="info-label">Deadline</div>
-                                                            <div class="info-value">{{ \Carbon\Carbon::parse($submission['deadline'])->format('M d, Y h:i A') }}</div>
+                                                        <div class="col-md-6">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Year</div>
+                                                                <div class="fw-medium">{{ $report->year ?? date('Y') }}</div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-
-                                                <div class="file-section p-3 rounded mb-4">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <i class="fas {{ $icon }} me-2" style="color: {{ $statusColor }};"></i>
-                                                        <span class="fw-medium">{{ $submission['file_name'] }}</span>
+                                                    @elseif($reportType == 'quarterly')
+                                                    <div class="row g-2 mt-2">
+                                                        <div class="col-md-6">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Quarter</div>
+                                                                <div class="fw-medium">
+                                                                    @switch($report->quarter_number)
+                                                                        @case(1)
+                                                                            Q1 (Jan-Mar)
+                                                                            @break
+                                                                        @case(2)
+                                                                            Q2 (Apr-Jun)
+                                                                            @break
+                                                                        @case(3)
+                                                                            Q3 (Jul-Sep)
+                                                                            @break
+                                                                        @case(4)
+                                                                            Q4 (Oct-Dec)
+                                                                            @break
+                                                                        @default
+                                                                            Quarter {{ $report->quarter_number }}
+                                                                    @endswitch
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Year</div>
+                                                                <div class="fw-medium">{{ $report->year }}</div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div class="d-flex gap-2">
-                                                        <button type="button"
-                                                                class="btn btn-sm btn-primary"
-                                                                onclick="previewFile('{{ route('admin.files.download', ['id' => $submission['id']]) }}', '{{ $submission['file_name'] }}')">
-                                                            <i class="fas fa-eye me-1"></i>
-                                                            <span>View File</span>
-                                                        </button>
-                                                        <a href="{{ route('admin.files.download', ['id' => $submission['id'], 'download' => true]) }}"
-                                                           class="btn btn-sm btn-outline-primary">
-                                                            <i class="fas fa-download me-1"></i>
-                                                            <span>Download</span>
-                                                        </a>
+                                                    @elseif($reportType == 'semestral')
+                                                    <div class="row g-2 mt-2">
+                                                        <div class="col-md-6">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Semester</div>
+                                                                <div class="fw-medium">
+                                                                    {{ $report->sem_number == 1 ? '1st Sem (Jan-Jun)' : '2nd Sem (Jul-Dec)' }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Year</div>
+                                                                <div class="fw-medium">{{ $report->year }}</div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-
-                                                @if($submission['remarks'])
-                                                <div class="current-remarks p-3 rounded bg-light-subtle border mb-4">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <i class="fas fa-comment-alt me-2 text-primary"></i>
-                                                        <span class="fw-medium">Current Remarks</span>
+                                                    @elseif($reportType == 'annual')
+                                                    <div class="row g-2 mt-2">
+                                                        <div class="col-md-6">
+                                                            <div class="border rounded p-2 bg-white">
+                                                                <div class="small text-muted">Year</div>
+                                                                <div class="fw-medium">{{ $report->year }}</div>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <p class="mb-0 text-muted">{{ $submission['remarks'] }}</p>
+                                                    @endif
                                                 </div>
-                                                @endif
                                             </div>
                                         </div>
 
-                                        <div class="col-md-5">
-                                            <div class="remarks-section p-3 rounded h-100">
-                                                <form action="{{ route('admin.update.report', $submission['id']) }}" method="POST">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <input type="hidden" name="type" value="{{ $submission['type'] }}">
 
-                                                    <div class="mb-3">
-                                                        <label class="form-label fw-bold">
-                                                            <i class="fas fa-pen me-1 text-primary"></i>
-                                                            Add/Edit Remarks
-                                                        </label>
-                                                        <textarea class="form-control border-0 bg-white shadow-sm"
-                                                                  name="remarks"
-                                                                  rows="8"
-                                                                  placeholder="Enter your remarks or feedback here...">{{ $submission['remarks'] }}</textarea>
-                                                        <small class="text-muted mt-2 d-block">
-                                                            <i class="fas fa-info-circle me-1"></i>
-                                                            These remarks will be visible to the user who submitted the report.
-                                                        </small>
-                                                    </div>
-
-                                                    <div class="d-grid">
-                                                        <button type="submit" class="btn btn-primary">
-                                                            <i class="fas fa-save me-1"></i>
-                                                            Save Remarks
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -718,51 +869,61 @@
                     <!-- File Preview Modal -->
                     <div class="modal fade" id="filePreviewModal" tabindex="-1">
                         <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">
-                                        <i class="fas fa-file-alt me-2"></i>
-                                        <span id="previewFileName"></span>
-                                    </h5>
+                            <div class="modal-content border-0 shadow">
+                                <div class="modal-header bg-light py-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2 p-2 rounded-circle" id="fileIconContainer">
+                                            <i class="fas fa-file-alt" id="fileIcon"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="modal-title mb-0 fw-bold">
+                                                <span id="previewFileName"></span>
+                                            </h5>
+                                            <div class="text-muted small">File Preview</div>
+                                        </div>
+                                    </div>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <div class="modal-body">
-                                    <div id="previewContainer" class="text-center">
+                                <div class="modal-body p-0">
+                                    <div id="previewContainer" class="text-center p-3">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <div class="modal-footer py-2">
+                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
                                     <a href="#" id="downloadLink" class="btn btn-primary">
-                                        <i class="fas fa-download"></i>
+                                        <i class="fas fa-download me-1"></i>
                                         Download
                                     </a>
                                 </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @empty
-                                            <tr>
-                        <td colspan="6" class="text-center py-4">
+                            </div>
+                        </div>
+                    </div>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
                             <div class="d-flex flex-column align-items-center">
                                 <i class="fas fa-inbox fa-3x mb-3" style="color: var(--gray-400);"></i>
                                 <p class="mb-0" style="color: var(--gray-600);">No submissions found</p>
+                                @if(isset($selectedBarangay))
+                                <p class="text-muted mt-2">No reports have been submitted by {{ $selectedBarangay->name }}</p>
+                                @endif
                             </div>
                         </td>
-                                            </tr>
-                                        @endforelse
+                    </tr>
+                    @endforelse
                                     </tbody>
                                 </table>
                             </div>
-        @if($submissions->hasPages())
+        @if($reports->hasPages())
         <div class="d-flex justify-content-between align-items-center mt-4">
             <div class="pagination-info">
-                Showing {{ $submissions->firstItem() ?? 0 }} to {{ $submissions->lastItem() ?? 0 }} of {{ $submissions->total() }} entries
+                Showing {{ $reports->firstItem() ?? 0 }} to {{ $reports->lastItem() ?? 0 }} of {{ $reports->total() }} entries
                         </div>
             <div class="pagination-container">
-                {{ $submissions->appends(request()->query())->links('pagination::bootstrap-5') }}
+                {{ $reports->appends(request()->query())->links('pagination::bootstrap-5') }}
             </div>
         </div>
         @endif
@@ -870,12 +1031,39 @@ function previewFile(url, fileName) {
         </div>
     `;
 
+    // Get file extension and set appropriate icon
+    const extension = fileName.split('.').pop().toLowerCase();
+    const fileIcon = document.getElementById('fileIcon');
+    const fileIconContainer = document.getElementById('fileIconContainer');
+
+    // Set icon and color based on file extension
+    let iconClass = 'fa-file';
+    let colorClass = 'primary';
+
+    if (extension === 'pdf') {
+        iconClass = 'fa-file-pdf';
+        colorClass = 'danger';
+    } else if (['doc', 'docx'].includes(extension)) {
+        iconClass = 'fa-file-word';
+        colorClass = 'primary';
+    } else if (['xls', 'xlsx'].includes(extension)) {
+        iconClass = 'fa-file-excel';
+        colorClass = 'success';
+    } else if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+        iconClass = 'fa-file-image';
+        colorClass = 'info';
+    } else if (extension === 'txt') {
+        iconClass = 'fa-file-alt';
+        colorClass = 'secondary';
+    }
+
+    // Update icon and container
+    fileIcon.className = `fas ${iconClass} text-${colorClass}`;
+    fileIconContainer.style.backgroundColor = `rgba(var(--${colorClass}-rgb), 0.1)`;
+
     // Show the modal
     const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
     modal.show();
-
-    // Get file extension
-    const extension = fileName.split('.').pop().toLowerCase();
 
     // Fetch the file
     fetch(url)
@@ -884,12 +1072,10 @@ function previewFile(url, fileName) {
                 throw new Error('File not found or access denied');
             }
             const contentType = response.headers.get('content-type');
-            console.log('File content type:', contentType);
             return response.blob().then(blob => ({ blob, contentType }));
         })
         .then(({ blob, contentType }) => {
             const fileUrl = URL.createObjectURL(blob);
-            console.log('File URL created:', fileUrl);
 
             // Create preview based on content type and extension
             if (contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
