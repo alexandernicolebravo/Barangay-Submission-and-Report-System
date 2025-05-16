@@ -316,12 +316,27 @@ class BarangayController extends Controller
                 });
 
             // Combine all reports
-            $reports = collect()
+            $allReports = collect()
                 ->concat($weeklyReports)
                 ->concat($monthlyReports)
                 ->concat($quarterlyReports)
                 ->concat($semestralReports)
                 ->concat($annualReports);
+
+            // Group reports by report_type_id and get only the latest submission for each type
+            $latestReports = collect();
+            $groupedReports = $allReports->groupBy('report_type_id');
+
+            foreach ($groupedReports as $reportTypeId => $reportsGroup) {
+                // Sort by created_at in descending order and take the first one (latest)
+                $latestReport = $reportsGroup->sortByDesc('created_at')->first();
+                if ($latestReport) {
+                    $latestReports->push($latestReport);
+                }
+            }
+
+            // Use the filtered collection of latest reports
+            $reports = $latestReports;
 
             // Apply search filter if provided
             if (!empty($search)) {
@@ -441,10 +456,8 @@ class BarangayController extends Controller
             // Log the submitted report type IDs for debugging
             Log::info('Submit Report - Submitted report type IDs:', ['ids' => $submittedReportTypeIds->toArray()]);
 
-            // Filter out already submitted report types
-            $reportTypes = ReportType::whereNotIn('id', $submittedReportTypeIds)
-                ->orderBy('name')
-                ->get();
+            // Get all report types (allowing resubmission)
+            $reportTypes = ReportType::orderBy('name')->get();
 
             // Group report types by frequency for easier filtering in the frontend
             $reportTypesByFrequency = [
@@ -773,18 +786,7 @@ class BarangayController extends Controller
             $report = null;
             switch ($reportType->frequency) {
                 case 'weekly':
-                    // Check if user has already submitted this report type
-                    $existingReport = WeeklyReport::where('user_id', Auth::id())
-                        ->where('report_type_id', $request->report_type_id)
-                        ->first();
-
-                    if ($existingReport) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'You have already submitted this report type.'
-                        ], 422);
-                    }
-
+                    // Create a new report entry (allowing multiple submissions)
                     $report = WeeklyReport::create([
                         'user_id' => Auth::id(),
                         'report_type_id' => $request->report_type_id,
@@ -802,17 +804,7 @@ class BarangayController extends Controller
                     break;
 
                 case 'monthly':
-                    $existingReport = MonthlyReport::where('user_id', Auth::id())
-                        ->where('report_type_id', $request->report_type_id)
-                        ->first();
-
-                    if ($existingReport) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'You have already submitted this report type.'
-                        ], 422);
-                    }
-
+                    // Create a new report entry (allowing multiple submissions)
                     $report = MonthlyReport::create([
                         'user_id' => Auth::id(),
                         'report_type_id' => $request->report_type_id,
@@ -825,17 +817,7 @@ class BarangayController extends Controller
                     break;
 
                 case 'quarterly':
-                    $existingReport = QuarterlyReport::where('user_id', Auth::id())
-                        ->where('report_type_id', $request->report_type_id)
-                        ->first();
-
-                    if ($existingReport) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'You have already submitted this report type.'
-                        ], 422);
-                    }
-
+                    // Create a new report entry (allowing multiple submissions)
                     $report = QuarterlyReport::create([
                         'user_id' => Auth::id(),
                         'report_type_id' => $request->report_type_id,
@@ -848,17 +830,7 @@ class BarangayController extends Controller
                     break;
 
                 case 'semestral':
-                    $existingReport = SemestralReport::where('user_id', Auth::id())
-                        ->where('report_type_id', $request->report_type_id)
-                        ->first();
-
-                    if ($existingReport) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'You have already submitted this report type.'
-                        ], 422);
-                    }
-
+                    // Create a new report entry (allowing multiple submissions)
                     $report = SemestralReport::create([
                         'user_id' => Auth::id(),
                         'report_type_id' => $request->report_type_id,
@@ -871,17 +843,7 @@ class BarangayController extends Controller
                     break;
 
                 case 'annual':
-                    $existingReport = AnnualReport::where('user_id', Auth::id())
-                        ->where('report_type_id', $request->report_type_id)
-                        ->first();
-
-                    if ($existingReport) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'You have already submitted this report type.'
-                        ], 422);
-                    }
-
+                    // Create a new report entry (allowing multiple submissions)
                     $report = AnnualReport::create([
                         'user_id' => Auth::id(),
                         'report_type_id' => $request->report_type_id,
@@ -1248,18 +1210,13 @@ class BarangayController extends Controller
                 // We're removing the return statement to allow updates even after deadline
             }
 
-            // Set appropriate status based on current status
-            $newStatus = $report->status === 'rejected' ? 'pending' : $report->status;
+            // Set status for new report
+            $newStatus = $report->status === 'rejected' ? 'pending' : 'submitted';
 
-            // Prepare update data with common fields
-            $updateData = [
-                'status' => $newStatus,
-                'remarks' => null,
-                'updated_at' => now(), // Update the updated_at timestamp
-                'created_at' => now() // Update the created_at timestamp to reflect the resubmission date
-            ];
+            // Handle file upload
+            $filePath = null;
+            $fileName = null;
 
-            // Handle file upload if a new file is provided
             if ($filteredRequest->hasFile('file')) {
                 try {
                     $file = $filteredRequest->file('file');
@@ -1271,34 +1228,13 @@ class BarangayController extends Controller
                         'mime_type' => $file->getMimeType()
                     ]);
 
-                    $filename = time() . '_' . $file->getClientOriginalName();
-                    $path = $file->storeAs('reports', $filename, 'public');
+                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $filePath = $file->storeAs('reports', $fileName, 'public');
 
                     Log::info('File stored successfully', [
-                        'path' => $path,
-                        'filename' => $filename
+                        'path' => $filePath,
+                        'filename' => $fileName
                     ]);
-
-                    // Delete old file
-                    if ($report->file_path) {
-                        try {
-                            if (Storage::exists('public/' . $report->file_path)) {
-                                Storage::delete('public/' . $report->file_path);
-                                Log::info('Old file deleted', ['old_path' => $report->file_path]);
-                            } else {
-                                Log::warning('Old file not found for deletion', ['old_path' => $report->file_path]);
-                            }
-                        } catch (\Exception $e) {
-                            Log::warning('Error deleting old file: ' . $e->getMessage(), [
-                                'old_path' => $report->file_path
-                            ]);
-                            // Continue execution even if old file deletion fails
-                        }
-                    }
-
-                    // Add file data to update data
-                    $updateData['file_path'] = $path;
-                    $updateData['file_name'] = $filename;
                 } catch (\Exception $e) {
                     Log::error('File upload error: ' . $e->getMessage(), [
                         'file' => $filteredRequest->file('file')->getClientOriginalName()
@@ -1306,72 +1242,91 @@ class BarangayController extends Controller
                     throw new \Exception('Error uploading file: ' . $e->getMessage());
                 }
             } else {
-                Log::info('No new file provided, keeping existing file');
+                // If no new file is provided, use the existing file
+                Log::info('No new file provided, using existing file');
+                $filePath = $report->file_path;
+                $fileName = $report->file_name;
             }
 
-            // Add specific fields based on report type
-            // Use the reportType variable we determined earlier
+            // Create a new report entry based on report type
+            $newReport = null;
+
             switch ($reportType) {
                 case 'weekly':
-                    // Always update all weekly-specific fields
-                    $updateData['month'] = $filteredRequest->month;
-                    $updateData['week_number'] = $filteredRequest->week_number;
-                    $updateData['num_of_clean_up_sites'] = $filteredRequest->num_of_clean_up_sites;
-                    $updateData['num_of_participants'] = $filteredRequest->num_of_participants;
-                    $updateData['num_of_barangays'] = $filteredRequest->num_of_barangays;
-                    $updateData['total_volume'] = $filteredRequest->total_volume;
+                    $newReport = WeeklyReport::create([
+                        'user_id' => Auth::id(),
+                        'report_type_id' => $report->report_type_id,
+                        'file_path' => $filePath,
+                        'file_name' => $fileName,
+                        'status' => $newStatus,
+                        'deadline' => $report->deadline,
+                        'month' => $filteredRequest->month,
+                        'week_number' => $filteredRequest->week_number,
+                        'num_of_clean_up_sites' => $filteredRequest->num_of_clean_up_sites,
+                        'num_of_participants' => $filteredRequest->num_of_participants,
+                        'num_of_barangays' => $filteredRequest->num_of_barangays,
+                        'total_volume' => $filteredRequest->total_volume
+                    ]);
                     break;
                 case 'monthly':
-                    // Always update all monthly-specific fields
-                    $updateData['month'] = $filteredRequest->month;
+                    $newReport = MonthlyReport::create([
+                        'user_id' => Auth::id(),
+                        'report_type_id' => $report->report_type_id,
+                        'file_path' => $filePath,
+                        'file_name' => $fileName,
+                        'status' => $newStatus,
+                        'deadline' => $report->deadline,
+                        'month' => $filteredRequest->month
+                    ]);
                     break;
                 case 'quarterly':
-                    // Always update all quarterly-specific fields
-                    $updateData['quarter_number'] = $filteredRequest->quarter_number;
+                    $newReport = QuarterlyReport::create([
+                        'user_id' => Auth::id(),
+                        'report_type_id' => $report->report_type_id,
+                        'file_path' => $filePath,
+                        'file_name' => $fileName,
+                        'status' => $newStatus,
+                        'deadline' => $report->deadline,
+                        'quarter_number' => $filteredRequest->quarter_number
+                    ]);
                     break;
                 case 'semestral':
-                    // Always update all semestral-specific fields
-                    $updateData['sem_number'] = $filteredRequest->sem_number;
+                    $newReport = SemestralReport::create([
+                        'user_id' => Auth::id(),
+                        'report_type_id' => $report->report_type_id,
+                        'file_path' => $filePath,
+                        'file_name' => $fileName,
+                        'status' => $newStatus,
+                        'deadline' => $report->deadline,
+                        'sem_number' => $filteredRequest->sem_number
+                    ]);
                     break;
                 case 'annual':
-                    // No additional fields needed for annual reports
+                    $newReport = AnnualReport::create([
+                        'user_id' => Auth::id(),
+                        'report_type_id' => $report->report_type_id,
+                        'file_path' => $filePath,
+                        'file_name' => $fileName,
+                        'status' => $newStatus,
+                        'deadline' => $report->deadline
+                    ]);
                     break;
             }
 
-            // Log the update data for debugging
-            Log::info('Update data:', $updateData);
-
-            // Update the report with all fields
-            try {
-                Log::info('Attempting to update report with data', [
-                    'report_id' => $report->id,
-                    'report_type' => $reportType,
-                    'update_data' => $updateData
-                ]);
-
-                $result = $report->update($updateData);
-
-                Log::info('Report update result', [
-                    'success' => $result,
-                    'report_id' => $report->id,
-                    'updated_at' => $report->updated_at
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Error updating report in database', [
-                    'error' => $e->getMessage(),
-                    'report_id' => $report->id,
-                    'report_type' => $reportType
-                ]);
-                throw $e; // Re-throw to be caught by the outer catch block
-            }
+            // Log the new report creation
+            Log::info('New report created for resubmission', [
+                'original_report_id' => $report->id,
+                'new_report_id' => $newReport->id,
+                'report_type' => $reportType
+            ]);
 
             DB::commit();
 
             Log::info('Database transaction committed successfully');
 
             $successMessage = $report->status === 'rejected'
-                ? 'Report resubmitted successfully with all updated fields. It will be reviewed by the admin.'
-                : 'Report updated successfully with all fields.';
+                ? 'Report resubmitted successfully. It will be reviewed by the admin.'
+                : 'Report updated successfully. Your new submission has been saved.';
 
             // Store success message in session
             session()->flash('success', $successMessage);
