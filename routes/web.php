@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClusterController;
 use App\Http\Controllers\BarangayController;
+use App\Http\Controllers\FacilitatorController;
 use App\Http\Controllers\ReportSubmissionController;
 use App\Http\Controllers\WeeklyReportController;
 use App\Http\Controllers\ReportTypeController;
@@ -268,6 +269,21 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/users/{id}', [AdminController::class, 'destroy'])->name('users.destroy');
         Route::get('/users/{id}/confirm-deactivation', [AdminController::class, 'confirmDeactivation'])->name('confirm-deactivation');
 
+        // Cluster Management
+        Route::resource('clusters', ClusterController::class);
+
+        // Add a route to create test clusters
+        Route::get('/create-test-clusters', function() {
+            if (App\Models\Cluster::count() === 0) {
+                App\Models\Cluster::create(['name' => 'Cluster 1', 'description' => 'Test Cluster 1', 'is_active' => true]);
+                App\Models\Cluster::create(['name' => 'Cluster 2', 'description' => 'Test Cluster 2', 'is_active' => true]);
+                App\Models\Cluster::create(['name' => 'Cluster 3', 'description' => 'Test Cluster 3', 'is_active' => true]);
+                App\Models\Cluster::create(['name' => 'Cluster 4', 'description' => 'Test Cluster 4', 'is_active' => true]);
+                return 'Test clusters created successfully!';
+            }
+            return 'Clusters already exist!';
+        });
+
         // Report Management
         Route::get('/view-submissions', [ReportController::class, 'index'])->name('view.submissions');
         Route::put('/reports/{id}', [ReportController::class, 'update'])->name('update.report');
@@ -307,6 +323,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/files/{id}', [ReportController::class, 'downloadFile'])->name('files.download');
         Route::get('/direct-files/{id}', [BarangayController::class, 'directDownloadFile'])->name('direct.files.download');
         Route::delete('/files/{id}', [BarangayFileController::class, 'destroy'])->name('files.destroy');
+    });
+
+    // Facilitator Routes
+    Route::prefix('facilitator')->name('facilitator.')->middleware(\App\Http\Middleware\FacilitatorMiddleware::class)->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [FacilitatorController::class, 'dashboard'])->name('dashboard');
+
+        // Report Viewing
+        Route::get('/view-submissions', [FacilitatorController::class, 'viewSubmissions'])->name('view-submissions');
+        Route::put('/reports/{id}/remarks', [FacilitatorController::class, 'addRemarks'])->name('reports.add-remarks');
+
+        // File Download
+        Route::get('/files/{id}', [BarangayFileController::class, 'download'])->name('files.download');
     });
 });
 

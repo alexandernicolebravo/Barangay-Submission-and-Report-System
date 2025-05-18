@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Cluster;
 use Illuminate\Support\Facades\Hash;
 use App\Models\ReportType;
 use App\Models\WeeklyReport;
@@ -151,36 +152,59 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6',
-            'role' => 'required|in:cluster,barangay',
-            'cluster_id' => 'nullable|exists:users,id',
+            'user_type' => 'required|in:admin,facilitator,barangay',
+            'cluster_id' => 'nullable|exists:clusters,id',
+            'clusters' => 'nullable|array',
+            'clusters.*' => 'exists:clusters,id',
         ]);
 
-        if ($request->role === 'barangay') {
-            $clusterExists = User::whereIn('role', ['cluster', 'facilitator', 'admin'])->where('is_active', true)->exists();
+        if ($request->user_type === 'barangay') {
+            $clusterExists = Cluster::where('is_active', true)->exists();
             if (!$clusterExists) {
-                return back()->with('error', 'A cluster, facilitator, or admin must be created before adding a barangay.');
+                return back()->with('error', 'At least one active cluster must exist before adding a barangay.');
             }
 
             if (!$request->cluster_id) {
-                return back()->with('error', 'Barangays must be assigned to a cluster, facilitator, or admin.');
+                return back()->with('error', 'Barangays must be assigned to a cluster.');
             }
 
-            // Verify that the selected cluster_id belongs to a valid user
-            $clusterUser = User::find($request->cluster_id);
-            if (!$clusterUser || !in_array($clusterUser->role, ['cluster', 'facilitator', 'admin']) || !$clusterUser->is_active) {
-                return back()->with('error', 'Please select a valid cluster, facilitator, or admin.');
+            // Verify that the selected cluster is active
+            $cluster = Cluster::find($request->cluster_id);
+            if (!$cluster || !$cluster->is_active) {
+                return back()->with('error', 'Please select a valid active cluster.');
             }
         }
 
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-            'cluster_id' => $request->cluster_id,
-        ]);
+        DB::beginTransaction();
+        try {
+            // Create the user
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => $request->user_type, // For backward compatibility
+                'user_type' => $request->user_type,
+                'cluster_id' => $request->user_type === 'barangay' ? $request->cluster_id : null,
+            ]);
 
-        return back()->with('success', ucfirst($request->role) . ' account created successfully.');
+            // If the user is a facilitator, assign them to the selected clusters
+            if ($request->user_type === 'facilitator' && $request->has('clusters')) {
+                foreach ($request->clusters as $clusterId) {
+                    DB::table('facilitator_cluster')->insert([
+                        'user_id' => $user->id,
+                        'cluster_id' => $clusterId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            DB::commit();
+            return back()->with('success', ucfirst($request->user_type) . ' account created successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to create user: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -227,7 +251,13 @@ class AdminController extends Controller
      */
     public function userManagement()
     {
-        $users = User::with('cluster')->get();
+        $users = User::with(['cluster', 'assignedClusters'])->get();
+
+        // Add assigned_clusters property to each user for easier access in the view
+        $users->each(function ($user) {
+            $user->assigned_clusters = $user->assignedClusters->pluck('id')->toArray();
+        });
+
         return view('admin.user-management', compact('users'));
     }
 
@@ -241,39 +271,69 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
-            'role' => 'required|in:cluster,barangay',
-            'cluster_id' => 'nullable|exists:users,id',
+            'user_type' => 'required|in:admin,facilitator,barangay',
+            'cluster_id' => 'nullable|exists:clusters,id',
+            'clusters' => 'nullable|array',
+            'clusters.*' => 'exists:clusters,id',
         ]);
 
-        if ($request->role === 'barangay') {
+        if ($request->user_type === 'barangay') {
             if (!$request->cluster_id) {
-                return back()->with('error', 'Barangays must be assigned to a cluster, facilitator, or admin.');
+                return back()->with('error', 'Barangays must be assigned to a cluster.');
             }
 
-            // Verify that the selected cluster_id belongs to a valid user
-            $clusterUser = User::find($request->cluster_id);
-            if (!$clusterUser || !in_array($clusterUser->role, ['cluster', 'facilitator', 'admin']) || !$clusterUser->is_active) {
-                return back()->with('error', 'Please select a valid cluster, facilitator, or admin.');
+            // Verify that the selected cluster is active
+            $cluster = Cluster::find($request->cluster_id);
+            if (!$cluster || !$cluster->is_active) {
+                return back()->with('error', 'Please select a valid active cluster.');
             }
         }
 
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'role' => $request->role,
-            'cluster_id' => $request->cluster_id,
-        ]);
-
-        if ($request->filled('password')) {
-            $request->validate([
-                'password' => 'required|min:6',
-            ]);
+        DB::beginTransaction();
+        try {
+            // Update the user
             $user->update([
-                'password' => Hash::make($request->password)
+                'name' => $request->name,
+                'email' => $request->email,
+                'role' => $request->user_type, // For backward compatibility
+                'user_type' => $request->user_type,
+                'cluster_id' => $request->user_type === 'barangay' ? $request->cluster_id : null,
             ]);
-        }
 
-        return back()->with('success', 'User updated successfully.');
+            // Update password if provided
+            if ($request->filled('password')) {
+                $request->validate([
+                    'password' => 'required|min:6',
+                ]);
+                $user->update([
+                    'password' => Hash::make($request->password)
+                ]);
+            }
+
+            // If the user is a facilitator, update their cluster assignments
+            if ($request->user_type === 'facilitator') {
+                // Remove existing assignments
+                DB::table('facilitator_cluster')->where('user_id', $user->id)->delete();
+
+                // Add new assignments
+                if ($request->has('clusters')) {
+                    foreach ($request->clusters as $clusterId) {
+                        DB::table('facilitator_cluster')->insert([
+                            'user_id' => $user->id,
+                            'cluster_id' => $clusterId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+
+            DB::commit();
+            return back()->with('success', 'User updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to update user: ' . $e->getMessage());
+        }
     }
 
     public function viewSubmissions(Request $request)

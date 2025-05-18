@@ -91,8 +91,20 @@
                                 </span>
                             </td>
                             <td>
-                                @if($user->role === 'barangay' && $user->cluster)
+                                @if(($user->role === 'barangay' || $user->user_type === 'barangay') && $user->cluster)
                                     {{ $user->cluster->name }}
+                                @elseif(($user->role === 'facilitator' || $user->user_type === 'facilitator'))
+                                    @php
+                                        $assignedClusters = $user->assignedClusters()->pluck('name')->toArray();
+                                    @endphp
+                                    @if(count($assignedClusters) > 0)
+                                        <span class="badge bg-info" data-bs-toggle="tooltip" data-bs-placement="top"
+                                              title="{{ implode(', ', $assignedClusters) }}">
+                                            {{ count($assignedClusters) }} cluster(s)
+                                        </span>
+                                    @else
+                                        <span class="badge bg-warning">No clusters</span>
+                                    @endif
                                 @else
                                     -
                                 @endif
@@ -151,21 +163,41 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Role</label>
-                        <select class="form-select" name="role" id="roleSelect" required>
+                        <select class="form-select" name="user_type" id="userTypeSelect" required>
                             <option value="">Select Role</option>
-                            <option value="cluster">Cluster</option>
+                            <option value="admin">Admin</option>
+                            <option value="facilitator">Facilitator</option>
                             <option value="barangay">Barangay</option>
                         </select>
                     </div>
-                    <div class="mb-3" id="clusterSelectContainer" style="display: none;">
+                    <!-- Barangay Cluster Assignment -->
+                    <div class="mb-3" id="barangayClusterContainer" style="display: none;">
                         <label class="form-label">Assign to Cluster <span class="text-danger">*</span></label>
                         <select class="form-select" name="cluster_id" id="clusterSelect">
                             <option value="">Select Cluster</option>
-                            @foreach($users->whereIn('role', ['cluster', 'facilitator', 'admin'])->where('is_active', true) as $cluster)
-                                <option value="{{ $cluster->id }}">{{ $cluster->name }} ({{ ucfirst($cluster->role) }})</option>
+                            @foreach(App\Models\Cluster::where('is_active', true)->get() as $cluster)
+                                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
                             @endforeach
                         </select>
                         <div class="form-text text-danger">Required for Barangay users</div>
+                    </div>
+
+                    <!-- Facilitator Cluster Assignments -->
+                    <div class="mb-3" id="facilitatorClustersContainer" style="display: none;">
+                        <label class="form-label">Assign to Clusters <span class="text-danger">*</span></label>
+                        <div class="card">
+                            <div class="card-body">
+                                @foreach(App\Models\Cluster::where('is_active', true)->get() as $cluster)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="clusters[]" value="{{ $cluster->id }}" id="cluster_{{ $cluster->id }}">
+                                    <label class="form-check-label" for="cluster_{{ $cluster->id }}">
+                                        {{ $cluster->name }}
+                                    </label>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="form-text text-danger">Select at least one cluster for Facilitator users</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -203,20 +235,40 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Role</label>
-                        <select class="form-select" name="role" id="editRoleSelect" required>
-                            <option value="cluster">Cluster</option>
+                        <select class="form-select" name="user_type" id="editUserTypeSelect" required>
+                            <option value="admin">Admin</option>
+                            <option value="facilitator">Facilitator</option>
                             <option value="barangay">Barangay</option>
                         </select>
                     </div>
-                    <div class="mb-3" id="editClusterSelectContainer">
+                    <!-- Barangay Cluster Assignment -->
+                    <div class="mb-3" id="editBarangayClusterContainer" style="display: none;">
                         <label class="form-label">Assign to Cluster <span class="text-danger">*</span></label>
                         <select class="form-select" name="cluster_id" id="editClusterSelect">
                             <option value="">Select Cluster</option>
-                            @foreach($users->whereIn('role', ['cluster', 'facilitator', 'admin'])->where('is_active', true) as $cluster)
-                                <option value="{{ $cluster->id }}">{{ $cluster->name }} ({{ ucfirst($cluster->role) }})</option>
+                            @foreach(App\Models\Cluster::where('is_active', true)->get() as $cluster)
+                                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
                             @endforeach
                         </select>
                         <div class="form-text text-danger">Required for Barangay users</div>
+                    </div>
+
+                    <!-- Facilitator Cluster Assignments -->
+                    <div class="mb-3" id="editFacilitatorClustersContainer" style="display: none;">
+                        <label class="form-label">Assign to Clusters <span class="text-danger">*</span></label>
+                        <div class="card">
+                            <div class="card-body">
+                                @foreach(App\Models\Cluster::where('is_active', true)->get() as $cluster)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="clusters[]" value="{{ $cluster->id }}" id="edit_cluster_{{ $cluster->id }}">
+                                    <label class="form-check-label" for="edit_cluster_{{ $cluster->id }}">
+                                        {{ $cluster->name }}
+                                    </label>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="form-text text-danger">Select at least one cluster for Facilitator users</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -267,6 +319,12 @@
 
 @push('scripts')
 <script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+
     // Search functionality
     document.getElementById('searchInput').addEventListener('keyup', function() {
         const searchText = this.value.toLowerCase();
@@ -295,16 +353,38 @@
         });
     });
 
-    // Role selection handling
-    document.getElementById('roleSelect').addEventListener('change', function() {
-        const clusterContainer = document.getElementById('clusterSelectContainer');
-        clusterContainer.style.display = this.value === 'barangay' ? 'block' : 'none';
+    // User type selection handling
+    const userTypeSelect = document.getElementById('userTypeSelect');
+    const barangayClusterContainer = document.getElementById('barangayClusterContainer');
+    const facilitatorClustersContainer = document.getElementById('facilitatorClustersContainer');
+
+    // Function to update container visibility based on selected user type
+    function updateContainerVisibility(userType) {
+        // Hide all containers first
+        barangayClusterContainer.style.display = 'none';
+        facilitatorClustersContainer.style.display = 'none';
+
+        // Show the appropriate container based on user type
+        if (userType === 'barangay') {
+            barangayClusterContainer.style.display = 'block';
+        } else if (userType === 'facilitator') {
+            facilitatorClustersContainer.style.display = 'block';
+        }
+    }
+
+    // Initialize container visibility based on current selection
+    updateContainerVisibility(userTypeSelect.value);
+
+    // Add change event listener
+    userTypeSelect.addEventListener('change', function() {
+        updateContainerVisibility(this.value);
     });
 
     // Edit user modal handling
     document.getElementById('editUserModal').addEventListener('show.bs.modal', function(event) {
         const button = event.relatedTarget;
         const user = JSON.parse(button.getAttribute('data-user'));
+        console.log('User data:', user);
         const form = this.querySelector('form');
 
         // Set the correct form action URL using the route name
@@ -312,36 +392,88 @@
 
         document.getElementById('editName').value = user.name;
         document.getElementById('editEmail').value = user.email;
-        document.getElementById('editRoleSelect').value = user.role;
 
-        const clusterContainer = document.getElementById('editClusterSelectContainer');
+        // Set user type (use user_type if available, otherwise fall back to role for backward compatibility)
+        const userType = user.user_type || user.role;
+        document.getElementById('editUserTypeSelect').value = userType;
+
+        const barangayClusterContainer = document.getElementById('editBarangayClusterContainer');
+        const facilitatorClustersContainer = document.getElementById('editFacilitatorClustersContainer');
         const clusterSelect = document.getElementById('editClusterSelect');
 
-        // Set initial display of cluster container based on role
-        clusterContainer.style.display = user.role === 'barangay' ? 'block' : 'none';
+        // Hide all containers first
+        barangayClusterContainer.style.display = 'none';
+        facilitatorClustersContainer.style.display = 'none';
 
-        // Reset cluster select value
-        clusterSelect.value = '';
+        // Show the appropriate container based on user type
+        if (userType === 'barangay') {
+            barangayClusterContainer.style.display = 'block';
 
-        // If user is a barangay and has a cluster_id, set the cluster select value
-        if (user.role === 'barangay' && user.cluster_id) {
-            clusterSelect.value = user.cluster_id;
+            // Reset and set cluster select value if user is a barangay
+            clusterSelect.value = '';
+            if (user.cluster_id) {
+                clusterSelect.value = user.cluster_id;
+            }
+        } else if (userType === 'facilitator') {
+            facilitatorClustersContainer.style.display = 'block';
+
+            // Reset all cluster checkboxes
+            const clusterCheckboxes = facilitatorClustersContainer.querySelectorAll('input[type="checkbox"]');
+            clusterCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            // Check the appropriate cluster checkboxes if user is a facilitator
+            if (user.assigned_clusters) {
+                // Convert to array if it's not already
+                const clusterIds = Array.isArray(user.assigned_clusters)
+                    ? user.assigned_clusters
+                    : Object.values(user.assigned_clusters);
+
+                console.log('Cluster IDs:', clusterIds);
+
+                clusterIds.forEach(clusterId => {
+                    const checkbox = document.getElementById('edit_cluster_' + clusterId);
+                    console.log('Checking checkbox for cluster ID:', clusterId, checkbox);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
         }
 
         // Remove existing event listeners to prevent duplicates
-        const editRoleSelect = document.getElementById('editRoleSelect');
-        const oldEditRoleSelect = editRoleSelect.cloneNode(true);
-        editRoleSelect.parentNode.replaceChild(oldEditRoleSelect, editRoleSelect);
+        const editUserTypeSelect = document.getElementById('editUserTypeSelect');
+        const oldEditUserTypeSelect = editUserTypeSelect.cloneNode(true);
+        editUserTypeSelect.parentNode.replaceChild(oldEditUserTypeSelect, editUserTypeSelect);
 
-        // Add event listener to handle role change in edit form
-        document.getElementById('editRoleSelect').addEventListener('change', function() {
-            const isBarangay = this.value === 'barangay';
-            clusterContainer.style.display = isBarangay ? 'block' : 'none';
+        // Function to update edit form container visibility
+        function updateEditContainerVisibility(userType) {
+            // Hide all containers first
+            barangayClusterContainer.style.display = 'none';
+            facilitatorClustersContainer.style.display = 'none';
 
-            // If changing to cluster role, clear the cluster_id
-            if (!isBarangay) {
-                clusterSelect.value = '';
+            // Get the edit form containers
+            const editBarangayContainer = document.getElementById('editBarangayClusterContainer');
+            const editFacilitatorContainer = document.getElementById('editFacilitatorClustersContainer');
+
+            // Hide all edit form containers
+            editBarangayContainer.style.display = 'none';
+            editFacilitatorContainer.style.display = 'none';
+
+            // Show the appropriate container based on user type
+            if (userType === 'barangay') {
+                editBarangayContainer.style.display = 'block';
+            } else if (userType === 'facilitator') {
+                editFacilitatorContainer.style.display = 'block';
             }
+
+            console.log('Updated container visibility for user type:', userType);
+        }
+
+        // Add event listener to handle user type change in edit form
+        document.getElementById('editUserTypeSelect').addEventListener('change', function() {
+            updateEditContainerVisibility(this.value);
         });
     });
 

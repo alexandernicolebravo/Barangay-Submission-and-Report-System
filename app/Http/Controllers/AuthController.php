@@ -23,10 +23,13 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
 
-            // Redirect based on user role
-            return match ($user->role) {
+            // Redirect based on user role or user_type
+            $userRole = $user->user_type ?? $user->role; // Use user_type if available, otherwise fall back to role
+
+            return match ($userRole) {
                 'admin' => redirect()->route('admin.dashboard'),
                 'cluster' => redirect()->route('cluster.index'),
+                'facilitator' => redirect()->route('facilitator.dashboard'),
                 'barangay' => redirect()->route('barangay.dashboard'),
                 default => redirect()->route('login')->with('error', 'Unauthorized'),
             };

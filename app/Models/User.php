@@ -49,7 +49,7 @@ class User extends Authenticatable
      */
     public function assignedClusters()
     {
-        return $this->belongsToMany(Cluster::class, 'facilitator_cluster');
+        return $this->belongsToMany(Cluster::class, 'facilitator_cluster', 'user_id', 'cluster_id');
     }
 
     /**
