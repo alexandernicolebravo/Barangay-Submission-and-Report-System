@@ -145,13 +145,29 @@ class ReportController extends Controller
             });
 
             // Combine all reports
-            $reports = collect()
+            $allReports = collect()
                 ->concat($weeklyReports)
                 ->concat($monthlyReports)
                 ->concat($quarterlyReports)
                 ->concat($semestralReports)
-                ->concat($annualReports)
-                ->sortByDesc('created_at');
+                ->concat($annualReports);
+
+            // Group reports by user_id and report_type_id and get only the latest submission for each combination
+            $latestReports = collect();
+            $groupedReports = $allReports->groupBy(function($report) {
+                return $report->user_id . '_' . $report->report_type_id;
+            });
+
+            foreach ($groupedReports as $group) {
+                // Sort by created_at in descending order and take the first one (latest)
+                $latestReport = $group->sortByDesc('created_at')->first();
+                if ($latestReport) {
+                    $latestReports->push($latestReport);
+                }
+            }
+
+            // Sort the filtered collection by created_at in descending order
+            $reports = $latestReports->sortByDesc('created_at');
 
             // Apply timeliness filter if specified
             if ($request->filled('timeliness')) {
