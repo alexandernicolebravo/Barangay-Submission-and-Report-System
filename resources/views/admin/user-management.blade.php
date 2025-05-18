@@ -18,6 +18,22 @@
         </div>
     </div>
 
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
     <!-- Search and Filter -->
     <div class="card mb-4">
         <div class="card-body">
@@ -142,13 +158,14 @@
                         </select>
                     </div>
                     <div class="mb-3" id="clusterSelectContainer" style="display: none;">
-                        <label class="form-label">Assign to Cluster</label>
-                        <select class="form-select" name="cluster_id">
+                        <label class="form-label">Assign to Cluster <span class="text-danger">*</span></label>
+                        <select class="form-select" name="cluster_id" id="clusterSelect">
                             <option value="">Select Cluster</option>
-                            @foreach($users->where('role', 'cluster') as $cluster)
-                                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
+                            @foreach($users->whereIn('role', ['cluster', 'facilitator', 'admin'])->where('is_active', true) as $cluster)
+                                <option value="{{ $cluster->id }}">{{ $cluster->name }} ({{ ucfirst($cluster->role) }})</option>
                             @endforeach
                         </select>
+                        <div class="form-text text-danger">Required for Barangay users</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -192,13 +209,14 @@
                         </select>
                     </div>
                     <div class="mb-3" id="editClusterSelectContainer">
-                        <label class="form-label">Assign to Cluster</label>
+                        <label class="form-label">Assign to Cluster <span class="text-danger">*</span></label>
                         <select class="form-select" name="cluster_id" id="editClusterSelect">
                             <option value="">Select Cluster</option>
-                            @foreach($users->where('role', 'cluster') as $cluster)
-                                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
+                            @foreach($users->whereIn('role', ['cluster', 'facilitator', 'admin'])->where('is_active', true) as $cluster)
+                                <option value="{{ $cluster->id }}">{{ $cluster->name }} ({{ ucfirst($cluster->role) }})</option>
                             @endforeach
                         </select>
+                        <div class="form-text text-danger">Required for Barangay users</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -289,7 +307,9 @@
         const user = JSON.parse(button.getAttribute('data-user'));
         const form = this.querySelector('form');
 
-        form.action = `/admin/users/${user.id}`;
+        // Set the correct form action URL using the route name
+        form.action = "{{ route('admin.users.update', '') }}/" + user.id;
+
         document.getElementById('editName').value = user.name;
         document.getElementById('editEmail').value = user.email;
         document.getElementById('editRoleSelect').value = user.role;
@@ -297,10 +317,32 @@
         const clusterContainer = document.getElementById('editClusterSelectContainer');
         const clusterSelect = document.getElementById('editClusterSelect');
 
+        // Set initial display of cluster container based on role
         clusterContainer.style.display = user.role === 'barangay' ? 'block' : 'none';
-        if (user.cluster_id) {
+
+        // Reset cluster select value
+        clusterSelect.value = '';
+
+        // If user is a barangay and has a cluster_id, set the cluster select value
+        if (user.role === 'barangay' && user.cluster_id) {
             clusterSelect.value = user.cluster_id;
         }
+
+        // Remove existing event listeners to prevent duplicates
+        const editRoleSelect = document.getElementById('editRoleSelect');
+        const oldEditRoleSelect = editRoleSelect.cloneNode(true);
+        editRoleSelect.parentNode.replaceChild(oldEditRoleSelect, editRoleSelect);
+
+        // Add event listener to handle role change in edit form
+        document.getElementById('editRoleSelect').addEventListener('change', function() {
+            const isBarangay = this.value === 'barangay';
+            clusterContainer.style.display = isBarangay ? 'block' : 'none';
+
+            // If changing to cluster role, clear the cluster_id
+            if (!isBarangay) {
+                clusterSelect.value = '';
+            }
+        });
     });
 
     // Status change confirmation
@@ -310,7 +352,9 @@
         const form = document.getElementById('statusChangeForm');
 
         message.textContent = `Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this user?`;
-        form.action = `/admin/users/${userId}`;
+
+        // Set the correct form action URL using the route name
+        form.action = "{{ route('admin.users.destroy', '') }}/" + userId;
 
         new bootstrap.Modal(modal).show();
     }

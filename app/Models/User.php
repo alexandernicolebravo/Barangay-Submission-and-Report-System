@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'user_type',
         'cluster_id',
         'is_active'
     ];
@@ -35,17 +36,56 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+    /**
+     * Get the cluster that the barangay belongs to.
+     */
     public function cluster()
     {
-        return $this->belongsTo(User::class, 'cluster_id');
+        return $this->belongsTo(Cluster::class, 'cluster_id');
     }
 
-    public function barangays()
+    /**
+     * Get the clusters that the facilitator is assigned to.
+     */
+    public function assignedClusters()
     {
-        return $this->hasMany(User::class, 'cluster_id');
+        return $this->belongsToMany(Cluster::class, 'facilitator_cluster');
     }
 
-  
+    /**
+     * Get the barangays that belong to the facilitator's clusters.
+     */
+    public function managedBarangays()
+    {
+        return User::whereIn('cluster_id', $this->assignedClusters()->pluck('clusters.id'))
+            ->where('user_type', 'barangay');
+    }
+
+    /**
+     * Check if the user is a facilitator.
+     */
+    public function isFacilitator()
+    {
+        return $this->user_type === 'facilitator';
+    }
+
+    /**
+     * Check if the user is a barangay.
+     */
+    public function isBarangay()
+    {
+        return $this->user_type === 'barangay';
+    }
+
+    /**
+     * Check if the user is an admin.
+     */
+    public function isAdmin()
+    {
+        return $this->user_type === 'admin';
+    }
+
+
 
     /**
      * Get the attributes that should be cast.

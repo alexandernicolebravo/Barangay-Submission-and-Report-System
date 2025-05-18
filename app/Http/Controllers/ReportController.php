@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Notifications\ReportRemarksNotification;
+use App\Models\User;
 
 class ReportController extends Controller
 {
@@ -344,10 +346,77 @@ class ReportController extends Controller
                 'remarks' => $validated['remarks']
             ]);
 
+            // Get the old remarks to check if they've changed
+            $oldRemarks = $report->remarks;
+
             // Only update remarks
             $report->update([
                 'remarks' => $validated['remarks']
             ]);
+
+            // Send notification if remarks have been added or changed
+            if ($validated['remarks'] && $validated['remarks'] !== $oldRemarks) {
+                Log::info('Remarks have changed, preparing to send notification', [
+                    'old_remarks' => $oldRemarks,
+                    'new_remarks' => $validated['remarks'],
+                    'report_id' => $report->id,
+                    'report_type' => $validated['type']
+                ]);
+
+                // Get the barangay user who submitted the report
+                $barangayUser = User::find($report->user_id);
+
+                if ($barangayUser) {
+                    Log::info('Found barangay user', [
+                        'barangay_id' => $barangayUser->id,
+                        'barangay_name' => $barangayUser->name,
+                        'barangay_email' => $barangayUser->email,
+                        'barangay_role' => $barangayUser->role
+                    ]);
+
+                    // Get admin name
+                    $adminName = Auth::user()->name;
+                    Log::info('Admin user', [
+                        'admin_id' => Auth::id(),
+                        'admin_name' => $adminName
+                    ]);
+
+                    try {
+                        // Send notification
+                        $barangayUser->notify(new ReportRemarksNotification(
+                            $report,
+                            $validated['remarks'],
+                            $validated['type'],
+                            $adminName
+                        ));
+
+                        Log::info('Email notification sent to barangay user', [
+                            'barangay_id' => $barangayUser->id,
+                            'barangay_email' => $barangayUser->email,
+                            'report_id' => $report->id,
+                            'report_type' => $validated['type']
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send notification to barangay user', [
+                            'barangay_id' => $barangayUser->id,
+                            'barangay_email' => $barangayUser->email,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                    }
+                } else {
+                    Log::warning('Barangay user not found for report', [
+                        'report_id' => $report->id,
+                        'user_id' => $report->user_id
+                    ]);
+                }
+            } else {
+                Log::info('Remarks have not changed, no notification sent', [
+                    'old_remarks' => $oldRemarks,
+                    'new_remarks' => $validated['remarks'] ?? null,
+                    'report_id' => $report->id
+                ]);
+            }
 
             return redirect()->back()->with('success', 'Report remarks updated successfully.')->with('remarks_updated', true);
         } catch (\Exception $e) {

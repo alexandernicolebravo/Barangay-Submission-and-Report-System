@@ -156,13 +156,19 @@ class AdminController extends Controller
         ]);
 
         if ($request->role === 'barangay') {
-            $clusterExists = User::where('role', 'cluster')->exists();
+            $clusterExists = User::whereIn('role', ['cluster', 'facilitator', 'admin'])->where('is_active', true)->exists();
             if (!$clusterExists) {
-                return back()->with('error', 'A cluster must be created before adding a barangay.');
+                return back()->with('error', 'A cluster, facilitator, or admin must be created before adding a barangay.');
             }
 
             if (!$request->cluster_id) {
-                return back()->with('error', 'Barangays must be assigned to a cluster.');
+                return back()->with('error', 'Barangays must be assigned to a cluster, facilitator, or admin.');
+            }
+
+            // Verify that the selected cluster_id belongs to a valid user
+            $clusterUser = User::find($request->cluster_id);
+            if (!$clusterUser || !in_array($clusterUser->role, ['cluster', 'facilitator', 'admin']) || !$clusterUser->is_active) {
+                return back()->with('error', 'Please select a valid cluster, facilitator, or admin.');
             }
         }
 
@@ -241,7 +247,13 @@ class AdminController extends Controller
 
         if ($request->role === 'barangay') {
             if (!$request->cluster_id) {
-                return back()->with('error', 'Barangays must be assigned to a cluster.');
+                return back()->with('error', 'Barangays must be assigned to a cluster, facilitator, or admin.');
+            }
+
+            // Verify that the selected cluster_id belongs to a valid user
+            $clusterUser = User::find($request->cluster_id);
+            if (!$clusterUser || !in_array($clusterUser->role, ['cluster', 'facilitator', 'admin']) || !$clusterUser->is_active) {
+                return back()->with('error', 'Please select a valid cluster, facilitator, or admin.');
             }
         }
 
