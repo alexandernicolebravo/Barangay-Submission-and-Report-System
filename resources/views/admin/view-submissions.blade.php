@@ -351,7 +351,35 @@
         </h5>
         @push('scripts')
         <script>
+            // Save and restore scroll position
             document.addEventListener('DOMContentLoaded', function() {
+                // Restore scroll position if available
+                if (sessionStorage.getItem('scrollPosition')) {
+                    window.scrollTo(0, parseInt(sessionStorage.getItem('scrollPosition')));
+
+                    // Clear the stored position after restoring
+                    // Only clear after a short delay to ensure the page has fully loaded
+                    setTimeout(() => {
+                        sessionStorage.removeItem('scrollPosition');
+                    }, 100);
+                }
+
+                // Save scroll position before form submission
+                const forms = document.querySelectorAll('form');
+                forms.forEach(form => {
+                    form.addEventListener('submit', function() {
+                        sessionStorage.setItem('scrollPosition', window.scrollY);
+                    });
+                });
+
+                // Save position before clicking on modal buttons that submit forms
+                const modalSubmitButtons = document.querySelectorAll('.modal .btn-primary[type="submit"]');
+                modalSubmitButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        sessionStorage.setItem('scrollPosition', window.scrollY);
+                    });
+                });
+
                 // Get all filter elements
                 const filterForm = document.getElementById('filterForm');
                 const searchInput = document.querySelector('input[name="search"]');
@@ -403,7 +431,7 @@
                         search: searchInput.value.trim(),
                         barangay_id: document.querySelector('select[name="barangay_id"]').value,
                         type: document.querySelector('select[name="type"]').value,
-                        status: document.querySelector('select[name="status"]').value,
+                        cluster_id: document.querySelector('select[name="cluster_id"]')?.value || '',
                         timeliness: document.querySelector('select[name="timeliness"]').value,
                         ajax: true
                     };
@@ -432,6 +460,21 @@
                 <input type="text" class="form-control search-box" name="search" value="{{ request('search') }}" placeholder="Search...">
             </div>
 
+            <!-- Cluster Filter -->
+            <div class="input-group" style="width: 250px;">
+                <span class="input-group-text">
+                    <i class="fas fa-layer-group"></i>
+                </span>
+                <select class="form-select" name="cluster_id">
+                    <option value="">All Clusters</option>
+                    @foreach(App\Models\Cluster::where('is_active', true)->get() as $cluster)
+                        <option value="{{ $cluster->id }}" {{ request('cluster_id') == $cluster->id ? 'selected' : '' }}>
+                            {{ $cluster->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             <!-- Barangay Filter -->
             <div class="input-group" style="width: 250px;">
                 <span class="input-group-text">
@@ -447,9 +490,10 @@
                 </select>
             </div>
 
+            <!-- Report Type Filter -->
             <div class="input-group" style="width: 200px;">
                 <span class="input-group-text">
-                    <i class="fas fa-filter"></i>
+                    <i class="fas fa-file-alt"></i>
                 </span>
                 <select class="form-select" name="type">
                     <option value="">All Types</option>
@@ -460,19 +504,8 @@
                     <option value="annual" {{ request('type') == 'annual' ? 'selected' : '' }}>Annual</option>
                 </select>
             </div>
-            <div class="input-group" style="width: 200px;">
-                <span class="input-group-text">
-                    <i class="fas fa-filter"></i>
-                </span>
-                <select class="form-select status-select" name="status">
-                    <option value="">All Status</option>
-                    <option value="submitted" data-icon="fa-check-circle" {{ request('status') == 'submitted' ? 'selected' : '' }}>Submitted</option>
-                    <option value="no submission" data-icon="fa-times-circle" {{ request('status') == 'no submission' ? 'selected' : '' }}>No Submission</option>
-                    <option value="pending" data-icon="fa-clock" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="approved" data-icon="fa-thumbs-up" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
-                    <option value="rejected" data-icon="fa-thumbs-down" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
-                </select>
-            </div>
+
+            <!-- Timeliness Filter -->
             <div class="input-group" style="width: 200px;">
                 <span class="input-group-text">
                     <i class="fas fa-clock"></i>
@@ -483,7 +516,7 @@
                     <option value="ontime" {{ request('timeliness') == 'ontime' ? 'selected' : '' }}>On Time</option>
                 </select>
             </div>
-            @if(request()->hasAny(['search', 'barangay_id', 'type', 'status', 'timeliness']))
+            @if(request()->hasAny(['search', 'barangay_id', 'type', 'cluster_id', 'timeliness']))
                 <a href="{{ route('admin.view.submissions') }}" class="btn btn-light">
                     <i class="fas fa-times"></i>
                     Clear Filters

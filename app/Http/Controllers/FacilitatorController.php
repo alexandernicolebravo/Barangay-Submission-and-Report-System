@@ -14,6 +14,7 @@ use App\Models\Cluster;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class FacilitatorController extends Controller
 {
@@ -209,7 +210,6 @@ class FacilitatorController extends Controller
         $facilitator = Auth::user();
 
         // Get clusters assigned to the facilitator
-        // Check if the assignedClusters relationship exists and is callable
         if (method_exists($facilitator, 'assignedClusters') && is_callable([$facilitator, 'assignedClusters'])) {
             $clusterIds = $facilitator->assignedClusters()->pluck('clusters.id')->toArray();
         } else {
@@ -217,132 +217,175 @@ class FacilitatorController extends Controller
             $clusterIds = DB::table('clusters')->where('is_active', true)->pluck('id')->toArray();
         }
 
-        // Get barangays in those clusters
-        $barangayQuery = User::where('user_type', 'barangay')
+        // Get barangays in those clusters for the filter dropdown
+        $barangays = User::where(function($query) {
+                $query->where('role', 'barangay')
+                      ->orWhere('user_type', 'barangay');
+            })
             ->whereIn('cluster_id', $clusterIds)
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->get();
 
         // Get barangay IDs for report filtering
-        $barangayIds = $barangayQuery->pluck('id')->toArray();
+        $barangayIds = $barangays->pluck('id')->toArray();
 
-        // Get all barangays for the filter dropdown
-        $barangays = $barangayQuery->get();
+        try {
+            // Start building the query - similar to AdminController
+            $query = Submission::with(['user', 'reportType'])
+                ->whereIn('user_id', $barangayIds); // Only show submissions from barangays in facilitator's clusters
 
-        // Get report types
-        $reportTypes = ReportType::all();
-
-        // Base queries for each report type
-        $weeklyQuery = WeeklyReport::with(['user', 'reportType'])
-            ->whereIn('user_id', $barangayIds);
-
-        $monthlyQuery = MonthlyReport::with(['user', 'reportType'])
-            ->whereIn('user_id', $barangayIds);
-
-        $quarterlyQuery = QuarterlyReport::with(['user', 'reportType'])
-            ->whereIn('user_id', $barangayIds);
-
-        $annualQuery = AnnualReport::with(['user', 'reportType'])
-            ->whereIn('user_id', $barangayIds);
-
-        // Apply filters
-
-        // Initialize selectedBarangay as null
-        $selectedBarangay = null;
-
-        // Filter by barangay
-        if ($request->has('barangay_id') && !empty($request->barangay_id)) {
-            $weeklyQuery->where('user_id', $request->barangay_id);
-            $monthlyQuery->where('user_id', $request->barangay_id);
-            $quarterlyQuery->where('user_id', $request->barangay_id);
-            $annualQuery->where('user_id', $request->barangay_id);
-
-            // Get selected barangay for display
-            $selectedBarangay = User::find($request->barangay_id);
-        }
-
-        // Filter by report type
-        if ($request->has('type') && !empty($request->type)) {
-            // We'll filter after getting the results
-            $filterType = $request->type;
-        } else {
-            $filterType = null;
-        }
-
-        // Filter by status (remarks)
-        if ($request->has('status') && !empty($request->status)) {
-            if ($request->status === 'reviewed') {
-                $weeklyQuery->whereNotNull('remarks');
-                $monthlyQuery->whereNotNull('remarks');
-                $quarterlyQuery->whereNotNull('remarks');
-                $annualQuery->whereNotNull('remarks');
-            } elseif ($request->status === 'pending') {
-                $weeklyQuery->whereNull('remarks');
-                $monthlyQuery->whereNotNull('remarks');
-                $quarterlyQuery->whereNull('remarks');
-                $annualQuery->whereNull('remarks');
+            // Handle search
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('report_type', 'like', "%{$search}%")
+                      ->orWhereHas('user', function($userQuery) use ($search) {
+                          $userQuery->where('name', 'like', "%{$search}%");
+                      });
+                });
             }
+
+            // Handle barangay filter
+            $selectedBarangay = null;
+            if ($request->has('barangay_id') && !empty($request->barangay_id)) {
+                $query->where('user_id', $request->barangay_id);
+                $selectedBarangay = User::find($request->barangay_id);
+            }
+
+            // Handle report type filter
+            if ($request->has('type') && !empty($request->type)) {
+                $query->where('type', $request->type);
+            }
+
+            // Handle cluster filter
+            if ($request->has('cluster_id') && !empty($request->cluster_id)) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('cluster_id', $request->cluster_id);
+                });
+            }
+
+            // Handle timeliness filter
+            if ($request->has('timeliness') && !empty($request->timeliness)) {
+                if ($request->timeliness === 'late') {
+                    $query->where('is_late', true);
+                } else if ($request->timeliness === 'ontime') {
+                    $query->where('is_late', false);
+                }
+            }
+
+            // Get the reports with pagination
+            $reports = $query->orderBy('updated_at', 'desc')->paginate(10)->withQueryString();
+
+            // Check if this is an AJAX request
+            if ($request->ajax()) {
+                return view('facilitator.partials.submissions-table', compact('reports', 'selectedBarangay'))->render();
+            }
+
+            // Return the full view for non-AJAX requests
+            return view('facilitator.view-submissions', compact('reports', 'barangays', 'selectedBarangay'));
+        } catch (\Exception $e) {
+            // Fallback to the original implementation if Submission model doesn't exist
+            \Illuminate\Support\Facades\Log::error('Error in facilitator view submissions: ' . $e->getMessage());
+
+            // Get report types
+            $reportTypes = ReportType::all();
+
+            // Base queries for each report type
+            $weeklyQuery = WeeklyReport::with(['user', 'reportType'])
+                ->whereIn('user_id', $barangayIds);
+
+            $monthlyQuery = MonthlyReport::with(['user', 'reportType'])
+                ->whereIn('user_id', $barangayIds);
+
+            $quarterlyQuery = QuarterlyReport::with(['user', 'reportType'])
+                ->whereIn('user_id', $barangayIds);
+
+            $annualQuery = AnnualReport::with(['user', 'reportType'])
+                ->whereIn('user_id', $barangayIds);
+
+            // Apply filters
+            $selectedBarangay = null;
+
+            // Filter by barangay
+            if ($request->has('barangay_id') && !empty($request->barangay_id)) {
+                $weeklyQuery->where('user_id', $request->barangay_id);
+                $monthlyQuery->where('user_id', $request->barangay_id);
+                $quarterlyQuery->where('user_id', $request->barangay_id);
+                $annualQuery->where('user_id', $request->barangay_id);
+
+                // Get selected barangay for display
+                $selectedBarangay = User::find($request->barangay_id);
+            }
+
+            // Filter by report type
+            if ($request->has('type') && !empty($request->type)) {
+                // We'll filter after getting the results
+                $filterType = $request->type;
+            } else {
+                $filterType = null;
+            }
+
+            // Get reports
+            $weeklyReports = $weeklyQuery->orderBy('created_at', 'desc')->get()
+                ->map(function ($report) {
+                    $report->type = 'weekly';
+                    $report->files = $this->getReportFiles($report);
+                    return $report;
+                });
+
+            $monthlyReports = $monthlyQuery->orderBy('created_at', 'desc')->get()
+                ->map(function ($report) {
+                    $report->type = 'monthly';
+                    $report->files = $this->getReportFiles($report);
+                    return $report;
+                });
+
+            $quarterlyReports = $quarterlyQuery->orderBy('created_at', 'desc')->get()
+                ->map(function ($report) {
+                    $report->type = 'quarterly';
+                    $report->files = $this->getReportFiles($report);
+                    return $report;
+                });
+
+            $annualReports = $annualQuery->orderBy('created_at', 'desc')->get()
+                ->map(function ($report) {
+                    $report->type = 'annual';
+                    $report->files = $this->getReportFiles($report);
+                    return $report;
+                });
+
+            // Combine all reports
+            $allReports = $weeklyReports->concat($monthlyReports)
+                ->concat($quarterlyReports)
+                ->concat($annualReports);
+
+            // Apply type filter if set
+            if ($filterType) {
+                $allReports = $allReports->filter(function ($report) use ($filterType) {
+                    return $report->type === $filterType;
+                });
+            }
+
+            // Apply search filter if set
+            if ($request->has('search') && !empty($request->search)) {
+                $search = strtolower($request->search);
+                $allReports = $allReports->filter(function ($report) use ($search) {
+                    return stripos($report->user->name, $search) !== false ||
+                        stripos($report->reportType->name, $search) !== false ||
+                        (isset($report->title) && stripos($report->title, $search) !== false);
+                });
+            }
+
+            // Sort by created_at
+            $reports = $allReports->sortByDesc('created_at');
+
+            // Check if this is an AJAX request
+            if ($request->ajax()) {
+                return view('facilitator.partials.reports-table', compact('reports'))->render();
+            }
+
+            return view('facilitator.view-submissions', compact('reports', 'reportTypes', 'barangays', 'selectedBarangay'));
         }
-
-        // Get reports
-        $weeklyReports = $weeklyQuery->orderBy('created_at', 'desc')->get()
-            ->map(function ($report) {
-                $report->type = 'weekly';
-                $report->files = $this->getReportFiles($report);
-                return $report;
-            });
-
-        $monthlyReports = $monthlyQuery->orderBy('created_at', 'desc')->get()
-            ->map(function ($report) {
-                $report->type = 'monthly';
-                $report->files = $this->getReportFiles($report);
-                return $report;
-            });
-
-        $quarterlyReports = $quarterlyQuery->orderBy('created_at', 'desc')->get()
-            ->map(function ($report) {
-                $report->type = 'quarterly';
-                $report->files = $this->getReportFiles($report);
-                return $report;
-            });
-
-        $annualReports = $annualQuery->orderBy('created_at', 'desc')->get()
-            ->map(function ($report) {
-                $report->type = 'annual';
-                $report->files = $this->getReportFiles($report);
-                return $report;
-            });
-
-        // Combine all reports
-        $allReports = $weeklyReports->concat($monthlyReports)
-            ->concat($quarterlyReports)
-            ->concat($annualReports);
-
-        // Apply type filter if set
-        if ($filterType) {
-            $allReports = $allReports->filter(function ($report) use ($filterType) {
-                return $report->type === $filterType;
-            });
-        }
-
-        // Apply search filter if set
-        if ($request->has('search') && !empty($request->search)) {
-            $search = strtolower($request->search);
-            $allReports = $allReports->filter(function ($report) use ($search) {
-                return stripos($report->user->name, $search) !== false ||
-                       stripos($report->reportType->name, $search) !== false ||
-                       stripos($report->title, $search) !== false;
-            });
-        }
-
-        // Sort by created_at
-        $reports = $allReports->sortByDesc('created_at');
-
-        // Check if this is an AJAX request
-        if ($request->ajax()) {
-            return view('facilitator.partials.reports-table', compact('reports'))->render();
-        }
-
-        return view('facilitator.view-submissions', compact('reports', 'reportTypes', 'barangays', 'selectedBarangay'));
     }
 
     /**

@@ -227,8 +227,14 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- html2canvas for seamless page transitions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Custom Scripts -->
     <script src="{{ asset('js/app.js') }}"></script>
+    <!-- Scroll Position Preservation -->
+    <script src="{{ asset('js/scroll-position.js') }}"></script>
+    <!-- AJAX Form Handling -->
+    <script src="{{ asset('js/ajax-forms.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

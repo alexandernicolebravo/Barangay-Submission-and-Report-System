@@ -62,6 +62,23 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the facilitators who manage this barangay's cluster.
+     * Only applicable for barangay users.
+     */
+    public function clusterFacilitators()
+    {
+        if ($this->user_type !== 'barangay' || !$this->cluster_id) {
+            return collect([]);
+        }
+
+        return User::whereHas('assignedClusters', function($query) {
+                $query->where('clusters.id', $this->cluster_id);
+            })
+            ->where('user_type', 'facilitator')
+            ->get();
+    }
+
+    /**
      * Check if the user is a facilitator.
      */
     public function isFacilitator()

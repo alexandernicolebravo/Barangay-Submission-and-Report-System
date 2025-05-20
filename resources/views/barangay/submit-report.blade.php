@@ -70,7 +70,7 @@
                                                 <td>{{ $report->created_at->format('M d, Y') }}</td>
                                                 <td>
                                                     @if($report->status === 'rejected')
-                                                        <a href="{{ route('barangay.submissions.resubmit', $report->id) }}" class="btn btn-sm btn-primary">
+                                                        <a href="{{ route('barangay.submissions.resubmit', $report->id) }}" class="btn btn-sm btn-primary" data-save-scroll>
                                                             <i class="fas fa-redo me-1"></i>
                                                             Resubmit
                                                         </a>
@@ -340,11 +340,11 @@
                         </div>
 
                         <div class="text-end mt-4">
-                            <a href="{{ route('barangay.dashboard') }}" class="btn btn-secondary me-2">
+                            <a href="{{ route('barangay.dashboard') }}" class="btn btn-secondary me-2" data-save-scroll>
                                 <i class="fas fa-arrow-left me-2"></i>
                                 Back to Dashboard
                             </a>
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <button type="submit" class="btn btn-primary" id="submitBtn" data-save-scroll>
                                 <i class="fas fa-paper-plane me-2"></i>
                                 Submit Report
                             </button>
@@ -355,7 +355,7 @@
                         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
                         <h5 class="mb-3">All Reports Submitted</h5>
                         <p class="text-muted mb-4">You have submitted all available reports. Check the table above for any reports that need resubmission.</p>
-                        <a href="{{ route('barangay.dashboard') }}" class="btn btn-primary">
+                        <a href="{{ route('barangay.dashboard') }}" class="btn btn-primary" data-save-scroll>
                             <i class="fas fa-arrow-left me-2"></i>
                             Back to Dashboard
                         </a>

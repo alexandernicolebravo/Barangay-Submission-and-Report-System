@@ -10,9 +10,11 @@ use App\Models\ReportType;
 use App\Models\WeeklyReport;
 use App\Models\MonthlyReport;
 use App\Models\QuarterlyReport;
+use App\Models\SemestralReport;
 use App\Models\AnnualReport;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -161,16 +163,34 @@ class AdminController extends Controller
         if ($request->user_type === 'barangay') {
             $clusterExists = Cluster::where('is_active', true)->exists();
             if (!$clusterExists) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'At least one active cluster must exist before adding a barangay.'
+                    ], 422);
+                }
                 return back()->with('error', 'At least one active cluster must exist before adding a barangay.');
             }
 
             if (!$request->cluster_id) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Barangays must be assigned to a cluster.'
+                    ], 422);
+                }
                 return back()->with('error', 'Barangays must be assigned to a cluster.');
             }
 
             // Verify that the selected cluster is active
             $cluster = Cluster::find($request->cluster_id);
             if (!$cluster || !$cluster->is_active) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please select a valid active cluster.'
+                    ], 422);
+                }
                 return back()->with('error', 'Please select a valid active cluster.');
             }
         }
@@ -200,9 +220,38 @@ class AdminController extends Controller
             }
 
             DB::commit();
+
+            // If this is an AJAX request, return a JSON response
+            if ($request->ajax()) {
+                // Get the created user with relationships
+                $createdUser = User::with(['cluster', 'assignedClusters'])->find($user->id);
+
+                // Add assigned_clusters property for easier access
+                $createdUser->assigned_clusters = $createdUser->assignedClusters->pluck('id')->toArray();
+
+                // Add cluster names for facilitators
+                if ($createdUser->user_type === 'facilitator' || $createdUser->role === 'facilitator') {
+                    $createdUser->assigned_clusters_names = $createdUser->assignedClusters->pluck('name')->implode(', ');
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => ucfirst($request->user_type) . ' account created successfully.',
+                    'user' => $createdUser
+                ]);
+            }
+
             return back()->with('success', ucfirst($request->user_type) . ' account created successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create user: ' . $e->getMessage()
+                ], 500);
+            }
+
             return back()->with('error', 'Failed to create user: ' . $e->getMessage());
         }
     }
@@ -238,10 +287,18 @@ class AdminController extends Controller
     /**
      * Deactivate or activate a user.
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $user = User::findOrFail($id);
         $user->update(['is_active' => !$user->is_active]);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => ucfirst($user->role) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.',
+                'user' => $user
+            ]);
+        }
 
         return back()->with('success', ucfirst($user->role) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.');
     }
@@ -251,11 +308,17 @@ class AdminController extends Controller
      */
     public function userManagement()
     {
-        $users = User::with(['cluster', 'assignedClusters'])->get();
+        // Get all users with their relationships for client-side filtering
+        $users = User::with(['cluster', 'assignedClusters'])->orderBy('name')->get();
 
         // Add assigned_clusters property to each user for easier access in the view
         $users->each(function ($user) {
             $user->assigned_clusters = $user->assignedClusters->pluck('id')->toArray();
+
+            // Add cluster names for facilitators
+            if ($user->user_type === 'facilitator' || $user->role === 'facilitator') {
+                $user->assigned_clusters_names = $user->assignedClusters->pluck('name')->implode(', ');
+            }
         });
 
         return view('admin.user-management', compact('users'));
@@ -279,12 +342,24 @@ class AdminController extends Controller
 
         if ($request->user_type === 'barangay') {
             if (!$request->cluster_id) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Barangays must be assigned to a cluster.'
+                    ], 422);
+                }
                 return back()->with('error', 'Barangays must be assigned to a cluster.');
             }
 
             // Verify that the selected cluster is active
             $cluster = Cluster::find($request->cluster_id);
             if (!$cluster || !$cluster->is_active) {
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Please select a valid active cluster.'
+                    ], 422);
+                }
                 return back()->with('error', 'Please select a valid active cluster.');
             }
         }
@@ -298,6 +373,7 @@ class AdminController extends Controller
                 'role' => $request->user_type, // For backward compatibility
                 'user_type' => $request->user_type,
                 'cluster_id' => $request->user_type === 'barangay' ? $request->cluster_id : null,
+                'is_active' => $request->has('is_active') ? 1 : 0,
             ]);
 
             // Update password if provided
@@ -329,47 +405,264 @@ class AdminController extends Controller
             }
 
             DB::commit();
+
+            // If this is an AJAX request, return a JSON response
+            if ($request->ajax()) {
+                // Get the updated user with relationships
+                $updatedUser = User::with(['cluster', 'assignedClusters'])->find($user->id);
+
+                // Add assigned_clusters property for easier access
+                $updatedUser->assigned_clusters = $updatedUser->assignedClusters->pluck('id')->toArray();
+
+                // Add cluster names for facilitators
+                if ($updatedUser->user_type === 'facilitator' || $updatedUser->role === 'facilitator') {
+                    $updatedUser->assigned_clusters_names = $updatedUser->assignedClusters->pluck('name')->implode(', ');
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'User updated successfully.',
+                    'user' => $updatedUser
+                ]);
+            }
+
             return back()->with('success', 'User updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update user: ' . $e->getMessage()
+                ], 500);
+            }
+
             return back()->with('error', 'Failed to update user: ' . $e->getMessage());
         }
     }
 
     public function viewSubmissions(Request $request)
     {
-        $query = Submission::query();
+        try {
+            // Get all barangays for the filter dropdown
+            $barangays = User::where('role', 'barangay')->orWhere('user_type', 'barangay')->get();
+            $perPage = $request->get('per_page', 10);
+            $selectedBarangay = null;
 
-        // Handle search
-        if ($request->has('search') && !empty($request->search)) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('report_type', 'like', "%{$search}%")
-                  ->orWhere('submitted_by', 'like', "%{$search}%");
-            });
-        }
+            // Initialize queries with relationships
+            $weeklyQuery = WeeklyReport::with(['user', 'reportType']);
+            $monthlyQuery = MonthlyReport::with(['user', 'reportType']);
+            $quarterlyQuery = QuarterlyReport::with(['user', 'reportType']);
+            $semestralQuery = SemestralReport::with(['user', 'reportType']);
+            $annualQuery = AnnualReport::with(['user', 'reportType']);
 
-        // Handle type filter
-        if ($request->has('type') && !empty($request->type)) {
-            $query->where('type', $request->type);
-        }
+            // Filter by barangay (user) if specified
+            if ($request->filled('barangay_id')) {
+                $barangayId = $request->barangay_id;
+                $weeklyQuery->where('user_id', $barangayId);
+                $monthlyQuery->where('user_id', $barangayId);
+                $quarterlyQuery->where('user_id', $barangayId);
+                $semestralQuery->where('user_id', $barangayId);
+                $annualQuery->where('user_id', $barangayId);
 
-        // Handle status filter
-        if ($request->has('status') && !empty($request->status)) {
-            $query->where('status', $request->status);
-        }
-
-        // Handle timeliness filter
-        if ($request->has('timeliness') && !empty($request->timeliness)) {
-            if ($request->timeliness === 'late') {
-                $query->where('is_late', true);
-            } else if ($request->timeliness === 'ontime') {
-                $query->where('is_late', false);
+                // Get the selected barangay for the view
+                $selectedBarangay = User::find($barangayId);
             }
+
+            // Handle cluster filter
+            if ($request->has('cluster_id') && !empty($request->cluster_id)) {
+                $clusterId = $request->cluster_id;
+                $weeklyQuery->whereHas('user', function($q) use ($clusterId) {
+                    $q->where('cluster_id', $clusterId);
+                });
+                $monthlyQuery->whereHas('user', function($q) use ($clusterId) {
+                    $q->where('cluster_id', $clusterId);
+                });
+                $quarterlyQuery->whereHas('user', function($q) use ($clusterId) {
+                    $q->where('cluster_id', $clusterId);
+                });
+                $semestralQuery->whereHas('user', function($q) use ($clusterId) {
+                    $q->where('cluster_id', $clusterId);
+                });
+                $annualQuery->whereHas('user', function($q) use ($clusterId) {
+                    $q->where('cluster_id', $clusterId);
+                });
+            }
+
+            // Apply type filter if specified
+            if ($request->filled('type')) {
+                $type = $request->type;
+                // Only get reports of the specified type
+                if ($type == 'weekly') {
+                    $monthlyQuery->whereRaw('1=0'); // Force empty result
+                    $quarterlyQuery->whereRaw('1=0');
+                    $semestralQuery->whereRaw('1=0');
+                    $annualQuery->whereRaw('1=0');
+                } elseif ($type == 'monthly') {
+                    $weeklyQuery->whereRaw('1=0');
+                    $quarterlyQuery->whereRaw('1=0');
+                    $semestralQuery->whereRaw('1=0');
+                    $annualQuery->whereRaw('1=0');
+                } elseif ($type == 'quarterly') {
+                    $weeklyQuery->whereRaw('1=0');
+                    $monthlyQuery->whereRaw('1=0');
+                    $semestralQuery->whereRaw('1=0');
+                    $annualQuery->whereRaw('1=0');
+                } elseif ($type == 'semestral') {
+                    $weeklyQuery->whereRaw('1=0');
+                    $monthlyQuery->whereRaw('1=0');
+                    $quarterlyQuery->whereRaw('1=0');
+                    $annualQuery->whereRaw('1=0');
+                } elseif ($type == 'annual') {
+                    $weeklyQuery->whereRaw('1=0');
+                    $monthlyQuery->whereRaw('1=0');
+                    $quarterlyQuery->whereRaw('1=0');
+                    $semestralQuery->whereRaw('1=0');
+                }
+            }
+
+            // Apply search filter if specified
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $weeklyQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+
+                $monthlyQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+
+                $quarterlyQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+
+                $semestralQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+
+                $annualQuery->whereHas('reportType', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })->orWhereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+            }
+
+            // Get all reports with their relationships and add unique identifiers
+            $weeklyReports = $weeklyQuery->get()->map(function ($report) {
+                $report->model_type = 'WeeklyReport';
+                $report->unique_id = 'weekly_' . $report->id;
+                return $report;
+            });
+
+            $monthlyReports = $monthlyQuery->get()->map(function ($report) {
+                $report->model_type = 'MonthlyReport';
+                $report->unique_id = 'monthly_' . $report->id;
+                return $report;
+            });
+
+            $quarterlyReports = $quarterlyQuery->get()->map(function ($report) {
+                $report->model_type = 'QuarterlyReport';
+                $report->unique_id = 'quarterly_' . $report->id;
+                return $report;
+            });
+
+            $semestralReports = $semestralQuery->get()->map(function ($report) {
+                $report->model_type = 'SemestralReport';
+                $report->unique_id = 'semestral_' . $report->id;
+                return $report;
+            });
+
+            $annualReports = $annualQuery->get()->map(function ($report) {
+                $report->model_type = 'AnnualReport';
+                $report->unique_id = 'annual_' . $report->id;
+                return $report;
+            });
+
+            // Combine all reports
+            $allReports = collect()
+                ->concat($weeklyReports)
+                ->concat($monthlyReports)
+                ->concat($quarterlyReports)
+                ->concat($semestralReports)
+                ->concat($annualReports);
+
+            // Group reports by user_id and report_type_id and get only the latest submission for each combination
+            $latestReports = collect();
+            $groupedReports = $allReports->groupBy(function($report) {
+                return $report->user_id . '_' . $report->report_type_id;
+            });
+
+            foreach ($groupedReports as $group) {
+                // Sort by created_at in descending order and take the first one (latest)
+                $latestReport = $group->sortByDesc('created_at')->first();
+                if ($latestReport) {
+                    $latestReports->push($latestReport);
+                }
+            }
+
+            // Sort the filtered collection by created_at in descending order
+            $reports = $latestReports->sortByDesc('created_at');
+
+            // Apply timeliness filter if specified
+            if ($request->filled('timeliness')) {
+                $timeliness = $request->timeliness;
+                $reports = $reports->filter(function($report) use ($timeliness) {
+                    $isLate = \Carbon\Carbon::parse($report->created_at)->isAfter($report->reportType->deadline);
+                    return ($timeliness === 'late') ? $isLate : !$isLate;
+                });
+            }
+
+            // Create a paginator
+            $page = $request->get('page', 1);
+
+            // Only create a paginator if there are reports
+            if ($reports->count() > 0) {
+                $reports = new \Illuminate\Pagination\LengthAwarePaginator(
+                    $reports->forPage($page, $perPage),
+                    $reports->count(),
+                    $perPage,
+                    $page,
+                    [
+                        'path' => $request->url(),
+                        'query' => $request->query()
+                    ]
+                );
+            } else {
+                // Create an empty paginator
+                $reports = new \Illuminate\Pagination\LengthAwarePaginator(
+                    collect(),
+                    0,
+                    $perPage,
+                    $page,
+                    [
+                        'path' => $request->url(),
+                        'query' => $request->query()
+                    ]
+                );
+            }
+
+            // Check if this is an AJAX request
+            if ($request->ajax()) {
+                return view('admin.partials.submissions-table', compact('reports', 'selectedBarangay'))->render();
+            }
+
+            // Return the full view for non-AJAX requests
+            return view('admin.view-submissions', compact('reports', 'barangays', 'selectedBarangay'));
+        } catch (\Exception $e) {
+            Log::error('Error in admin view submissions: ' . $e->getMessage());
+            return view('admin.view-submissions', [
+                'reports' => collect(),
+                'barangays' => User::where('role', 'barangay')->where('is_active', true)->get(),
+                'selectedBarangay' => null
+            ])->with('error', 'An error occurred while loading submissions: ' . $e->getMessage());
         }
-
-        $submissions = $query->paginate(10)->withQueryString();
-
-        return view('admin.view-submissions', compact('submissions'));
     }
 }

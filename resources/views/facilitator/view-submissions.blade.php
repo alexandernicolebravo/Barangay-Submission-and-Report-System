@@ -215,18 +215,19 @@
                 </select>
             </div>
 
+            <!-- Timeliness Filter -->
             <div class="input-group" style="width: 200px;">
                 <span class="input-group-text">
-                    <i class="fas fa-filter"></i>
+                    <i class="fas fa-clock"></i>
                 </span>
-                <select class="form-select" name="status">
-                    <option value="">All Status</option>
-                    <option value="reviewed" {{ request('status') == 'reviewed' ? 'selected' : '' }}>Reviewed</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                <select class="form-select" name="timeliness">
+                    <option value="">All Submissions</option>
+                    <option value="late" {{ request('timeliness') == 'late' ? 'selected' : '' }}>Late</option>
+                    <option value="ontime" {{ request('timeliness') == 'ontime' ? 'selected' : '' }}>On Time</option>
                 </select>
             </div>
 
-            @if(request()->hasAny(['search', 'barangay_id', 'type', 'status']))
+            @if(request()->hasAny(['search', 'barangay_id', 'type', 'timeliness']))
                 <a href="{{ route('facilitator.view-submissions') }}" class="btn btn-light">
                     <i class="fas fa-times"></i>
                     Clear Filters
@@ -235,16 +236,204 @@
         </form>
     </div>
     <div class="card-body">
-        @if(isset($selectedBarangay) && $selectedBarangay)
+        @if(isset($selectedBarangay))
         <div class="alert alert-info mb-3">
             <i class="fas fa-info-circle me-2"></i>
             Showing submissions for <strong>{{ $selectedBarangay->name }}</strong>
         </div>
         @endif
-
         <div class="table-responsive">
-            @include('facilitator.partials.reports-table')
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Report</th>
+                        <th>User</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($reports as $report)
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2" style="width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                                    @php
+                                        $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
+                                        $icon = match($extension) {
+                                            'pdf' => 'fa-file-pdf',
+                                            'doc', 'docx' => 'fa-file-word',
+                                            'xls', 'xlsx' => 'fa-file-excel',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
+                                            'txt' => 'fa-file-alt',
+                                            default => 'fa-file'
+                                        };
+
+                                        $colorClass = match($extension) {
+                                            'pdf' => 'danger',
+                                            'doc', 'docx' => 'primary',
+                                            'xls', 'xlsx' => 'success',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'info',
+                                            'txt' => 'secondary',
+                                            default => 'primary'
+                                        };
+
+                                        $isLate = \Carbon\Carbon::parse($report->updated_at)->isAfter($report->reportType->deadline);
+                                    @endphp
+                                    <i class="fas {{ $icon }} fa-sm"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 500; color: var(--dark);">{{ $report->reportType->name }}</div>
+                                    <small class="text-muted">{{ ucfirst(str_replace('Report', '', class_basename($report->model_type))) }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ $report->user->name }}</td>
+                        <td>{{ \Carbon\Carbon::parse($report->updated_at)->format('M d, Y') }}</td>
+                        <td>
+                            @php
+                                $statusIcon = match($report->status) {
+                                    'submitted' => 'fa-check-circle',
+                                    'no submission' => 'fa-times-circle',
+                                    'pending' => 'fa-clock',
+                                    'approved' => 'fa-thumbs-up',
+                                    'rejected' => 'fa-thumbs-down',
+                                    default => 'fa-info-circle'
+                                };
+                                $statusClass = str_replace(' ', '-', $report->status);
+                            @endphp
+                            <span class="status-badge {{ $statusClass }}">
+                                <i class="fas {{ $statusIcon }}"></i>
+                                {{ ucfirst($report->status) }}
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $report->unique_id }}">
+                                <i class="fas fa-eye me-1"></i>
+                                View
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- View Submission Modal -->
+                    <div class="modal fade" id="viewSubmissionModal{{ $report->unique_id }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                            <div class="modal-content border-0 shadow">
+                                <div class="modal-header bg-light py-2">
+                                    @php
+                                        $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
+                                        $fileName = basename($report->file_path);
+                                        $iconClass = match($extension) {
+                                            'pdf' => 'fa-file-pdf',
+                                            'doc', 'docx' => 'fa-file-word',
+                                            'xls', 'xlsx' => 'fa-file-excel',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
+                                            'txt' => 'fa-file-alt',
+                                            default => 'fa-file'
+                                        };
+                                        $colorClass = match($extension) {
+                                            'pdf' => 'danger',
+                                            'doc', 'docx' => 'primary',
+                                            'xls', 'xlsx' => 'success',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'info',
+                                            'txt' => 'secondary',
+                                            default => 'primary'
+                                        };
+                                    @endphp
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--{{ $colorClass }}-rgb), 0.1); color: var(--{{ $colorClass }});">
+                                            <i class="fas {{ $iconClass }}"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="modal-title mb-0 fw-bold">{{ $fileName }}</h5>
+                                            <div class="text-muted small">{{ $report->reportType->name }} - {{ $report->user->name }}</div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-0">
+                                    <div class="p-3 border-bottom">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
+                                                        <i class="fas fa-calendar-alt"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-muted small">Submitted</div>
+                                                        <div class="fw-medium">{{ \Carbon\Carbon::parse($report->created_at)->format('M d, Y') }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--{{ $isLate ? 'danger' : 'success' }}-rgb), 0.1); color: var(--{{ $isLate ? 'danger' : 'success' }});">
+                                                        <i class="fas {{ $isLate ? 'fa-clock' : 'fa-check-circle' }}"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-muted small">Status</div>
+                                                        <div class="fw-medium">{{ $isLate ? 'Late Submission' : 'On Time' }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="p-3 border-bottom">
+                                        <h6 class="fw-bold mb-3">Remarks</h6>
+                                        @if($report->remarks)
+                                            <div class="p-3 rounded" style="background-color: rgba(var(--info-rgb), 0.1);">
+                                                <i class="fas fa-quote-left text-muted me-2"></i>
+                                                {{ $report->remarks }}
+                                            </div>
+                                        @else
+                                            <div class="text-center py-3 text-muted">
+                                                <i class="fas fa-comment-slash mb-2" style="font-size: 1.5rem;"></i>
+                                                <p class="mb-0">No remarks added yet</p>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div id="previewContainer" class="text-center p-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer py-2">
+                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                                    <a href="{{ route('facilitator.files.download', $report->id) }}" id="downloadLink" class="btn btn-primary">
+                                        <i class="fas fa-download me-1"></i>
+                                        Download
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <div class="d-flex flex-column align-items-center">
+                                <i class="fas fa-inbox fa-3x mb-3" style="color: var(--gray-400);"></i>
+                                <p class="mb-0" style="color: var(--gray-600);">No submissions found</p>
+                                @if(isset($selectedBarangay))
+                                <p class="text-muted mt-2">No reports have been submitted by {{ $selectedBarangay->name }}</p>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+
+        @if($reports instanceof \Illuminate\Pagination\LengthAwarePaginator && $reports->total() > 0)
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div class="pagination-info">
+                Showing {{ $reports->firstItem() }} to {{ $reports->lastItem() }} of {{ $reports->total() }} entries
+            </div>
+            {{ $reports->links() }}
+        </div>
+        @endif
     </div>
 </div>
 
@@ -398,218 +587,255 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get all filter elements
-        const filterForm = document.getElementById('filterForm');
-        const searchInput = document.querySelector('input[name="search"]');
-        const filterSelects = document.querySelectorAll('select');
-        const tableBody = document.querySelector('.table tbody');
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for success message in URL and show modal
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('remarks_updated') && urlParams.get('remarks_updated') === 'true') {
+        showRemarksUpdateSuccessModal();
 
-        // Function to handle AJAX requests
-        const handleAjaxRequest = (params) => {
-            // Show loading state
-            tableBody.style.opacity = '0.5';
+        // Clean URL without refreshing the page
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+    }
 
-            fetch(`${filterForm.action}?${new URLSearchParams(params).toString()}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.text())
-            .then(html => {
-                const tempContainer = document.createElement('div');
-                tempContainer.innerHTML = html;
+    // Get all filter elements
+    const filterForm = document.getElementById('filterForm');
+    const searchInput = document.querySelector('input[name="search"]');
+    const filterSelects = document.querySelectorAll('select');
+    const tableBody = document.querySelector('.table tbody');
 
-                // Replace the table body with the new content
-                tableBody.innerHTML = tempContainer.innerHTML;
+    // Function to handle AJAX requests
+    const handleAjaxRequest = (params) => {
+        // Show loading state
+        tableBody.style.opacity = '0.5';
 
-                // Restore opacity
-                tableBody.style.opacity = '1';
-            })
-            .catch(error => {
-                console.error('Search request failed:', error);
-                tableBody.style.opacity = '1';
-            });
+        fetch(`${filterForm.action}?${new URLSearchParams(params).toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html;
+
+            // Replace the table body with the new content
+            tableBody.innerHTML = tempContainer.querySelector('tbody').innerHTML;
+
+            // Restore opacity
+            tableBody.style.opacity = '1';
+        })
+        .catch(error => {
+            console.error('Search request failed:', error);
+            tableBody.style.opacity = '1';
+        });
+    };
+
+    // Function to get all filter values
+    const getFilterValues = () => {
+        return {
+            search: searchInput.value.trim(),
+            barangay_id: document.querySelector('select[name="barangay_id"]').value,
+            type: document.querySelector('select[name="type"]').value,
+            timeliness: document.querySelector('select[name="timeliness"]').value,
+            ajax: true
         };
+    };
 
-        // Function to get all filter values
-        const getFilterValues = () => {
-            return {
-                search: searchInput.value.trim(),
-                barangay_id: document.querySelector('select[name="barangay_id"]').value,
-                type: document.querySelector('select[name="type"]').value,
-                status: document.querySelector('select[name="status"]').value,
-                ajax: true
-            };
-        };
+    // Add event listener for search input
+    searchInput.addEventListener('input', function() {
+        handleAjaxRequest(getFilterValues());
+    });
 
-        // Add event listener for search input
-        searchInput.addEventListener('input', function() {
+    // Add event listeners for all select elements
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
             handleAjaxRequest(getFilterValues());
         });
-
-        // Add event listeners for all select elements
-        filterSelects.forEach(select => {
-            select.addEventListener('change', function() {
-                handleAjaxRequest(getFilterValues());
-            });
-        });
     });
+});
 
-    // Store the current report data
-    let currentReport = null;
-    let currentReportType = null;
+function previewFile(url, fileName) {
+    // Set the file name in the modal
+    document.getElementById('previewFileName').textContent = fileName;
 
-    // View report modal handling
-    document.getElementById('viewReportModal').addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const report = JSON.parse(button.getAttribute('data-report'));
-        const type = button.getAttribute('data-type');
+    // Set the download link
+    const downloadLink = document.getElementById('downloadLink');
+    downloadLink.href = url + '?download=true';
 
-        // Store the current report data for use with the "Add Remarks" button
-        currentReport = report;
-        currentReportType = type;
+    // Show loading spinner
+    const previewContainer = document.getElementById('previewContainer');
+    previewContainer.innerHTML = `
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    `;
 
-        document.getElementById('viewBarangay').textContent = report.user.name;
-        document.getElementById('viewReportType').textContent = report.report_type.name;
-        document.getElementById('viewFrequency').textContent = type.charAt(0).toUpperCase() + type.slice(1);
-        document.getElementById('viewSubmitted').textContent = new Date(report.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    // Get file extension
+    const extension = fileName.split('.').pop().toLowerCase();
 
-        const statusElement = document.getElementById('viewStatus');
-        if (report.remarks) {
-            statusElement.innerHTML = '<span class="badge bg-success">Reviewed</span>';
-        } else {
-            statusElement.innerHTML = '<span class="badge bg-warning">Pending</span>';
-        }
+    // Fetch the file to determine content type
+    fetch(url)
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            const fileUrl = response.url;
 
-        // Display report details based on type
-        const detailsElement = document.getElementById('reportDetails');
-        let detailsHTML = '';
-
-        // Common fields for all report types
-        detailsHTML += `
-            <div class="d-flex align-items-center mb-2">
-                <i class="fas fa-heading text-primary me-2"></i>
-                <span class="fw-bold">Title:</span>
-                <span class="ms-2">${report.title || 'N/A'}</span>
-            </div>
-        `;
-
-        // Type-specific fields
-        if (type === 'weekly' || type === 'monthly') {
-            detailsHTML += `
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-calendar-week text-primary me-2"></i>
-                    <span class="fw-bold">Week/Month:</span>
-                    <span class="ms-2">${report.period || 'N/A'}</span>
-                </div>
-            `;
-        } else if (type === 'quarterly') {
-            detailsHTML += `
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-calendar-alt text-primary me-2"></i>
-                    <span class="fw-bold">Quarter:</span>
-                    <span class="ms-2">${report.quarter || 'N/A'}</span>
-                </div>
-            `;
-        } else if (type === 'annual') {
-            detailsHTML += `
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-calendar-alt text-primary me-2"></i>
-                    <span class="fw-bold">Year:</span>
-                    <span class="ms-2">${report.year || 'N/A'}</span>
-                </div>
-            `;
-        }
-
-        detailsHTML += `
-            <div class="d-flex align-items-start">
-                <i class="fas fa-align-left text-primary me-2 mt-1"></i>
-                <span class="fw-bold mt-1">Description:</span>
-                <div class="ms-2">${report.description || 'N/A'}</div>
-            </div>
-        `;
-
-        detailsElement.innerHTML = detailsHTML;
-
-        // Display attached files
-        const filesElement = document.getElementById('attachedFiles');
-        if (report.files && report.files.length > 0) {
-            let filesHTML = '<div class="list-group">';
-            report.files.forEach(file => {
-                filesHTML += `
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-file text-primary me-2"></i>
-                            ${file.original_name}
+            // Create preview based on content type and extension
+            if (contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+                // Image preview
+                previewContainer.innerHTML = `
+                    <div class="text-center">
+                        <img src="${fileUrl}" class="img-fluid" alt="${fileName}" style="max-height: 70vh;">
+                    </div>`;
+            } else if (contentType === 'application/pdf' || extension === 'pdf') {
+                // PDF preview
+                previewContainer.innerHTML = `
+                    <div style="height: 70vh;">
+                        <iframe src="${fileUrl}"
+                                style="width: 100%; height: 100%; border: none;"
+                                title="${fileName}">
+                        </iframe>
+                    </div>`;
+            } else if (contentType.startsWith('text/') || ['txt', 'csv', 'html'].includes(extension)) {
+                // Text preview
+                fetch(fileUrl)
+                    .then(response => response.text())
+                    .then(text => {
+                        previewContainer.innerHTML = `
+                            <div style="height: 70vh; overflow: auto;">
+                                <pre style="white-space: pre-wrap; word-break: break-word; padding: 1rem;">${text}</pre>
+                            </div>`;
+                    });
+            } else if (['doc', 'docx', 'xls', 'xlsx'].includes(extension)) {
+                // Office documents - use Google Docs Viewer
+                const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + url)}&embedded=true`;
+                previewContainer.innerHTML = `
+                    <div style="height: 70vh;">
+                        <iframe src="${googleDocsUrl}"
+                                style="width: 100%; height: 100%; border: none;"
+                                title="${fileName}">
+                        </iframe>
+                    </div>`;
+            } else {
+                // Unsupported file type
+                previewContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This file type cannot be previewed. Please download to view.
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                File type: ${contentType}<br>
+                                Extension: ${extension}
+                            </small>
                         </div>
-                        <a href="{{ route('admin.files.download', '') }}/${file.id}" class="btn btn-sm btn-primary" target="_blank">
-                            <i class="fas fa-download me-1"></i> Download
-                        </a>
+                    </div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Preview error:', error);
+            previewContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    ${error.message}
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            File: ${fileName}<br>
+                            Extension: ${extension}
+                        </small>
                     </div>
-                `;
-            });
-            filesHTML += '</div>';
-            filesElement.innerHTML = filesHTML;
-        } else {
-            filesElement.innerHTML = `
-                <div class="text-center py-3">
-                    <i class="fas fa-file-alt text-muted mb-2" style="font-size: 2rem;"></i>
-                    <p class="text-muted mb-0">No files attached to this report.</p>
-                </div>
-            `;
-        }
+                </div>`;
+        });
+}
 
-        // Display remarks
-        const remarksElement = document.getElementById('viewRemarks');
-        if (report.remarks) {
-            remarksElement.innerHTML = `
-                <div class="d-flex">
-                    <i class="fas fa-quote-left text-primary me-2 mt-1"></i>
-                    <div>${report.remarks}</div>
-                </div>
-            `;
-        } else {
-            remarksElement.innerHTML = `
-                <div class="text-center py-3">
-                    <i class="fas fa-comment-slash text-muted mb-2" style="font-size: 2rem;"></i>
-                    <p class="text-muted mb-0">No remarks added yet.</p>
-                </div>
-            `;
-        }
-    });
+// Function to show success modal
+function showSuccessModal(message) {
+    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+    document.getElementById('successMessage').textContent = message;
+    successModal.show();
+}
 
-    // Handle the "Add Remarks" button in the view modal
-    document.getElementById('openRemarksFromView').addEventListener('click', function() {
-        // Hide the view modal when opening the remarks modal
-        $('#viewReportModal').modal('hide');
+// Function to show remarks update success modal
+function showRemarksUpdateSuccessModal() {
+    const remarksUpdateSuccessModal = new bootstrap.Modal(document.getElementById('remarksUpdateSuccessModal'));
+    remarksUpdateSuccessModal.show();
+}
 
-        // Set up the remarks modal with the current report data
-        const form = document.getElementById('addRemarksForm');
-        form.action = "{{ route('facilitator.reports.add-remarks', '') }}/" + currentReport.id;
-        document.getElementById('remarkReportType').value = currentReportType;
-        document.getElementById('remarkBarangay').textContent = currentReport.user.name;
-        document.getElementById('remarkReportName').textContent = currentReport.report_type.name;
-        document.getElementById('remarkText').value = currentReport.remarks || '';
-    });
-
-    // Add remarks modal handling
-    document.getElementById('addRemarksModal').addEventListener('show.bs.modal', function(event) {
-        // Only set up the form if the event was triggered by a button with data attributes
-        // (not by our "Add Remarks" button in the view modal)
-        if (event.relatedTarget && event.relatedTarget.hasAttribute('data-report')) {
-            const button = event.relatedTarget;
-            const report = JSON.parse(button.getAttribute('data-report'));
-            const type = button.getAttribute('data-type');
-            const form = this.querySelector('form');
-
-            form.action = "{{ route('facilitator.reports.add-remarks', '') }}/" + report.id;
-            document.getElementById('remarkReportType').value = type;
-            document.getElementById('remarkBarangay').textContent = report.user.name;
-            document.getElementById('remarkReportName').textContent = report.report_type.name;
-            document.getElementById('remarkText').value = report.remarks || '';
-        }
-    });
+// Function to show delete confirmation modal
+function showDeleteConfirmationModal(reportTypeId) {
+    const deleteConfirmationModal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
+    document.getElementById('confirmDeleteBtn').onclick = function() {
+        // Handle delete action here
+        deleteConfirmationModal.hide();
+    };
+    deleteConfirmationModal.show();
+}
 </script>
 @endpush
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="mb-3" id="successMessage">Operation completed successfully!</h5>
+                <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Remarks Update Success Modal -->
+<div class="modal fade" id="remarksUpdateSuccessModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="mb-2">Remarks Updated Successfully!</h5>
+                <p class="text-muted mb-3">The remarks have been saved and the barangay has been notified.</p>
+                <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Preview Modal -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light py-2">
+                <div class="d-flex align-items-center">
+                    <div class="me-2 p-2 rounded-circle" id="fileIconContainer">
+                        <i class="fas fa-file-alt" id="fileIcon"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold">
+                            <span id="previewFileName"></span>
+                        </h5>
+                        <div class="text-muted small">File Preview</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="previewContainer" class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                <a href="#" id="downloadLink" class="btn btn-primary">
+                    <i class="fas fa-download me-1"></i>
+                    Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

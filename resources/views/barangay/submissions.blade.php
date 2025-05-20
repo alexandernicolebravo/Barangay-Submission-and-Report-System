@@ -93,7 +93,7 @@
                         <div class="text-center py-5">
                             <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">No reports have been submitted yet</h5>
-                            <a href="{{ route('barangay.submit-report') }}" class="btn btn-primary mt-3">
+                            <a href="{{ route('barangay.submit-report') }}" class="btn btn-primary mt-3" data-save-scroll>
                                 <i class="fas fa-plus me-2"></i>Submit New Report
                             </a>
                         </div>
@@ -489,7 +489,7 @@
 
                                                             <div class="d-flex justify-content-end gap-2 mt-3">
                                                                 <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
-                                                                <button type="submit" class="btn btn-sm {{ $report->status === 'rejected' ? 'btn-warning' : 'btn-primary' }}" id="submitBtn{{ $reportId }}">
+                                                                <button type="submit" class="btn btn-sm {{ $report->status === 'rejected' ? 'btn-warning' : 'btn-primary' }}" id="submitBtn{{ $reportId }}" data-save-scroll>
                                                                     <i class="fas {{ $report->status === 'rejected' ? 'fa-redo' : 'fa-upload' }} me-1"></i>
                                                                     {{ $report->status === 'rejected' ? 'Resubmit' : 'Update' }}
                                                                 </button>
