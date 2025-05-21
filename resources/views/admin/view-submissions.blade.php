@@ -6,68 +6,12 @@
     <script>
         // File preview function
         function previewFile(url, fileName) {
-            // Create modal if it doesn't exist
-            let modal = document.getElementById('filePreviewModal');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.className = 'modal fade';
-                modal.id = 'filePreviewModal';
-                modal.tabIndex = '-1';
-                modal.setAttribute('aria-hidden', 'true');
-
-                modal.innerHTML = `
-                    <div class="modal-dialog modal-xl modal-dialog-centered">
-                        <div class="modal-content border-0 shadow">
-                            <div class="modal-header bg-light">
-                                <div class="d-flex align-items-center">
-                                    <div id="fileTypeIcon" class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
-                                        <i class="fas fa-file fa-lg text-primary"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="modal-title mb-0 fw-bold">
-                                            <span id="previewFileName"></span>
-                                        </h5>
-                                        <div class="text-muted small">Document Preview</div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <a id="downloadLink" href="#" class="btn btn-primary me-2">
-                                        <i class="fas fa-download me-1"></i>
-                                        Download
-                                    </a>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                            </div>
-                            <div class="modal-body p-0 bg-light">
-                                <div id="previewContainer" class="d-flex justify-content-center align-items-center p-4" style="min-height: 70vh; background-color: #f8f9fa;">
-                                    <div class="text-center">
-                                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p class="text-muted">Loading document preview...</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer bg-light">
-                                <div class="d-flex align-items-center text-muted me-auto small">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <span>If the document doesn't load correctly, please use the download button.</span>
-                                </div>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                document.body.appendChild(modal);
-            }
-
             // Set the file name in the modal
             document.getElementById('previewFileName').textContent = fileName;
 
             // Set the download link
             const downloadLink = document.getElementById('downloadLink');
-            downloadLink.href = url + (url.includes('?') ? '&' : '?') + 'download=true';
+            downloadLink.href = url + '?download=true';
 
             // Show loading spinner
             const previewContainer = document.getElementById('previewContainer');
@@ -80,14 +24,12 @@
                 </div>
             `;
 
-            // Get file extension
+            // Get file extension and set appropriate icon
             const extension = fileName.split('.').pop().toLowerCase();
-
-            // Update file type icon based on extension
             const fileTypeIcon = document.getElementById('fileTypeIcon');
             const fileIconElement = fileTypeIcon.querySelector('i');
 
-            // Set icon and background color based on file type
+            // Set icon and color based on file type
             let iconClass = 'fa-file';
             let bgColorClass = 'primary';
 
@@ -122,15 +64,13 @@
                     bgColorClass = 'primary';
             }
 
-            // Update icon class
+            // Update icon class and background color
             fileIconElement.className = `fas ${iconClass} fa-lg text-${bgColorClass}`;
-
-            // Update background color
             fileTypeIcon.style.backgroundColor = `rgba(var(--${bgColorClass}-rgb), 0.1)`;
 
             // Show the modal
-            const bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
+            const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
+            modal.show();
 
             // Fetch the file
             fetch(url)
@@ -1270,4 +1210,49 @@ function showDeleteConfirmationModal(reportTypeId) {
 }
 </script>
 @endpush
+<!-- File Preview Modal -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center">
+                    <div id="fileTypeIcon" class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
+                        <i class="fas fa-file fa-lg text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold">
+                            <span id="previewFileName"></span>
+                        </h5>
+                        <div class="text-muted small">Document Preview</div>
+                    </div>
+                </div>
+                <div>
+                    <a id="downloadLink" href="#" class="btn btn-primary me-2">
+                        <i class="fas fa-download me-1"></i>
+                        Download
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0 bg-light">
+                <div id="previewContainer" class="d-flex justify-content-center align-items-center p-4" style="min-height: 70vh; background-color: #f8f9fa;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted">Loading document preview...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <div class="d-flex align-items-center text-muted me-auto small">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span>If the document doesn't load correctly, please use the download button.</span>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
