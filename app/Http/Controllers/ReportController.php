@@ -953,12 +953,29 @@ class ReportController extends Controller
 
             if (in_array($mimeType, $viewableTypes)) {
                 Log::info('Serving file as viewable type: ' . $mimeType);
-                return response()->file($path, [
-                    'Content-Type' => $mimeType,
-                    'Content-Disposition' => 'inline; filename="' . $fileName . '"',
-                    'Cache-Control' => 'public, max-age=0',
-                    'Accept-Ranges' => 'bytes'
-                ]);
+                Log::info('Is AJAX request: ' . (request()->ajax() ? 'Yes' : 'No'));
+                Log::info('Headers: ' . json_encode(request()->headers->all()));
+
+                // Check if this is an AJAX request, if it wants JSON, or if the previewFile function is calling
+                if (request()->ajax() || request()->wantsJson() || request()->header('X-Requested-With') == 'XMLHttpRequest') {
+                    Log::info('Returning JSON response for file');
+                    // For AJAX requests, return a JSON response with the file data
+                    return response()->json([
+                        'success' => true,
+                        'file_url' => asset('storage/' . $report->file_path),
+                        'file_name' => $fileName,
+                        'mime_type' => $mimeType
+                    ]);
+                } else {
+                    Log::info('Serving file inline');
+                    // For direct browser requests, serve the file inline
+                    return response()->file($path, [
+                        'Content-Type' => $mimeType,
+                        'Content-Disposition' => 'inline; filename="' . $fileName . '"',
+                        'Cache-Control' => 'public, max-age=0',
+                        'Accept-Ranges' => 'bytes'
+                    ]);
+                }
             }
 
             Log::info('File type not viewable, forcing download: ' . $mimeType);

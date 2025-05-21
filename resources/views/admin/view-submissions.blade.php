@@ -4,159 +4,231 @@
 
 @push('scripts')
     <script>
-        // Function to preview files
+        // File preview function
         function previewFile(url, fileName) {
-            // Get the file extension
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('filePreviewModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.className = 'modal fade';
+                modal.id = 'filePreviewModal';
+                modal.tabIndex = '-1';
+                modal.setAttribute('aria-hidden', 'true');
+
+                modal.innerHTML = `
+                    <div class="modal-dialog modal-xl modal-dialog-centered">
+                        <div class="modal-content border-0 shadow">
+                            <div class="modal-header bg-light">
+                                <div class="d-flex align-items-center">
+                                    <div id="fileTypeIcon" class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
+                                        <i class="fas fa-file fa-lg text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="modal-title mb-0 fw-bold">
+                                            <span id="previewFileName"></span>
+                                        </h5>
+                                        <div class="text-muted small">Document Preview</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <a id="downloadLink" href="#" class="btn btn-primary me-2">
+                                        <i class="fas fa-download me-1"></i>
+                                        Download
+                                    </a>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                            </div>
+                            <div class="modal-body p-0 bg-light">
+                                <div id="previewContainer" class="d-flex justify-content-center align-items-center p-4" style="min-height: 70vh; background-color: #f8f9fa;">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="text-muted">Loading document preview...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light">
+                                <div class="d-flex align-items-center text-muted me-auto small">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <span>If the document doesn't load correctly, please use the download button.</span>
+                                </div>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+            }
+
+            // Set the file name in the modal
+            document.getElementById('previewFileName').textContent = fileName;
+
+            // Set the download link
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = url + (url.includes('?') ? '&' : '?') + 'download=true';
+
+            // Show loading spinner
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading document preview...</p>
+                </div>
+            `;
+
+            // Get file extension
             const extension = fileName.split('.').pop().toLowerCase();
 
-            // Get the modal elements
-            const modal = document.getElementById('filePreviewModal') || createPreviewModal();
-            const previewContainer = document.getElementById('previewContainer');
-            const previewFileName = document.getElementById('previewFileName');
-            const downloadLink = document.getElementById('downloadLink');
-            const fileIcon = document.getElementById('fileIcon');
-            const fileIconContainer = document.getElementById('fileIconContainer');
+            // Update file type icon based on extension
+            const fileTypeIcon = document.getElementById('fileTypeIcon');
+            const fileIconElement = fileTypeIcon.querySelector('i');
 
-            // Set the file name and download link
-            previewFileName.textContent = fileName;
-            downloadLink.href = url + '&download=true';
-
-            // Set the appropriate icon based on file extension
+            // Set icon and background color based on file type
             let iconClass = 'fa-file';
-            let colorClass = 'primary';
+            let bgColorClass = 'primary';
 
             switch(extension) {
                 case 'pdf':
                     iconClass = 'fa-file-pdf';
-                    colorClass = 'danger';
+                    bgColorClass = 'danger';
                     break;
                 case 'doc':
                 case 'docx':
                     iconClass = 'fa-file-word';
-                    colorClass = 'primary';
+                    bgColorClass = 'primary';
                     break;
                 case 'xls':
                 case 'xlsx':
                     iconClass = 'fa-file-excel';
-                    colorClass = 'success';
+                    bgColorClass = 'success';
                     break;
                 case 'jpg':
                 case 'jpeg':
                 case 'png':
                 case 'gif':
                     iconClass = 'fa-file-image';
-                    colorClass = 'info';
+                    bgColorClass = 'info';
                     break;
                 case 'txt':
                     iconClass = 'fa-file-alt';
-                    colorClass = 'secondary';
+                    bgColorClass = 'secondary';
                     break;
+                default:
+                    iconClass = 'fa-file';
+                    bgColorClass = 'primary';
             }
 
-            fileIcon.className = 'fas ' + iconClass;
-            fileIcon.classList.add('text-' + colorClass);
-            fileIconContainer.style.backgroundColor = `rgba(var(--${colorClass}-rgb), 0.1)`;
+            // Update icon class
+            fileIconElement.className = `fas ${iconClass} fa-lg text-${bgColorClass}`;
 
-            // Show loading indicator
-            previewContainer.innerHTML = `
-                <div class="d-flex justify-content-center align-items-center p-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            `;
+            // Update background color
+            fileTypeIcon.style.backgroundColor = `rgba(var(--${bgColorClass}-rgb), 0.1)`;
 
             // Show the modal
             const bsModal = new bootstrap.Modal(modal);
             bsModal.show();
 
-            // Determine how to display the file based on its type
-            if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-                // For images, create an img element
-                const img = new Image();
-                img.onload = function() {
-                    previewContainer.innerHTML = '';
-                    img.style.maxWidth = '100%';
-                    img.style.height = 'auto';
-                    img.style.maxHeight = '70vh';
-                    img.classList.add('img-fluid', 'rounded');
-                    previewContainer.appendChild(img);
-                };
-                img.onerror = function() {
+            // Fetch the file
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('File not found or access denied');
+                    }
+                    const contentType = response.headers.get('content-type');
+                    return response.blob().then(blob => ({ blob, contentType }));
+                })
+                .then(({ blob, contentType }) => {
+                    const fileUrl = URL.createObjectURL(blob);
+
+                    // Create preview based on content type and extension
+                    if (contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+                        // Image preview
+                        previewContainer.innerHTML = `
+                            <div class="text-center p-3 bg-white rounded shadow-sm" style="max-width: 95%;">
+                                <img src="${fileUrl}" class="img-fluid" alt="${fileName}" style="max-height: 65vh;">
+                                <div class="mt-3 text-muted small">
+                                    <i class="fas fa-info-circle me-1"></i> Image preview: ${fileName}
+                                </div>
+                            </div>`;
+                    } else if (contentType === 'application/pdf' || extension === 'pdf') {
+                        // PDF preview
+                        previewContainer.innerHTML = `
+                            <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
+                                <iframe src="${fileUrl}"
+                                        style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
+                                        title="${fileName}">
+                                </iframe>
+                            </div>`;
+                    } else if (contentType.startsWith('text/') || ['txt', 'csv', 'html'].includes(extension)) {
+                        // Text preview
+                        fetch(fileUrl)
+                            .then(response => response.text())
+                            .then(text => {
+                                previewContainer.innerHTML = `
+                                    <div class="bg-white rounded shadow-sm" style="width: 95%; max-height: 65vh; overflow-y: auto;">
+                                        <pre class="text-start p-4 mb-0" style="white-space: pre-wrap;">${text}</pre>
+                                        <div class="p-3 border-top text-muted small">
+                                            <i class="fas fa-info-circle me-1"></i> Text document: ${fileName}
+                                        </div>
+                                    </div>`;
+                            });
+                    } else if (['doc', 'docx', 'xls', 'xlsx'].includes(extension)) {
+                        // Office documents - use Google Docs Viewer
+                        const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + url)}&embedded=true`;
+                        previewContainer.innerHTML = `
+                            <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
+                                <iframe src="${googleDocsUrl}"
+                                        style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
+                                        title="${fileName}">
+                                </iframe>
+                                <div class="p-3 border-top text-muted small">
+                                    <i class="fas fa-info-circle me-1"></i> Office document preview powered by Google Docs
+                                </div>
+                            </div>`;
+                    } else {
+                        // Unsupported file type
+                        previewContainer.innerHTML = `
+                            <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
+                                <div class="mb-3">
+                                    <i class="fas ${iconClass} fa-4x text-${bgColorClass} mb-3"></i>
+                                    <h5 class="mb-3">Preview Not Available</h5>
+                                    <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
+                                </div>
+                                <a href="${downloadLink.href}" class="btn btn-primary">
+                                    <i class="fas fa-download me-2"></i> Download to View
+                                </a>
+                                <div class="mt-4 text-start text-muted small">
+                                    <div><strong>File name:</strong> ${fileName}</div>
+                                    <div><strong>File type:</strong> ${contentType || 'Unknown'}</div>
+                                    <div><strong>Extension:</strong> ${extension}</div>
+                                </div>
+                            </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Preview error:', error);
                     previewContainer.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-circle me-2"></i>
-                            Failed to load image.
-                        </div>
-                    `;
-                };
-                img.src = url;
-            } else if (extension === 'pdf') {
-                // For PDFs, use an iframe
-                previewContainer.innerHTML = `
-                    <iframe src="${url}" width="100%" height="600" style="border: none;"></iframe>
-                `;
-            } else {
-                // For other file types, show a download prompt
-                previewContainer.innerHTML = `
-                    <div class="text-center p-5">
-                        <div class="mb-4">
-                            <i class="fas ${iconClass} fa-4x text-${colorClass}"></i>
-                        </div>
-                        <h5 class="mb-3">Preview not available</h5>
-                        <p class="text-muted mb-4">This file type cannot be previewed directly. Please download the file to view its contents.</p>
-                        <a href="${url}&download=true" class="btn btn-primary">
-                            <i class="fas fa-download me-2"></i>
-                            Download File
-                        </a>
-                    </div>
-                `;
-            }
+                        <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
+                            <div class="mb-3 text-danger">
+                                <i class="fas fa-exclamation-circle fa-4x mb-3"></i>
+                                <h5 class="mb-3">Error Loading File</h5>
+                                <p class="text-muted mb-4">${error.message}</p>
+                            </div>
+                            <a href="${downloadLink.href}" class="btn btn-primary">
+                                <i class="fas fa-download me-2"></i> Try Downloading Instead
+                            </a>
+                            <div class="mt-4 text-start text-muted small">
+                                <div><strong>File name:</strong> ${fileName}</div>
+                                <div><strong>Extension:</strong> ${extension}</div>
+                            </div>
+                        </div>`;
+                });
         }
 
-        // Function to create the preview modal if it doesn't exist
-        function createPreviewModal() {
-            const modal = document.createElement('div');
-            modal.className = 'modal fade';
-            modal.id = 'filePreviewModal';
-            modal.tabIndex = '-1';
-            modal.innerHTML = `
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content border-0 shadow">
-                        <div class="modal-header bg-light py-2">
-                            <div class="d-flex align-items-center">
-                                <div id="fileIconContainer" class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
-                                    <i id="fileIcon" class="fas fa-file-alt text-primary"></i>
-                                </div>
-                                <div>
-                                    <h5 class="modal-title mb-0 fw-bold">
-                                        <span id="previewFileName"></span>
-                                    </h5>
-                                    <div class="text-muted small">File Preview</div>
-                                </div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body p-0">
-                            <div id="previewContainer" class="text-center p-3">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer py-2">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-                            <a href="#" id="downloadLink" class="btn btn-primary">
-                                <i class="fas fa-download me-1"></i>
-                                Download
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            return modal;
-        }
     </script>
 @endpush
 
