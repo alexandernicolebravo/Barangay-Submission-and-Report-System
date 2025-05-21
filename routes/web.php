@@ -309,6 +309,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/view-reports', [BarangayController::class, 'viewReports'])->name('view-reports');
         Route::get('/overdue-reports', [BarangayController::class, 'overdueReports'])->name('overdue-reports');
         Route::post('/submissions/{id}/resubmit', [BarangayController::class, 'resubmit'])->name('submissions.resubmit');
+        Route::post('/resubmit-report/{id}', [BarangayController::class, 'resubmit'])->name('resubmit-report');
 
         // Debug routes for testing form submission
         Route::get('/test-resubmit', function() {

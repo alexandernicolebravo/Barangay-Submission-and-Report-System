@@ -1,0 +1,17 @@
+/**
+ * Simple Scroll Position Restoration
+ *
+ * This CSS file provides minimal styles for scroll position restoration.
+ */
+
+/* Smooth scrolling for the entire page */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Disable smooth scrolling when users have prefers-reduced-motion enabled */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}

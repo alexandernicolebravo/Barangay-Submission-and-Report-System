@@ -8,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Smooth Transitions CSS -->
+    <link href="{{ asset('css/smooth-transitions.css') }}" rel="stylesheet">
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -231,10 +233,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Custom Scripts -->
     <script src="{{ asset('js/app.js') }}"></script>
-    <!-- Scroll Position Preservation -->
-    <script src="{{ asset('js/scroll-position.js') }}"></script>
     <!-- AJAX Form Handling -->
     <script src="{{ asset('js/ajax-forms.js') }}"></script>
+    <!-- Scroll Position Management -->
+    <script src="{{ asset('js/scroll-position.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

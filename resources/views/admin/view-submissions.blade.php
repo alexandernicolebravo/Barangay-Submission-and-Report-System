@@ -2,6 +2,164 @@
 
 @section('title', 'View Submissions')
 
+@push('scripts')
+    <script>
+        // Function to preview files
+        function previewFile(url, fileName) {
+            // Get the file extension
+            const extension = fileName.split('.').pop().toLowerCase();
+
+            // Get the modal elements
+            const modal = document.getElementById('filePreviewModal') || createPreviewModal();
+            const previewContainer = document.getElementById('previewContainer');
+            const previewFileName = document.getElementById('previewFileName');
+            const downloadLink = document.getElementById('downloadLink');
+            const fileIcon = document.getElementById('fileIcon');
+            const fileIconContainer = document.getElementById('fileIconContainer');
+
+            // Set the file name and download link
+            previewFileName.textContent = fileName;
+            downloadLink.href = url + '&download=true';
+
+            // Set the appropriate icon based on file extension
+            let iconClass = 'fa-file';
+            let colorClass = 'primary';
+
+            switch(extension) {
+                case 'pdf':
+                    iconClass = 'fa-file-pdf';
+                    colorClass = 'danger';
+                    break;
+                case 'doc':
+                case 'docx':
+                    iconClass = 'fa-file-word';
+                    colorClass = 'primary';
+                    break;
+                case 'xls':
+                case 'xlsx':
+                    iconClass = 'fa-file-excel';
+                    colorClass = 'success';
+                    break;
+                case 'jpg':
+                case 'jpeg':
+                case 'png':
+                case 'gif':
+                    iconClass = 'fa-file-image';
+                    colorClass = 'info';
+                    break;
+                case 'txt':
+                    iconClass = 'fa-file-alt';
+                    colorClass = 'secondary';
+                    break;
+            }
+
+            fileIcon.className = 'fas ' + iconClass;
+            fileIcon.classList.add('text-' + colorClass);
+            fileIconContainer.style.backgroundColor = `rgba(var(--${colorClass}-rgb), 0.1)`;
+
+            // Show loading indicator
+            previewContainer.innerHTML = `
+                <div class="d-flex justify-content-center align-items-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+
+            // Show the modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+
+            // Determine how to display the file based on its type
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+                // For images, create an img element
+                const img = new Image();
+                img.onload = function() {
+                    previewContainer.innerHTML = '';
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+                    img.style.maxHeight = '70vh';
+                    img.classList.add('img-fluid', 'rounded');
+                    previewContainer.appendChild(img);
+                };
+                img.onerror = function() {
+                    previewContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            Failed to load image.
+                        </div>
+                    `;
+                };
+                img.src = url;
+            } else if (extension === 'pdf') {
+                // For PDFs, use an iframe
+                previewContainer.innerHTML = `
+                    <iframe src="${url}" width="100%" height="600" style="border: none;"></iframe>
+                `;
+            } else {
+                // For other file types, show a download prompt
+                previewContainer.innerHTML = `
+                    <div class="text-center p-5">
+                        <div class="mb-4">
+                            <i class="fas ${iconClass} fa-4x text-${colorClass}"></i>
+                        </div>
+                        <h5 class="mb-3">Preview not available</h5>
+                        <p class="text-muted mb-4">This file type cannot be previewed directly. Please download the file to view its contents.</p>
+                        <a href="${url}&download=true" class="btn btn-primary">
+                            <i class="fas fa-download me-2"></i>
+                            Download File
+                        </a>
+                    </div>
+                `;
+            }
+        }
+
+        // Function to create the preview modal if it doesn't exist
+        function createPreviewModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'filePreviewModal';
+            modal.tabIndex = '-1';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-header bg-light py-2">
+                            <div class="d-flex align-items-center">
+                                <div id="fileIconContainer" class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
+                                    <i id="fileIcon" class="fas fa-file-alt text-primary"></i>
+                                </div>
+                                <div>
+                                    <h5 class="modal-title mb-0 fw-bold">
+                                        <span id="previewFileName"></span>
+                                    </h5>
+                                    <div class="text-muted small">File Preview</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div id="previewContainer" class="text-center p-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer py-2">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                            <a href="#" id="downloadLink" class="btn btn-primary">
+                                <i class="fas fa-download me-1"></i>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
+        }
+    </script>
+@endpush
+
 @push('styles')
     <style>
     /* Define CSS variables for status colors */
@@ -351,33 +509,35 @@
         </h5>
         @push('scripts')
         <script>
-            // Save and restore scroll position
-            document.addEventListener('DOMContentLoaded', function() {
-                // Restore scroll position if available
-                if (sessionStorage.getItem('scrollPosition')) {
-                    window.scrollTo(0, parseInt(sessionStorage.getItem('scrollPosition')));
+            // File preview function
+            function previewFile(url, fileName) {
+                // Open in a new tab
+                window.open(url, '_blank');
+            }
 
-                    // Clear the stored position after restoring
-                    // Only clear after a short delay to ensure the page has fully loaded
-                    setTimeout(() => {
-                        sessionStorage.removeItem('scrollPosition');
-                    }, 100);
+            // Force scroll to top on page load
+            window.scrollTo(0, 0);
+
+            // Clear any scroll position from sessionStorage
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('scrollPos_')) {
+                    sessionStorage.removeItem(key);
                 }
+            });
 
-                // Save scroll position before form submission
-                const forms = document.querySelectorAll('form');
-                forms.forEach(form => {
-                    form.addEventListener('submit', function() {
-                        sessionStorage.setItem('scrollPosition', window.scrollY);
-                    });
+            // For links that navigate to different pages
+            document.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', function() {
+                    // Force scroll to top before navigation
+                    window.scrollTo(0, 0);
                 });
+            });
 
-                // Save position before clicking on modal buttons that submit forms
-                const modalSubmitButtons = document.querySelectorAll('.modal .btn-primary[type="submit"]');
-                modalSubmitButtons.forEach(button => {
-                    button.addEventListener('click', function() {
-                        sessionStorage.setItem('scrollPosition', window.scrollY);
-                    });
+            document.addEventListener('DOMContentLoaded', function() {
+                // Initialize tooltips
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
 
                 // Get all filter elements
@@ -899,41 +1059,7 @@
 
 
 
-                    <!-- File Preview Modal -->
-                    <div class="modal fade" id="filePreviewModal" tabindex="-1">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content border-0 shadow">
-                                <div class="modal-header bg-light py-2">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-2 p-2 rounded-circle" id="fileIconContainer">
-                                            <i class="fas fa-file-alt" id="fileIcon"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="modal-title mb-0 fw-bold">
-                                                <span id="previewFileName"></span>
-                                            </h5>
-                                            <div class="text-muted small">File Preview</div>
-                                        </div>
-                                    </div>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body p-0">
-                                    <div id="previewContainer" class="text-center p-3">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer py-2">
-                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-                                    <a href="#" id="downloadLink" class="btn btn-primary">
-                                        <i class="fas fa-download me-1"></i>
-                                        Download
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- File Preview Modal will be created dynamically by JavaScript -->
                     @empty
                     <tr>
                         <td colspan="5" class="text-center py-4">
@@ -1047,135 +1173,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-
-function previewFile(url, fileName) {
-    // Set the file name in the modal
-    document.getElementById('previewFileName').textContent = fileName;
-
-    // Set the download link
-    const downloadLink = document.getElementById('downloadLink');
-    downloadLink.href = url + '?download=true';
-
-    // Show loading spinner
-    const previewContainer = document.getElementById('previewContainer');
-    previewContainer.innerHTML = `
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    `;
-
-    // Get file extension and set appropriate icon
-    const extension = fileName.split('.').pop().toLowerCase();
-    const fileIcon = document.getElementById('fileIcon');
-    const fileIconContainer = document.getElementById('fileIconContainer');
-
-    // Set icon and color based on file extension
-    let iconClass = 'fa-file';
-    let colorClass = 'primary';
-
-    if (extension === 'pdf') {
-        iconClass = 'fa-file-pdf';
-        colorClass = 'danger';
-    } else if (['doc', 'docx'].includes(extension)) {
-        iconClass = 'fa-file-word';
-        colorClass = 'primary';
-    } else if (['xls', 'xlsx'].includes(extension)) {
-        iconClass = 'fa-file-excel';
-        colorClass = 'success';
-    } else if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-        iconClass = 'fa-file-image';
-        colorClass = 'info';
-    } else if (extension === 'txt') {
-        iconClass = 'fa-file-alt';
-        colorClass = 'secondary';
-    }
-
-    // Update icon and container
-    fileIcon.className = `fas ${iconClass} text-${colorClass}`;
-    fileIconContainer.style.backgroundColor = `rgba(var(--${colorClass}-rgb), 0.1)`;
-
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
-    modal.show();
-
-    // Fetch the file
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('File not found or access denied');
-            }
-            const contentType = response.headers.get('content-type');
-            return response.blob().then(blob => ({ blob, contentType }));
-        })
-        .then(({ blob, contentType }) => {
-            const fileUrl = URL.createObjectURL(blob);
-
-            // Create preview based on content type and extension
-            if (contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-                // Image preview
-                previewContainer.innerHTML = `
-                    <div class="text-center">
-                        <img src="${fileUrl}" class="img-fluid" alt="${fileName}" style="max-height: 70vh;">
-                    </div>`;
-            } else if (contentType === 'application/pdf' || extension === 'pdf') {
-                // PDF preview
-                previewContainer.innerHTML = `
-                    <div style="height: 70vh;">
-                        <iframe src="${fileUrl}"
-                                style="width: 100%; height: 100%; border: none;"
-                                title="${fileName}">
-                        </iframe>
-                    </div>`;
-            } else if (contentType.startsWith('text/') || ['txt', 'csv', 'html'].includes(extension)) {
-                // Text preview
-                fetch(fileUrl)
-                    .then(response => response.text())
-                    .then(text => {
-                        previewContainer.innerHTML = `
-                            <div style="max-height: 70vh; overflow-y: auto;">
-                                <pre class="text-start p-3 bg-light rounded">${text}</pre>
-                            </div>`;
-                    });
-            } else if (['doc', 'docx', 'xls', 'xlsx'].includes(extension)) {
-                // Office documents - use Google Docs Viewer
-                const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + url)}&embedded=true`;
-                previewContainer.innerHTML = `
-                    <div style="height: 70vh;">
-                        <iframe src="${googleDocsUrl}"
-                                style="width: 100%; height: 100%; border: none;"
-                                title="${fileName}">
-                        </iframe>
-                    </div>`;
-            } else {
-                // Unsupported file type
-                previewContainer.innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        This file type cannot be previewed. Please download to view.
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                File type: ${contentType}<br>
-                                Extension: ${extension}
-                            </small>
-                        </div>
-                    </div>`;
-            }
-        })
-        .catch(error => {
-            console.error('Preview error:', error);
-            previewContainer.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    ${error.message}
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            File: ${fileName}<br>
-                            Extension: ${extension}
-                        </small>
-                    </div>
-                </div>`;
-        });
-}
 
 // Function to show success modal
 function showSuccessModal(message) {

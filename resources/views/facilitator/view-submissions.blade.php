@@ -839,3 +839,135 @@ function showDeleteConfirmationModal(reportTypeId) {
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Force scroll to top on page load
+    window.scrollTo(0, 0);
+
+    // Clear any scroll position from sessionStorage
+    Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('scrollPos_')) {
+            sessionStorage.removeItem(key);
+        }
+    });
+
+    // For links that navigate to different pages
+    document.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', function() {
+            // Force scroll to top before navigation
+            window.scrollTo(0, 0);
+        });
+    });
+
+    // Function to preview files
+    function previewFile(url, fileName) {
+        // Get the file extension
+        const extension = fileName.split('.').pop().toLowerCase();
+
+        // Get the modal elements
+        const modal = document.getElementById('filePreviewModal');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewFileName = document.getElementById('previewFileName');
+        const downloadLink = document.getElementById('downloadLink');
+        const fileIcon = document.getElementById('fileIcon');
+        const fileIconContainer = document.getElementById('fileIconContainer');
+
+        // Set the file name and download link
+        previewFileName.textContent = fileName;
+        downloadLink.href = url + '&download=true';
+
+        // Set the appropriate icon based on file extension
+        let iconClass = 'fa-file';
+        let colorClass = 'primary';
+
+        switch(extension) {
+            case 'pdf':
+                iconClass = 'fa-file-pdf';
+                colorClass = 'danger';
+                break;
+            case 'doc':
+            case 'docx':
+                iconClass = 'fa-file-word';
+                colorClass = 'primary';
+                break;
+            case 'xls':
+            case 'xlsx':
+                iconClass = 'fa-file-excel';
+                colorClass = 'success';
+                break;
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+                iconClass = 'fa-file-image';
+                colorClass = 'info';
+                break;
+            case 'txt':
+                iconClass = 'fa-file-alt';
+                colorClass = 'secondary';
+                break;
+        }
+
+        fileIcon.className = 'fas ' + iconClass;
+        fileIcon.classList.add('text-' + colorClass);
+        fileIconContainer.style.backgroundColor = `rgba(var(--${colorClass}-rgb), 0.1)`;
+
+        // Show loading indicator
+        previewContainer.innerHTML = `
+            <div class="d-flex justify-content-center align-items-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+
+        // Show the modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+
+        // Determine how to display the file based on its type
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+            // For images, create an img element
+            const img = new Image();
+            img.onload = function() {
+                previewContainer.innerHTML = '';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.maxHeight = '70vh';
+                img.classList.add('img-fluid', 'rounded');
+                previewContainer.appendChild(img);
+            };
+            img.onerror = function() {
+                previewContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Failed to load image.
+                    </div>
+                `;
+            };
+            img.src = url;
+        } else if (extension === 'pdf') {
+            // For PDFs, use an iframe
+            previewContainer.innerHTML = `
+                <iframe src="${url}" width="100%" height="600" style="border: none;"></iframe>
+            `;
+        } else {
+            // For other file types, show a download prompt
+            previewContainer.innerHTML = `
+                <div class="text-center p-5">
+                    <div class="mb-4">
+                        <i class="fas ${iconClass} fa-4x text-${colorClass}"></i>
+                    </div>
+                    <h5 class="mb-3">Preview not available</h5>
+                    <p class="text-muted mb-4">This file type cannot be previewed directly. Please download the file to view its contents.</p>
+                    <a href="${url}&download=true" class="btn btn-primary">
+                        <i class="fas fa-download me-2"></i>
+                        Download File
+                    </a>
+                </div>
+            `;
+        }
+    }
+</script>
+@endpush
