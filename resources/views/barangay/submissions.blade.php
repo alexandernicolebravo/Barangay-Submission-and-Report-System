@@ -375,30 +375,89 @@
                                     </div>
                                 </div>
                                 @elseif($report->model_type === 'App\\Models\\MonthlyReport')
-                                <div class="mb-3">
-                                    <label for="month{{ $reportId }}" class="form-label">Month</label>
-                                    <select class="form-select" id="month{{ $reportId }}" name="month" required>
-                                        @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
-                                            <option value="{{ $loop->iteration }}" {{ $report->month == $loop->iteration ? 'selected' : '' }}>{{ $month }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="month{{ $reportId }}" class="form-label">Month</label>
+                                        <select class="form-select" id="month{{ $reportId }}" name="month" required>
+                                            @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
+                                                <option value="{{ $loop->iteration }}" {{ $report->month == $loop->iteration ? 'selected' : '' }}>{{ $month }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="year{{ $reportId }}" class="form-label">Year</label>
+                                        <select class="form-select" id="year{{ $reportId }}" name="year" required>
+                                            @php
+                                                $currentYear = date('Y');
+                                                $startYear = $currentYear - 5;
+                                                $endYear = $currentYear + 1;
+                                            @endphp
+                                            @for($year = $startYear; $year <= $endYear; $year++)
+                                                <option value="{{ $year }}" {{ ($report->year ?? $currentYear) == $year ? 'selected' : '' }}>{{ $year }}</option>
+                                            @endfor
+                                        </select>
+                                    </div>
                                 </div>
                                 @elseif($report->model_type === 'App\\Models\\QuarterlyReport')
-                                <div class="mb-3">
-                                    <label for="quarter_number{{ $reportId }}" class="form-label">Quarter</label>
-                                    <select class="form-select" id="quarter_number{{ $reportId }}" name="quarter_number" required>
-                                        <option value="1" {{ $report->quarter_number == 1 ? 'selected' : '' }}>First Quarter (Jan-Mar)</option>
-                                        <option value="2" {{ $report->quarter_number == 2 ? 'selected' : '' }}>Second Quarter (Apr-Jun)</option>
-                                        <option value="3" {{ $report->quarter_number == 3 ? 'selected' : '' }}>Third Quarter (Jul-Sep)</option>
-                                        <option value="4" {{ $report->quarter_number == 4 ? 'selected' : '' }}>Fourth Quarter (Oct-Dec)</option>
-                                    </select>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="quarter_number{{ $reportId }}" class="form-label">Quarter</label>
+                                        <select class="form-select" id="quarter_number{{ $reportId }}" name="quarter_number" required>
+                                            <option value="1" {{ $report->quarter_number == 1 ? 'selected' : '' }}>First Quarter (Jan-Mar)</option>
+                                            <option value="2" {{ $report->quarter_number == 2 ? 'selected' : '' }}>Second Quarter (Apr-Jun)</option>
+                                            <option value="3" {{ $report->quarter_number == 3 ? 'selected' : '' }}>Third Quarter (Jul-Sep)</option>
+                                            <option value="4" {{ $report->quarter_number == 4 ? 'selected' : '' }}>Fourth Quarter (Oct-Dec)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="year{{ $reportId }}" class="form-label">Year</label>
+                                        <select class="form-select" id="year{{ $reportId }}" name="year" required>
+                                            @php
+                                                $currentYear = date('Y');
+                                                $startYear = $currentYear - 5;
+                                                $endYear = $currentYear + 1;
+                                            @endphp
+                                            @for($year = $startYear; $year <= $endYear; $year++)
+                                                <option value="{{ $year }}" {{ ($report->year ?? $currentYear) == $year ? 'selected' : '' }}>{{ $year }}</option>
+                                            @endfor
+                                        </select>
+                                    </div>
                                 </div>
                                 @elseif($report->model_type === 'App\\Models\\SemestralReport')
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="sem_number{{ $reportId }}" class="form-label">Semester</label>
+                                        <select class="form-select" id="sem_number{{ $reportId }}" name="sem_number" required>
+                                            <option value="1" {{ $report->sem_number == 1 ? 'selected' : '' }}>First Semester (Jan-Jun)</option>
+                                            <option value="2" {{ $report->sem_number == 2 ? 'selected' : '' }}>Second Semester (Jul-Dec)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="year{{ $reportId }}" class="form-label">Year</label>
+                                        <select class="form-select" id="year{{ $reportId }}" name="year" required>
+                                            @php
+                                                $currentYear = date('Y');
+                                                $startYear = $currentYear - 5;
+                                                $endYear = $currentYear + 1;
+                                            @endphp
+                                            @for($year = $startYear; $year <= $endYear; $year++)
+                                                <option value="{{ $year }}" {{ ($report->year ?? $currentYear) == $year ? 'selected' : '' }}>{{ $year }}</option>
+                                            @endfor
+                                        </select>
+                                    </div>
+                                </div>
+                                @elseif($report->model_type === 'App\\Models\\AnnualReport')
                                 <div class="mb-3">
-                                    <label for="sem_number{{ $reportId }}" class="form-label">Semester</label>
-                                    <select class="form-select" id="sem_number{{ $reportId }}" name="sem_number" required>
-                                        <option value="1" {{ $report->sem_number == 1 ? 'selected' : '' }}>First Semester (Jan-Jun)</option>
-                                        <option value="2" {{ $report->sem_number == 2 ? 'selected' : '' }}>Second Semester (Jul-Dec)</option>
+                                    <label for="year{{ $reportId }}" class="form-label">Year</label>
+                                    <select class="form-select" id="year{{ $reportId }}" name="year" required>
+                                        @php
+                                            $currentYear = date('Y');
+                                            $startYear = $currentYear - 5;
+                                            $endYear = $currentYear + 1;
+                                        @endphp
+                                        @for($year = $startYear; $year <= $endYear; $year++)
+                                            <option value="{{ $year }}" {{ ($report->year ?? $currentYear) == $year ? 'selected' : '' }}>{{ $year }}</option>
+                                        @endfor
                                     </select>
                                 </div>
                                 @endif
