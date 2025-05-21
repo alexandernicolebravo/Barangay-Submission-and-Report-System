@@ -16,6 +16,7 @@ use App\Http\Controllers\BarangayFileController;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Report;
 use App\Models\{WeeklyReport, MonthlyReport, QuarterlyReport, SemestralReport, AnnualReport};
+use App\Http\Controllers\AnnouncementController;
 
 // Public Routes
 Route::get('/', function () {
@@ -295,6 +296,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/report-types/{id}/edit', [ReportTypeController::class, 'edit'])->name('edit-report');
         Route::put('/report-types/{id}', [ReportTypeController::class, 'update'])->name('update-report');
         Route::delete('/report-types/{id}', [ReportTypeController::class, 'destroy'])->name('destroy-report');
+
+        // Admin Announcements Routes
+        Route::resource('announcements', AnnouncementController::class);
+        Route::put('/announcements/{announcement}/toggle-status', [AnnouncementController::class, 'toggleStatus'])->name('announcements.toggle-status');
     });
 
     // Barangay Routes
