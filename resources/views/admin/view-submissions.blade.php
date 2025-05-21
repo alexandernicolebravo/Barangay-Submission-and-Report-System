@@ -134,6 +134,100 @@
                 });
         }
 
+        // Force scroll to top on page load
+        window.scrollTo(0, 0);
+
+        // Clear any scroll position from sessionStorage
+        Object.keys(sessionStorage).forEach(key => {
+            if (key.startsWith('scrollPos_')) {
+                sessionStorage.removeItem(key);
+            }
+        });
+
+        // For links that navigate to different pages
+        document.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', function() {
+                // Force scroll to top before navigation
+                window.scrollTo(0, 0);
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Get all filter elements
+            const filterForm = document.getElementById('filterForm');
+            const searchInput = document.querySelector('input[name="search"]');
+            const filterSelects = document.querySelectorAll('select');
+            const tableBody = document.querySelector('.table tbody');
+
+            // Function to handle AJAX requests
+            const handleAjaxRequest = (params) => {
+                // Show loading state
+                tableBody.style.opacity = '0.5';
+
+                fetch(`${filterForm.action}?${new URLSearchParams(params).toString()}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    const tempContainer = document.createElement('div');
+                    tempContainer.innerHTML = html;
+
+                    const newTableBody = tempContainer.querySelector('.table tbody');
+                    if (newTableBody) {
+                        const oldContent = tableBody.innerHTML;
+                        const newContent = newTableBody.innerHTML;
+
+                        // Only update if content is different
+                        if (oldContent !== newContent) {
+                            tableBody.innerHTML = newContent;
+
+                            // Re-initialize any interactive elements
+                            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                                new bootstrap.Tooltip(el);
+                            });
+                        }
+                    }
+                    // Restore opacity
+                    tableBody.style.opacity = '1';
+                })
+                .catch(error => {
+                    console.error('Search request failed:', error);
+                    tableBody.style.opacity = '1';
+                });
+            };
+
+            // Function to get all filter values
+            const getFilterValues = () => {
+                return {
+                    search: searchInput.value.trim(),
+                    barangay_id: document.querySelector('select[name="barangay_id"]').value,
+                    type: document.querySelector('select[name="type"]').value,
+                    cluster_id: document.querySelector('select[name="cluster_id"]')?.value || '',
+                    timeliness: document.querySelector('select[name="timeliness"]').value,
+                    ajax: true
+                };
+            };
+
+            // Add event listener for search input
+            searchInput.addEventListener('input', function() {
+                handleAjaxRequest(getFilterValues());
+            });
+
+            // Add event listeners for all select elements
+            filterSelects.forEach(select => {
+                select.addEventListener('change', function() {
+                    handleAjaxRequest(getFilterValues());
+                });
+            });
+        });
     </script>
 @endpush
 
@@ -484,110 +578,6 @@
             <i class="fas fa-file-alt me-2" style="color: var(--primary);"></i>
             All Submissions
         </h5>
-        @push('scripts')
-        <script>
-            // File preview function
-            function previewFile(url, fileName) {
-                // Open in a new tab
-                window.open(url, '_blank');
-            }
-
-            // Force scroll to top on page load
-            window.scrollTo(0, 0);
-
-            // Clear any scroll position from sessionStorage
-            Object.keys(sessionStorage).forEach(key => {
-                if (key.startsWith('scrollPos_')) {
-                    sessionStorage.removeItem(key);
-                }
-            });
-
-            // For links that navigate to different pages
-            document.querySelectorAll('a').forEach(link => {
-                link.addEventListener('click', function() {
-                    // Force scroll to top before navigation
-                    window.scrollTo(0, 0);
-                });
-            });
-
-            document.addEventListener('DOMContentLoaded', function() {
-                // Initialize tooltips
-                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
-                });
-
-                // Get all filter elements
-                const filterForm = document.getElementById('filterForm');
-                const searchInput = document.querySelector('input[name="search"]');
-                const filterSelects = document.querySelectorAll('select');
-                const tableBody = document.querySelector('.table tbody');
-
-                // Function to handle AJAX requests
-                const handleAjaxRequest = (params) => {
-                    // Show loading state
-                    tableBody.style.opacity = '0.5';
-
-                    fetch(`${filterForm.action}?${new URLSearchParams(params).toString()}`, {
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(response => response.text())
-                    .then(html => {
-                        const tempContainer = document.createElement('div');
-                        tempContainer.innerHTML = html;
-
-                        const newTableBody = tempContainer.querySelector('.table tbody');
-                        if (newTableBody) {
-                            const oldContent = tableBody.innerHTML;
-                            const newContent = newTableBody.innerHTML;
-
-                            // Only update if content is different
-                            if (oldContent !== newContent) {
-                                tableBody.innerHTML = newContent;
-
-                                // Re-initialize any interactive elements
-                                document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-                                    new bootstrap.Tooltip(el);
-                                });
-                            }
-                        }
-                        // Restore opacity
-                        tableBody.style.opacity = '1';
-                    })
-                    .catch(error => {
-                        console.error('Search request failed:', error);
-                        tableBody.style.opacity = '1';
-                    });
-                };
-
-                // Function to get all filter values
-                const getFilterValues = () => {
-                    return {
-                        search: searchInput.value.trim(),
-                        barangay_id: document.querySelector('select[name="barangay_id"]').value,
-                        type: document.querySelector('select[name="type"]').value,
-                        cluster_id: document.querySelector('select[name="cluster_id"]')?.value || '',
-                        timeliness: document.querySelector('select[name="timeliness"]').value,
-                        ajax: true
-                    };
-                };
-
-                // Add event listener for search input
-                searchInput.addEventListener('input', function() {
-                    handleAjaxRequest(getFilterValues());
-                });
-
-                // Add event listeners for all select elements
-                filterSelects.forEach(select => {
-                    select.addEventListener('change', function() {
-                        handleAjaxRequest(getFilterValues());
-                    });
-                });
-            });
-        </script>
-        @endpush
 
         <form id="filterForm" class="d-flex flex-wrap gap-2" method="GET" action="{{ route('admin.view.submissions') }}">
             <div class="input-group" style="width: 200px;">
@@ -1399,169 +1389,4 @@ function showDeleteConfirmationModal(reportTypeId) {
     </div>
 </div>
 
-```javascript
-// File preview function
-function previewFile(url, fileName) {
-    // Set the file name in the modal
-    document.getElementById('previewFileName').textContent = fileName;
-
-    // Set the download link
-    const downloadLink = document.getElementById('downloadLink');
-    downloadLink.href = url + '?download=true';
-
-    // Show loading spinner
-    const previewContainer = document.getElementById('previewContainer');
-    previewContainer.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="text-muted">Loading document preview...</p>
-        </div>
-    `;
-
-    // Get file extension and set appropriate icon
-    const extension = fileName.split('.').pop().toLowerCase();
-    const fileTypeIcon = document.getElementById('fileTypeIcon');
-    const fileIconElement = fileTypeIcon.querySelector('i');
-
-    // Set icon and color based on file type
-    let iconClass = 'fa-file';
-    let bgColorClass = 'primary';
-
-    switch(extension) {
-        case 'pdf':
-            iconClass = 'fa-file-pdf';
-            bgColorClass = 'danger';
-            break;
-        case 'doc':
-        case 'docx':
-            iconClass = 'fa-file-word';
-            bgColorClass = 'primary';
-            break;
-        case 'xls':
-        case 'xlsx':
-            iconClass = 'fa-file-excel';
-            bgColorClass = 'success';
-            break;
-        case 'jpg':
-        case 'jpeg':
-        case 'png':
-        case 'gif':
-            iconClass = 'fa-file-image';
-            bgColorClass = 'info';
-            break;
-        case 'txt':
-            iconClass = 'fa-file-alt';
-            bgColorClass = 'secondary';
-            break;
-        default:
-            iconClass = 'fa-file';
-            bgColorClass = 'primary';
-    }
-
-    // Update icon class and background color
-    fileIconElement.className = `fas ${iconClass} fa-lg text-${bgColorClass}`;
-    fileTypeIcon.style.backgroundColor = `rgba(var(--${bgColorClass}-rgb), 0.1)`;
-
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
-    modal.show();
-
-    // Fetch the file
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('File not found or access denied');
-            }
-            const contentType = response.headers.get('content-type');
-            return response.blob().then(blob => ({ blob, contentType }));
-        })
-        .then(({ blob, contentType }) => {
-            const fileUrl = URL.createObjectURL(blob);
-
-            // Create preview based on content type and extension
-            if (contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-                // Image preview
-                previewContainer.innerHTML = `
-                    <div class="text-center p-3 bg-white rounded shadow-sm" style="max-width: 95%;">
-                        <img src="${fileUrl}" class="img-fluid" alt="${fileName}" style="max-height: 65vh;">
-                        <div class="mt-3 text-muted small">
-                            <i class="fas fa-info-circle me-1"></i> Image preview: ${fileName}
-                        </div>
-                    </div>`;
-            } else if (contentType === 'application/pdf' || extension === 'pdf') {
-                // PDF preview
-                previewContainer.innerHTML = `
-                    <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
-                        <iframe src="${fileUrl}"
-                                style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
-                                title="${fileName}">
-                        </iframe>
-                    </div>`;
-            } else if (contentType.startsWith('text/') || ['txt', 'csv', 'html'].includes(extension)) {
-                // Text preview
-                fetch(fileUrl)
-                    .then(response => response.text())
-                    .then(text => {
-                        previewContainer.innerHTML = `
-                            <div class="bg-white rounded shadow-sm" style="width: 95%; max-height: 65vh; overflow-y: auto;">
-                                <pre class="text-start p-4 mb-0" style="white-space: pre-wrap;">${text}</pre>
-                                <div class="p-3 border-top text-muted small">
-                                    <i class="fas fa-info-circle me-1"></i> Text document: ${fileName}
-                                </div>
-                            </div>`;
-                    });
-            } else if (['docx', 'xls', 'xlsx'].includes(extension)) {
-                // Office documents - use Google Docs Viewer
-                const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + url)}&embedded=true`;
-                previewContainer.innerHTML = `
-                    <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
-                        <iframe src="${googleDocsUrl}"
-                                style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
-                                title="${fileName}">
-                        </iframe>
-                        <div class="p-3 border-top text-muted small">
-                            <i class="fas fa-info-circle me-1"></i> Office document preview powered by Google Docs
-                        </div>
-                    </div>`;
-            } else {
-                // Unsupported file type
-                previewContainer.innerHTML = `
-                    <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
-                        <div class="mb-3">
-                            <i class="fas ${iconClass} fa-4x text-${bgColorClass} mb-3"></i>
-                            <h5 class="mb-3">Preview Not Available</h5>
-                            <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
-                        </div>
-                        <a href="${downloadLink.href}" class="btn btn-primary">
-                            <i class="fas fa-download me-2"></i> Download to View
-                        </a>
-                        <div class="mt-4 text-start text-muted small">
-                            <div><strong>File name:</strong> ${fileName}</div>
-                            <div><strong>File type:</strong> ${contentType || 'Unknown'}</div>
-                            <div><strong>Extension:</strong> ${extension}</div>
-                        </div>
-                    </div>`;
-            }
-        })
-        .catch(error => {
-            console.error('Preview error:', error);
-            previewContainer.innerHTML = `
-                <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
-                    <div class="mb-3 text-danger">
-                        <i class="fas fa-exclamation-circle fa-4x mb-3"></i>
-                        <h5 class="mb-3">Error Loading File</h5>
-                        <p class="text-muted mb-4">${error.message}</p>
-                    </div>
-                    <a href="${downloadLink.href}" class="btn btn-primary">
-                        <i class="fas fa-download me-2"></i> Try Downloading Instead
-                    </a>
-                    <div class="mt-4 text-start text-muted small">
-                        <div><strong>File name:</strong> ${fileName}</div>
-                        <div><strong>Extension:</strong> ${extension}</div>
-                    </div>
-                </div>`;
-        });
-}
-```@endsection
+@endsection

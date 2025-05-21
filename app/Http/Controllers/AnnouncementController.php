@@ -18,7 +18,7 @@ class AnnouncementController extends Controller
         $announcements = Announcement::orderBy('priority', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-            
+
         return view('admin.announcements.index', compact('announcements'));
     }
 
@@ -38,7 +38,7 @@ class AnnouncementController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'content' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20480',
             'button_text' => 'nullable|string|max:50',
             'button_link' => 'nullable|string|max:255',
             'is_active' => 'boolean',
@@ -56,7 +56,7 @@ class AnnouncementController extends Controller
 
         $data = $request->except('image');
         $data['created_by'] = Auth::id();
-        
+
         // Handle image upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('announcements', 'public');
@@ -93,7 +93,7 @@ class AnnouncementController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'content' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20480',
             'button_text' => 'nullable|string|max:50',
             'button_link' => 'nullable|string|max:255',
             'is_active' => 'boolean',
@@ -111,14 +111,14 @@ class AnnouncementController extends Controller
 
         $data = $request->except('image');
         $data['updated_by'] = Auth::id();
-        
+
         // Handle image upload
         if ($request->hasFile('image')) {
             // Delete old image if exists
             if ($announcement->image_path) {
                 Storage::disk('public')->delete($announcement->image_path);
             }
-            
+
             $path = $request->file('image')->store('announcements', 'public');
             $data['image_path'] = $path;
         }
@@ -138,13 +138,13 @@ class AnnouncementController extends Controller
         if ($announcement->image_path) {
             Storage::disk('public')->delete($announcement->image_path);
         }
-        
+
         $announcement->delete();
 
         return redirect()->route('admin.announcements.index')
             ->with('success', 'Announcement deleted successfully.');
     }
-    
+
     /**
      * Toggle the active status of an announcement.
      */
@@ -154,7 +154,7 @@ class AnnouncementController extends Controller
             'is_active' => !$announcement->is_active,
             'updated_by' => Auth::id(),
         ]);
-        
+
         return redirect()->route('admin.announcements.index')
             ->with('success', 'Announcement status updated successfully.');
     }

@@ -493,7 +493,12 @@
                             @foreach(App\Models\ReportType::availableFileTypes() as $key => $value)
                                 <div class="col-md-6">
                                     <div class="form-check">
-                                        <input class="form-check-input @error('allowed_file_types') is-invalid @enderror" type="checkbox" name="allowed_file_types[]" value="{{ $key }}" {{ in_array($key, old('allowed_file_types', [])) ? 'checked' : '' }}>
+                                        <input class="form-check-input @error('allowed_file_types') is-invalid @enderror"
+                                               type="checkbox"
+                                               name="allowed_file_types[]"
+                                               value="{{ $key }}"
+                                               {{ in_array($key, old('allowed_file_types', [])) ? 'checked' : '' }}
+                                               {{ $key === 'pdf' ? 'checked' : '' }}>
                                         <label class="form-check-label">
                                             {{ $value }}
                                         </label>
@@ -546,6 +551,12 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    // Ensure PDF checkbox is always checked in create modal
+    $('#createReportTypeModal').on('show.bs.modal', function() {
+        // Find the PDF checkbox and ensure it's checked
+        $(this).find('input[type="checkbox"][value="pdf"]').prop('checked', true);
+    });
+
     // Handle create form submission
     $('#createForm').on('submit', function(e) {
         e.preventDefault();

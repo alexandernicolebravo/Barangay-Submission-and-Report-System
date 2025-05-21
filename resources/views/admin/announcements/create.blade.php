@@ -8,7 +8,7 @@
         <li class="breadcrumb-item"><a href="{{ route('admin.announcements.index') }}">Announcements</a></li>
         <li class="breadcrumb-item active">Create</li>
     </ol>
-    
+
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-bullhorn me-1"></i> New Announcement
@@ -16,7 +16,7 @@
         <div class="card-body">
             <form action="{{ route('admin.announcements.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                
+
                 <div class="row mb-3">
                     <div class="col-md-8">
                         <div class="mb-3">
@@ -26,7 +26,7 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="content" class="form-label">Content</label>
                             <textarea class="form-control @error('content') is-invalid @enderror" id="content" name="content" rows="6">{{ old('content') }}</textarea>
@@ -35,7 +35,7 @@
                             @enderror
                             <div class="form-text">You can use basic HTML tags for formatting.</div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -57,7 +57,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-4">
                         <div class="mb-3">
                             <label for="image" class="form-label">Image</label>
@@ -65,9 +65,9 @@
                             @error('image')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <div class="form-text">Recommended size: 800x600px. Max 2MB.</div>
+                            <div class="form-text">Recommended size: 800x600px. Max 20MB.</div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="background_color" class="form-label">Background Color</label>
                             <input type="color" class="form-control form-control-color @error('background_color') is-invalid @enderror" id="background_color" name="background_color" value="{{ old('background_color', '#003366') }}">
@@ -75,7 +75,7 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="priority" class="form-label">Priority</label>
                             <input type="number" class="form-control @error('priority') is-invalid @enderror" id="priority" name="priority" value="{{ old('priority', 0) }}" min="0">
@@ -84,14 +84,14 @@
                             @enderror
                             <div class="form-text">Higher numbers appear first.</div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', '1') == '1' ? 'checked' : '' }}>
                                 <label class="form-check-label" for="is_active">Active</label>
                             </div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="starts_at" class="form-label">Start Date</label>
                             <input type="datetime-local" class="form-control @error('starts_at') is-invalid @enderror" id="starts_at" name="starts_at" value="{{ old('starts_at') }}">
@@ -99,7 +99,7 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="ends_at" class="form-label">End Date</label>
                             <input type="datetime-local" class="form-control @error('ends_at') is-invalid @enderror" id="ends_at" name="ends_at" value="{{ old('ends_at') }}">
@@ -109,7 +109,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('admin.announcements.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create Announcement</button>
@@ -129,10 +129,19 @@
         previewContainer.className = 'mt-2 d-none';
         previewContainer.innerHTML = '<img id="imagePreview" class="img-fluid rounded" style="max-height: 200px;">';
         imageInput.parentNode.appendChild(previewContainer);
-        
+
         imageInput.addEventListener('change', function() {
             const file = this.files[0];
             if (file) {
+                // Check file size (20MB = 20 * 1024 * 1024 bytes)
+                const maxSize = 20 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    alert('File size exceeds 20MB limit. Please choose a smaller file.');
+                    this.value = '';
+                    previewContainer.classList.add('d-none');
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('imagePreview').src = e.target.result;
