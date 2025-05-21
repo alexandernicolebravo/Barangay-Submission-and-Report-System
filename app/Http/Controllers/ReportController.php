@@ -322,7 +322,8 @@ class ReportController extends Controller
 
             $validated = $request->validate([
                 'remarks' => 'nullable|string|max:1000',
-                'type' => 'required|in:weekly,monthly,quarterly,semestral,annual'
+                'type' => 'required|in:weekly,monthly,quarterly,semestral,annual',
+                'can_update' => 'nullable|boolean'
             ]);
 
             // Check if the user is an admin
@@ -349,10 +350,17 @@ class ReportController extends Controller
             // Get the old remarks to check if they've changed
             $oldRemarks = $report->remarks;
 
-            // Only update remarks
-            $report->update([
+            // Update remarks and can_update flag
+            $updateData = [
                 'remarks' => $validated['remarks']
-            ]);
+            ];
+
+            // Only set can_update if it's provided in the request
+            if (isset($validated['can_update'])) {
+                $updateData['can_update'] = $validated['can_update'] ? true : false;
+            }
+
+            $report->update($updateData);
 
             // Send notification if remarks have been added or changed
             if ($validated['remarks'] && $validated['remarks'] !== $oldRemarks) {
@@ -471,9 +479,52 @@ class ReportController extends Controller
     public function store(Request $request)
     {
         try {
+            // Get the report type to check allowed file types
+            $reportType = ReportType::findOrFail($request->report_type_id);
+
+            // Get allowed file types from the report type or use default (pdf)
+            $allowedTypes = $reportType->allowed_file_types ?? ['pdf'];
+
+            // Add docx to allowed types if it's not already included
+            if (!in_array('docx', $allowedTypes)) {
+                $allowedTypes[] = 'docx';
+            }
+
+            // Log the allowed file types for debugging
+            Log::info('Allowed file types for report type ' . $reportType->id . ':', [
+                'report_type' => $reportType->name,
+                'allowed_types' => $allowedTypes
+            ]);
+
+            // Map file extensions to MIME types
+            $mimeTypeMap = [
+                'pdf' => 'application/pdf',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'zip' => 'application/zip',
+                'rar' => 'application/x-rar-compressed'
+            ];
+
+            // Convert file extensions to Laravel's expected MIME type format
+            $mimeTypes = [];
+            foreach ($allowedTypes as $type) {
+                if (isset($mimeTypeMap[$type])) {
+                    $mimeTypes[] = $mimeTypeMap[$type];
+                }
+            }
+
+            $mimeTypesStr = implode(',', $mimeTypes);
+
+            // Log the MIME types for debugging
+            Log::info('MIME types for validation (ReportController): ' . $mimeTypesStr);
+
             $validated = $request->validate([
                 'report_type_id' => 'required|exists:report_types,id',
-                'file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:10240',
+                'file' => 'required|file|mimes:' . $mimeTypesStr . '|max:102400',
                 'type' => 'required|in:weekly,monthly,quarterly,semestral,annual'
             ]);
 
@@ -622,8 +673,48 @@ class ReportController extends Controller
             return back()->with('error', 'Report not found or you do not have permission to resubmit this report.');
         }
 
+        // Get allowed file types from the report type or use default (pdf)
+        $allowedTypes = $report->reportType->allowed_file_types ?? ['pdf'];
+
+        // Add docx to allowed types if it's not already included
+        if (!in_array('docx', $allowedTypes)) {
+            $allowedTypes[] = 'docx';
+        }
+
+        // Log the allowed file types for debugging
+        Log::info('Allowed file types for resubmission of report type ' . $report->reportType->id . ':', [
+            'report_type' => $report->reportType->name,
+            'allowed_types' => $allowedTypes
+        ]);
+
+        // Map file extensions to MIME types
+        $mimeTypeMap = [
+            'pdf' => 'application/pdf',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'zip' => 'application/zip',
+            'rar' => 'application/x-rar-compressed'
+        ];
+
+        // Convert file extensions to Laravel's expected MIME type format
+        $mimeTypes = [];
+        foreach ($allowedTypes as $type) {
+            if (isset($mimeTypeMap[$type])) {
+                $mimeTypes[] = $mimeTypeMap[$type];
+            }
+        }
+
+        $mimeTypesStr = implode(',', $mimeTypes);
+
+        // Log the MIME types for debugging
+        Log::info('MIME types for validation (ReportController resubmit): ' . $mimeTypesStr);
+
         $request->validate([
-            'file' => 'required|file|mimes:pdf,doc,docx,xlsx|max:2048',
+            'file' => 'required|file|mimes:' . $mimeTypesStr . '|max:102400',
         ]);
 
         $fileName = time() . '_' . str_replace([' ', '(', ')'], '_', $request->file('file')->getClientOriginalName());
@@ -922,8 +1013,8 @@ class ReportController extends Controller
                 'image/gif',
                 'text/plain',
                 'text/html',
-                'application/msword',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/msword',
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             ];
@@ -939,16 +1030,28 @@ class ReportController extends Controller
                 'png' => 'image/png',
                 'gif' => 'image/gif',
                 'txt' => 'text/plain',
-                'doc' => 'application/msword',
                 'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'xls' => 'application/vnd.ms-excel',
                 'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ];
+
+            // Additional MIME types for docx files
+            $docxMimeTypes = [
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/msword',
+                'application/octet-stream'
             ];
 
             // If mime_content_type fails, try to determine from extension
             if (!$mimeType && isset($extensionMimeTypes[$extension])) {
                 $mimeType = $extensionMimeTypes[$extension];
                 Log::info('Using mime type from extension: ' . $mimeType);
+            }
+
+            // Special handling for docx files
+            if ($extension === 'docx' && !in_array($mimeType, $docxMimeTypes)) {
+                $mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                Log::info('Forcing MIME type for docx file: ' . $mimeType);
             }
 
             if (in_array($mimeType, $viewableTypes)) {

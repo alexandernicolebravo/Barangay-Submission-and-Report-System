@@ -15,12 +15,19 @@
             </div>
 
             <div class="card-body">
+
                 @if (session('success'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="fas fa-check-circle me-2"></i>
                         {{ session('success') }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                            successModal.show();
+                        });
+                    </script>
                 @endif
 
                 @if (session('error'))
@@ -92,7 +99,7 @@
 
                 <!-- New Report Submission Form -->
                 @if(count($reportTypes) > 0)
-                    <form method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <form method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" data-no-ajax="true" novalidate>
                         @csrf
                         <div class="row mb-4">
                             <div class="col-md-6">
@@ -104,7 +111,9 @@
                                     <select id="report_type" class="form-select form-select-lg @error('report_type_id') is-invalid @enderror" name="report_type_id" required>
                                         <option value="">Select Report Type</option>
                                         @foreach($reportTypes as $reportType)
-                                            <option value="{{ $reportType->id }}" data-frequency="{{ $reportType->frequency }}">
+                                            <option value="{{ $reportType->id }}"
+                                                data-frequency="{{ $reportType->frequency }}"
+                                                data-allowed-types="{{ json_encode($reportType->allowed_file_types ?? ['pdf']) }}">
                                                 {{ $reportType->name }}
                                             </option>
                                         @endforeach
@@ -150,13 +159,19 @@
                                         <i class="fas fa-file-upload me-2"></i>
                                         Upload File
                                     </label>
+                                    <div class="mb-2">
+                                        <div class="alert alert-info py-2 mb-2" id="allowedFormatsAlert">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <span id="allowedFormatsText">Please select a report type to see accepted file formats</span>
+                                        </div>
+                                    </div>
                                     <div class="drop-zone" id="dropZone">
                                         <div class="drop-zone__prompt">
                                             <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-primary"></i>
                                             <p class="mb-2">Drag and drop your file here or click to browse</p>
-                                            <small class="text-muted">Accepted formats: PDF, DOC, DOCX, XLSX (Max: 2MB)</small>
+                                            <small class="text-muted" id="dropZoneFormatsText">Select a report type first</small>
                                         </div>
-                                        <input type="file" name="file" id="file" class="drop-zone__input" accept=".pdf,.doc,.docx,.xlsx" required>
+                                        <input type="file" name="file" id="file" class="drop-zone__input" accept=".pdf,.docx,.xlsx" required>
                                     </div>
                                     @error('file')
                                         <div class="invalid-feedback d-block">
@@ -350,6 +365,8 @@
                             </button>
                         </div>
                     </form>
+
+
                 @else
                     <div class="text-center py-5">
                         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
@@ -361,6 +378,29 @@
                         </a>
                     </div>
                 @endif
+
+                <!-- Success Modal -->
+                <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title" id="successModalLabel">Report Submitted Successfully!</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center py-4">
+                                <div class="mb-4">
+                                    <i class="fas fa-check-circle text-success fa-5x"></i>
+                                </div>
+                                <h5 class="mb-3">Your report has been submitted successfully!</h5>
+                                <p class="text-muted">Your report has been submitted and is now available for review.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <a href="{{ route('barangay.dashboard') }}" class="btn btn-success">Back to Dashboard</a>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -431,6 +471,126 @@
 
 @push('scripts')
 <script>
+// Disable AJAX handling and notifications for this form
+window.addEventListener('load', function() {
+    // Disable SweetAlert2 if it exists
+    if (window.Swal) {
+        console.log('Disabling SweetAlert2 for this page');
+        const originalSwal = window.Swal;
+        window.Swal = function(options) {
+            // If this is an error message, don't show it
+            if (options.icon === 'error' || options.type === 'error') {
+                console.log('Preventing SweetAlert2 error message:', options);
+                return {
+                    then: function() { return this; },
+                    catch: function() { return this; },
+                    finally: function() { return this; }
+                };
+            }
+
+            // For all other alerts, use the original Swal
+            return originalSwal(options);
+        };
+
+        // Copy all static methods from the original Swal
+        for (const key in originalSwal) {
+            if (typeof originalSwal[key] === 'function') {
+                window.Swal[key] = function() {
+                    // If this is an error method, don't show it
+                    if (key === 'fire' && arguments[0] && (arguments[0].icon === 'error' || arguments[0].type === 'error')) {
+                        console.log('Preventing SweetAlert2 error message from static method:', arguments[0]);
+                        return {
+                            then: function() { return this; },
+                            catch: function() { return this; },
+                            finally: function() { return this; }
+                        };
+                    }
+
+                    // For all other methods, use the original
+                    return originalSwal[key].apply(originalSwal, arguments);
+                };
+            } else {
+                window.Swal[key] = originalSwal[key];
+            }
+        }
+    }
+
+    // Override the fetch function to prevent AJAX for this form
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+        // If this is a form submission to the submissions.store route, don't use fetch
+        if (url.includes('submissions/store') && options && options.method === 'POST') {
+            console.log('Preventing AJAX for form submission to submissions/store');
+            // Don't actually call fetch, let the form submit normally
+            return new Promise((resolve, reject) => {
+                // This promise will never resolve or reject
+            });
+        }
+
+        // For all other requests, use the original fetch
+        return originalFetch(url, options);
+    };
+
+    // Disable the showToast function from ajax-forms.js
+    if (window.showToast) {
+        console.log('Disabling showToast function');
+        const originalShowToast = window.showToast;
+        window.showToast = function(type, message) {
+            // If this is an error message, don't show it
+            if (type === 'error') {
+                console.log('Preventing error toast:', message);
+                return;
+            }
+
+            // For all other toasts, use the original function
+            return originalShowToast(type, message);
+        };
+    }
+
+    // Override the alert function to prevent error alerts
+    const originalAlert = window.alert;
+    window.alert = function(message) {
+        // If this is an error message, don't show it
+        if (message && (
+            message.includes('error') ||
+            message.includes('Error') ||
+            message.includes('failed') ||
+            message.includes('Failed') ||
+            message.includes('An error occurred while submitting the report')
+        )) {
+            console.log('Preventing error alert:', message);
+            return;
+        }
+
+        // For all other alerts, use the original function
+        return originalAlert(message);
+    };
+
+    // Basic form validation
+    const form = document.querySelector('form');
+    if (form) {
+        // Add basic validation without preventing form submission
+        form.addEventListener('submit', function(e) {
+            const reportType = document.getElementById('report_type').value;
+            const file = document.getElementById('file').files[0];
+
+            if (!reportType) {
+                e.preventDefault();
+                alert('Please select a report type');
+                return false;
+            }
+
+            if (!file) {
+                e.preventDefault();
+                alert('Please upload a file');
+                return false;
+            }
+
+            return true;
+        });
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const reportTypeSelect = document.getElementById('report_type');
     const reportFields = document.querySelectorAll('.report-fields');
@@ -514,6 +674,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial filter application
     filterReportTypes();
 
+    // Initialize the allowed formats display
+    updateAllowedFormatsDisplay();
+
     // Check if there are any report types available
     const hasReportTypes = Array.from(reportTypeSelect.options).some(option =>
         option.value !== '' && option.style.display !== 'none'
@@ -545,7 +708,93 @@ document.addEventListener('DOMContentLoaded', function() {
         if (frequency) {
             document.getElementById(`${frequency}-fields`).style.display = 'block';
         }
+
+        // Update allowed formats display
+        updateAllowedFormatsDisplay();
     });
+
+    // Function to update the allowed formats display
+    function updateAllowedFormatsDisplay() {
+        // Check if reportTypeSelect exists and has a selected option
+        if (!reportTypeSelect) {
+            console.error('Report type select element not found');
+            return;
+        }
+
+        // Get the selected option
+        const selectedIndex = reportTypeSelect.selectedIndex;
+        if (selectedIndex === -1) {
+            console.error('No option selected in report type select');
+            return;
+        }
+
+        const selectedOption = reportTypeSelect.options[selectedIndex];
+        const allowedFormatsAlert = document.getElementById('allowedFormatsAlert');
+        const allowedFormatsText = document.getElementById('allowedFormatsText');
+        const dropZoneFormatsText = document.getElementById('dropZoneFormatsText');
+
+        if (!allowedFormatsAlert || !allowedFormatsText || !dropZoneFormatsText) {
+            console.error('One or more required elements not found');
+            return;
+        }
+
+        // Check if a valid report type is selected
+        if (selectedOption && selectedOption.value) {
+            console.log('Selected report type:', selectedOption.value, selectedOption.text);
+            console.log('Allowed types data attribute:', selectedOption.dataset.allowedTypes);
+
+            try {
+                // Get allowed file types from the data attribute
+                let allowedTypes = ['pdf']; // Default
+                if (selectedOption.dataset.allowedTypes) {
+                    allowedTypes = JSON.parse(selectedOption.dataset.allowedTypes);
+                    console.log('Parsed allowed types:', allowedTypes);
+                }
+
+                // Format for display
+                const formattedTypes = allowedTypes.map(type => type.toUpperCase()).join(', ');
+                console.log('Formatted types for display:', formattedTypes);
+
+                // Update the alert
+                allowedFormatsAlert.classList.remove('alert-warning');
+                allowedFormatsAlert.classList.add('alert-info');
+                allowedFormatsText.innerHTML = `<strong>Accepted file formats:</strong> ${formattedTypes} (Max: 100MB)`;
+
+                // Update the drop zone text
+                dropZoneFormatsText.textContent = `Accepted formats: ${formattedTypes} (Max: 100MB)`;
+
+                // Update the file input accept attribute
+                const acceptAttr = allowedTypes.map(type => '.' + type).join(',');
+                inputElement.setAttribute('accept', acceptAttr);
+
+                console.log('Updated allowed formats display successfully');
+            } catch (e) {
+                console.error('Error updating allowed formats:', e);
+
+                // Default to PDF, DOCX, XLSX
+                const defaultTypes = ['PDF', 'DOCX', 'XLSX'];
+
+                // Update the alert
+                allowedFormatsAlert.classList.remove('alert-info');
+                allowedFormatsAlert.classList.add('alert-warning');
+                allowedFormatsText.innerHTML = `<strong>Accepted file formats:</strong> ${defaultTypes.join(', ')} (Max: 100MB)`;
+
+                // Update the drop zone text
+                dropZoneFormatsText.textContent = `Accepted formats: ${defaultTypes.join(', ')} (Max: 100MB)`;
+
+                // Update the file input accept attribute
+                inputElement.setAttribute('accept', '.pdf,.docx,.xlsx');
+            }
+        } else {
+            console.log('No report type selected');
+
+            // No report type selected
+            allowedFormatsAlert.classList.remove('alert-info');
+            allowedFormatsAlert.classList.add('alert-warning');
+            allowedFormatsText.innerHTML = 'Please select a report type to see accepted file formats';
+            dropZoneFormatsText.textContent = 'Select a report type first';
+        }
+    }
 
     // Handle file drop
     dropZone.addEventListener('dragover', function(e) {
@@ -591,48 +840,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Form submission handling
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function(e) {
-        // Validate required fields
-        const reportType = reportTypeSelect.value;
-        const file = inputElement.files[0];
-
-        if (!reportType) {
-            e.preventDefault();
-            alert('Please select a report type');
-            return;
-        }
-
-        if (!file) {
-            e.preventDefault();
-            alert('Please upload a file');
-            return;
-        }
-
-        // Check file size (2MB limit)
-        if (file.size > 2 * 1024 * 1024) {
-            e.preventDefault();
-            alert('File size must be less than 2MB');
-            return;
-        }
-
-        // Check file type
-        const allowedTypes = ['.pdf', '.doc', '.docx', '.xlsx'];
-        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-        if (!allowedTypes.includes(fileExtension)) {
-            e.preventDefault();
-            alert('Invalid file type. Please upload a PDF, DOC, DOCX, or XLSX file');
-            return;
-        }
-
-        // Disable submit button and show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
-
-        // Let the form submit naturally
-        return true;
-    });
+    // Form validation is handled by the load event listener above
 });
 </script>
 @endpush

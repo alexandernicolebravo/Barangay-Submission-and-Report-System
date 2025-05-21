@@ -120,7 +120,8 @@
                                                             $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
                                                             $icon = match($extension) {
                                                                 'pdf' => 'fa-file-pdf',
-                                                                'doc', 'docx' => 'fa-file-word',
+                                                                'docx' => 'fa-file-word',
+                                                                'doc' => 'fa-file-word', // Keep this for backward compatibility with existing files
                                                                 'xls', 'xlsx' => 'fa-file-excel',
                                                                 'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
                                                                 'txt' => 'fa-file-alt',
@@ -216,17 +217,45 @@
                                                         <i class="fas fa-eye me-1"></i>
                                                         View
                                                     </button>
+                                                    @php
+                                                        // Determine button style based on status and can_update flag
+                                                        if ($report->status === 'rejected') {
+                                                            // Rejected reports always show warning style
+                                                            $btnClass = 'btn-outline-warning';
+                                                            $icon = 'fa-redo';
+                                                            $text = 'Resubmit';
+                                                            $isDisabled = false;
+                                                            $tooltip = 'Resubmit (Required)';
+                                                        } elseif ($report->can_update) {
+                                                            // Can update - show primary style
+                                                            $btnClass = 'btn-outline-primary';
+                                                            $icon = 'fa-upload';
+                                                            $text = 'Update';
+                                                            $isDisabled = false;
+                                                            $tooltip = 'Update Report';
+                                                        } else {
+                                                            // Cannot update - show secondary style (disabled)
+                                                            $btnClass = 'btn-outline-secondary';
+                                                            $icon = 'fa-upload';
+                                                            $text = 'Update';
+                                                            $isDisabled = true;
+                                                            $tooltip = 'Update Disabled';
+                                                        }
+
+                                                        // Override if approved
+                                                        if ($report->status === 'approved') {
+                                                            $isDisabled = true;
+                                                            $tooltip = 'Cannot update approved reports';
+                                                        }
+                                                    @endphp
                                                     <button type="button"
-                                                            class="btn btn-sm"
-                                                            style="background: {{ $report->status === 'rejected' ? 'var(--warning-light)' : 'var(--info-light)' }};
-                                                                   color: {{ $report->status === 'rejected' ? 'var(--warning)' : 'var(--info)' }};
-                                                                   border: none;"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#resubmitModal{{ $reportId }}"
-                                                            title="{{ $report->status === 'rejected' ? 'Resubmit (Required)' : 'Update Report' }}"
-                                                            {{ $report->status === 'approved' ? 'disabled' : '' }}>
-                                                        <i class="fas {{ $report->status === 'rejected' ? 'fa-redo' : 'fa-upload' }} me-1"></i>
-                                                        {{ $report->status === 'rejected' ? 'Resubmit' : 'Update' }}
+                                                            class="btn btn-sm {{ $btnClass }} {{ $isDisabled ? 'opacity-50' : '' }}"
+                                                            data-bs-toggle="{{ $isDisabled ? '' : 'modal' }}"
+                                                            data-bs-target="{{ $isDisabled ? '' : '#resubmitModal' . $reportId }}"
+                                                            title="{{ $tooltip }}"
+                                                            {{ $isDisabled ? 'disabled' : '' }}>
+                                                        <i class="fas {{ $icon }} me-1"></i>
+                                                        {{ $text }}
                                                     </button>
                                                 </div>
                                             </td>
@@ -390,7 +419,7 @@
                                                                         <h6 class="card-title mb-0 small">Report Details</h6>
                                                                     </div>
                                                                     <div class="row">
-                                                                        <div class="col-md-6 mb-2">
+                                                                        <div class="col-md-12 mb-2">
                                                                             <label class="form-label small">Month</label>
                                                                             <select class="form-select form-select-sm" name="month" required>
                                                                                 @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
@@ -398,19 +427,8 @@
                                                                                 @endforeach
                                                                             </select>
                                                                         </div>
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <label class="form-label small">Year</label>
-                                                                            <select class="form-select form-select-sm" name="year" required>
-                                                                                @php
-                                                                                    $currentYear = date('Y');
-                                                                                    $startYear = $currentYear - 5;
-                                                                                    $endYear = $currentYear + 1;
-                                                                                @endphp
-                                                                                @for($year = $startYear; $year <= $endYear; $year++)
-                                                                                    <option value="{{ $year }}" {{ ($report->year ?? $currentYear) == $year ? 'selected' : '' }}>{{ $year }}</option>
-                                                                                @endfor
-                                                                            </select>
-                                                                        </div>
+                                                                        <!-- Year field removed as requested -->
+                                                                        <input type="hidden" name="year" value="{{ date('Y') }}">
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -422,7 +440,7 @@
                                                                         <h6 class="card-title mb-0 small">Report Details</h6>
                                                                     </div>
                                                                     <div class="row">
-                                                                        <div class="col-md-6 mb-2">
+                                                                        <div class="col-md-12 mb-2">
                                                                             <label class="form-label small">Quarter</label>
                                                                             <select class="form-select form-select-sm" name="quarter_number" required>
                                                                                 <option value="1" {{ $report->quarter_number == 1 ? 'selected' : '' }}>Q1 (Jan-Mar)</option>
@@ -431,19 +449,8 @@
                                                                                 <option value="4" {{ $report->quarter_number == 4 ? 'selected' : '' }}>Q4 (Oct-Dec)</option>
                                                                             </select>
                                                                         </div>
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <label class="form-label small">Year</label>
-                                                                            <select class="form-select form-select-sm" name="year" required>
-                                                                                @php
-                                                                                    $currentYear = date('Y');
-                                                                                    $startYear = $currentYear - 5;
-                                                                                    $endYear = $currentYear + 1;
-                                                                                @endphp
-                                                                                @for($year = $startYear; $year <= $endYear; $year++)
-                                                                                    <option value="{{ $year }}" {{ ($report->year ?? $currentYear) == $year ? 'selected' : '' }}>{{ $year }}</option>
-                                                                                @endfor
-                                                                            </select>
-                                                                        </div>
+                                                                        <!-- Year field removed as requested -->
+                                                                        <input type="hidden" name="year" value="{{ date('Y') }}">
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -455,26 +462,15 @@
                                                                         <h6 class="card-title mb-0 small">Report Details</h6>
                                                                     </div>
                                                                     <div class="row">
-                                                                        <div class="col-md-6 mb-2">
+                                                                        <div class="col-md-12 mb-2">
                                                                             <label class="form-label small">Semester</label>
                                                                             <select class="form-select form-select-sm" name="sem_number" required>
                                                                                 <option value="1" {{ $report->sem_number == 1 ? 'selected' : '' }}>1st Sem (Jan-Jun)</option>
                                                                                 <option value="2" {{ $report->sem_number == 2 ? 'selected' : '' }}>2nd Sem (Jul-Dec)</option>
                                                                             </select>
                                                                         </div>
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <label class="form-label small">Year</label>
-                                                                            <select class="form-select form-select-sm" name="year" required>
-                                                                                @php
-                                                                                    $currentYear = date('Y');
-                                                                                    $startYear = $currentYear - 5;
-                                                                                    $endYear = $currentYear + 1;
-                                                                                @endphp
-                                                                                @for($year = $startYear; $year <= $endYear; $year++)
-                                                                                    <option value="{{ $year }}" {{ ($report->year ?? $currentYear) == $year ? 'selected' : '' }}>{{ $year }}</option>
-                                                                                @endfor
-                                                                            </select>
-                                                                        </div>
+                                                                        <!-- Year field removed as requested -->
+                                                                        <input type="hidden" name="year" value="{{ date('Y') }}">
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -486,19 +482,8 @@
                                                                         <h6 class="card-title mb-0 small">Report Details</h6>
                                                                     </div>
                                                                     <div class="row">
-                                                                        <div class="col-md-6 mb-2">
-                                                                            <label class="form-label small">Year</label>
-                                                                            <select class="form-select form-select-sm" name="year" required>
-                                                                                @php
-                                                                                    $currentYear = date('Y');
-                                                                                    $startYear = $currentYear - 5;
-                                                                                    $endYear = $currentYear + 1;
-                                                                                @endphp
-                                                                                @for($year = $startYear; $year <= $endYear; $year++)
-                                                                                    <option value="{{ $year }}" {{ ($report->year ?? $currentYear) == $year ? 'selected' : '' }}>{{ $year }}</option>
-                                                                                @endfor
-                                                                            </select>
-                                                                        </div>
+                                                                        <!-- Year field removed as requested -->
+                                                                        <input type="hidden" name="year" value="{{ date('Y') }}">
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -510,14 +495,14 @@
                                                                     <h6 class="mb-0 small">Upload New Report</h6>
                                                                 </div>
                                                                 <div class="file-upload-container" id="dropZone{{ $reportId }}">
-                                                                    <input type="file" name="file" class="d-none" id="fileInput{{ $reportId }}" accept=".pdf,.doc,.docx,.xlsx">
+                                                                    <input type="file" name="file" class="d-none" id="fileInput{{ $reportId }}" accept=".pdf,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar">
                                                                     <div class="p-2 border rounded" style="background-color: rgba(var(--primary-rgb), 0.03);">
                                                                         <div class="d-flex align-items-center">
                                                                             <div>
                                                                                 <button type="button" class="btn btn-sm btn-primary py-1 px-2" onclick="document.getElementById('fileInput{{ $reportId }}').click()">
                                                                                     <i class="fas fa-folder-open me-1"></i> Browse
                                                                                 </button>
-                                                                                <small class="d-block mt-1 text-muted" style="font-size: 0.7rem;">PDF, DOC, DOCX, XLSX (Max: 2MB)</small>
+                                                                                <small class="d-block mt-1 text-muted" style="font-size: 0.7rem;">PDF, DOCX, XLS, XLSX, etc. (Max: 100MB)</small>
                                                                             </div>
                                                                             <div id="fileInfo{{ $reportId }}" class="d-none ms-2 flex-grow-1">
                                                                                 <div class="d-flex align-items-center">
@@ -537,7 +522,7 @@
 
                                                             <div class="d-flex justify-content-end gap-2 mt-3">
                                                                 <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
-                                                                <button type="submit" class="btn btn-sm {{ $report->status === 'rejected' ? 'btn-warning' : 'btn-primary' }}" id="submitBtn{{ $reportId }}">
+                                                                <button type="submit" class="btn btn-sm {{ $report->status === 'rejected' ? 'btn-outline-warning' : 'btn-outline-primary' }}" id="submitBtn{{ $reportId }}">
                                                                     <i class="fas {{ $report->status === 'rejected' ? 'fa-redo' : 'fa-upload' }} me-1"></i>
                                                                     {{ $report->status === 'rejected' ? 'Resubmit' : 'Update' }}
                                                                 </button>
@@ -1291,7 +1276,6 @@
                     iconClass = 'fa-file-pdf';
                     bgColorClass = 'danger';
                     break;
-                case 'doc':
                 case 'docx':
                     iconClass = 'fa-file-word';
                     bgColorClass = 'primary';
@@ -1308,8 +1292,9 @@
                     iconClass = 'fa-file-image';
                     bgColorClass = 'info';
                     break;
-                case 'txt':
-                    iconClass = 'fa-file-alt';
+                case 'zip':
+                case 'rar':
+                    iconClass = 'fa-file-archive';
                     bgColorClass = 'secondary';
                     break;
                 default:
@@ -1371,7 +1356,7 @@
                                         </div>
                                     </div>`;
                             });
-                    } else if (['doc', 'docx', 'xls', 'xlsx'].includes(extension)) {
+                    } else if (['docx', 'xls', 'xlsx'].includes(extension)) {
                         // Office documents - use Google Docs Viewer
                         const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + url)}&embedded=true`;
                         previewContainer.innerHTML = `
@@ -1636,17 +1621,17 @@
                     const file = files[0];
                     const fileSize = file.size / 1024 / 1024; // in MB
 
-                    if (fileSize > 2) {
-                        alert('File size must be less than 2MB');
+                    if (fileSize > 100) {
+                        alert('File size must be less than 100MB');
                         clearFile({{ $reportId }});
                         return;
                     }
 
-                    const validTypes = ['.pdf', '.doc', '.docx', '.xlsx'];
+                    const validTypes = ['.pdf', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.zip', '.rar'];
                     const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
 
                     if (!validTypes.includes(fileExtension)) {
-                        alert('Invalid file type. Please upload PDF, DOC, DOCX, or XLSX files only.');
+                        alert('Invalid file type. Please upload one of these formats: PDF, DOCX, XLS, XLSX, JPG, JPEG, PNG, ZIP, RAR');
                         clearFile({{ $reportId }});
                         return;
                     }

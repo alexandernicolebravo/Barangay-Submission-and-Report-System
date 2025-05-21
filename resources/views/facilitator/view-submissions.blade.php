@@ -2,6 +2,188 @@
 
 @section('title', 'View Submissions')
 
+@push('scripts')
+<script>
+    // File preview function
+    function previewFile(url, fileName) {
+        // Set the file name in the modal
+        document.getElementById('previewFileName').textContent = fileName;
+
+        // Set the download link
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = url + '?download=true';
+
+        // Show loading spinner
+        const previewContainer = document.getElementById('previewContainer');
+        previewContainer.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted">Loading document preview...</p>
+            </div>
+        `;
+
+        // Get file extension and set appropriate icon
+        const extension = fileName.split('.').pop().toLowerCase();
+        const fileTypeIcon = document.getElementById('fileTypeIcon');
+        const fileIconElement = fileTypeIcon.querySelector('i');
+
+        // Set icon and color based on file type
+        let iconClass = 'fa-file';
+        let bgColorClass = 'primary';
+
+        switch(extension) {
+            case 'pdf':
+                iconClass = 'fa-file-pdf';
+                bgColorClass = 'danger';
+                break;
+            case 'docx':
+                iconClass = 'fa-file-word';
+                bgColorClass = 'primary';
+                break;
+            case 'xls':
+            case 'xlsx':
+                iconClass = 'fa-file-excel';
+                bgColorClass = 'success';
+                break;
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+                iconClass = 'fa-file-image';
+                bgColorClass = 'info';
+                break;
+            case 'zip':
+            case 'rar':
+                iconClass = 'fa-file-archive';
+                bgColorClass = 'secondary';
+                break;
+            default:
+                iconClass = 'fa-file';
+                bgColorClass = 'primary';
+        }
+
+        // Update icon class and background color
+        fileIconElement.className = `fas ${iconClass} fa-lg text-${bgColorClass}`;
+        fileTypeIcon.style.backgroundColor = `rgba(var(--${bgColorClass}-rgb), 0.1)`;
+
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
+        modal.show();
+
+        // Fetch the file
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('File not found or access denied');
+                }
+                const contentType = response.headers.get('content-type');
+                return response.blob().then(blob => ({ blob, contentType }));
+            })
+            .then(({ blob, contentType }) => {
+                const fileUrl = URL.createObjectURL(blob);
+
+                // Create preview based on content type and extension
+                if (contentType === 'application/pdf' || extension === 'pdf') {
+                    // PDF preview
+                    previewContainer.innerHTML = `
+                        <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
+                            <iframe src="${fileUrl}"
+                                    style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
+                                    title="${fileName}">
+                            </iframe>
+                        </div>`;
+                } else if (contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+                    // Image preview
+                    previewContainer.innerHTML = `
+                        <div class="bg-white rounded shadow-sm p-3 text-center">
+                            <img src="${fileUrl}" class="img-fluid rounded shadow-sm" style="max-height: 65vh;" alt="${fileName}">
+                            <div class="mt-3">
+                                <div class="text-muted small">${fileName}</div>
+                            </div>
+                        </div>`;
+                } else if (['docx'].includes(extension) ||
+                           contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    // Word document
+                    previewContainer.innerHTML = `
+                        <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
+                            <div class="mb-3">
+                                <i class="fas fa-file-word fa-4x text-primary mb-3"></i>
+                                <h5 class="mb-3">Word Document</h5>
+                                <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
+                            </div>
+                            <a href="${downloadLink.href}" class="btn btn-primary">
+                                <i class="fas fa-download me-2"></i> Download to View
+                            </a>
+                            <div class="mt-4 text-start text-muted small">
+                                <div><strong>File name:</strong> ${fileName}</div>
+                                <div><strong>File type:</strong> ${contentType || 'Word Document'}</div>
+                                <div><strong>Extension:</strong> ${extension}</div>
+                            </div>
+                        </div>`;
+                } else if (['xls', 'xlsx'].includes(extension) ||
+                           contentType === 'application/vnd.ms-excel' ||
+                           contentType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                    // Excel spreadsheet
+                    previewContainer.innerHTML = `
+                        <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
+                            <div class="mb-3">
+                                <i class="fas fa-file-excel fa-4x text-success mb-3"></i>
+                                <h5 class="mb-3">Excel Spreadsheet</h5>
+                                <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
+                            </div>
+                            <a href="${downloadLink.href}" class="btn btn-success">
+                                <i class="fas fa-download me-2"></i> Download to View
+                            </a>
+                            <div class="mt-4 text-start text-muted small">
+                                <div><strong>File name:</strong> ${fileName}</div>
+                                <div><strong>File type:</strong> ${contentType || 'Excel Spreadsheet'}</div>
+                                <div><strong>Extension:</strong> ${extension}</div>
+                            </div>
+                        </div>`;
+                } else {
+                    // Other file types
+                    previewContainer.innerHTML = `
+                        <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
+                            <div class="mb-3">
+                                <i class="fas ${iconClass} fa-4x text-${bgColorClass} mb-3"></i>
+                                <h5 class="mb-3">Preview Not Available</h5>
+                                <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
+                            </div>
+                            <a href="${downloadLink.href}" class="btn btn-primary">
+                                <i class="fas fa-download me-2"></i> Download to View
+                            </a>
+                            <div class="mt-4 text-start text-muted small">
+                                <div><strong>File name:</strong> ${fileName}</div>
+                                <div><strong>File type:</strong> ${contentType || 'Unknown'}</div>
+                                <div><strong>Extension:</strong> ${extension}</div>
+                            </div>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Preview error:', error);
+                previewContainer.innerHTML = `
+                    <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
+                        <div class="mb-3 text-danger">
+                            <i class="fas fa-exclamation-circle fa-4x mb-3"></i>
+                            <h5 class="mb-3">Error Loading File</h5>
+                            <p class="text-muted mb-4">${error.message}</p>
+                        </div>
+                        <a href="${downloadLink.href}" class="btn btn-primary">
+                            <i class="fas fa-download me-2"></i> Try Downloading Instead
+                        </a>
+                        <div class="mt-4 text-start text-muted small">
+                            <div><strong>File name:</strong> ${fileName}</div>
+                            <div><strong>Extension:</strong> ${extension}</div>
+                        </div>
+                    </div>`;
+            });
+    }
+</script>
+@endpush
+
 @push('styles')
 <style>
 /* Define CSS variables for status colors */
@@ -261,23 +443,38 @@
                                 <div class="me-2" style="width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
                                     @php
                                         $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
-                                        $icon = match($extension) {
-                                            'pdf' => 'fa-file-pdf',
-                                            'doc', 'docx' => 'fa-file-word',
-                                            'xls', 'xlsx' => 'fa-file-excel',
-                                            'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
-                                            'txt' => 'fa-file-alt',
-                                            default => 'fa-file'
-                                        };
 
-                                        $colorClass = match($extension) {
-                                            'pdf' => 'danger',
-                                            'doc', 'docx' => 'primary',
-                                            'xls', 'xlsx' => 'success',
-                                            'jpg', 'jpeg', 'png', 'gif' => 'info',
-                                            'txt' => 'secondary',
-                                            default => 'primary'
-                                        };
+                                        // Set icon and color based on file type
+                                        $icon = 'fa-file';
+                                        $colorClass = 'primary';
+
+                                        switch($extension) {
+                                            case 'pdf':
+                                                $icon = 'fa-file-pdf';
+                                                $colorClass = 'danger';
+                                                break;
+                                            case 'docx':
+                                                $icon = 'fa-file-word';
+                                                $colorClass = 'primary';
+                                                break;
+                                            case 'xls':
+                                            case 'xlsx':
+                                                $icon = 'fa-file-excel';
+                                                $colorClass = 'success';
+                                                break;
+                                            case 'jpg':
+                                            case 'jpeg':
+                                            case 'png':
+                                            case 'gif':
+                                                $icon = 'fa-file-image';
+                                                $colorClass = 'info';
+                                                break;
+                                            case 'zip':
+                                            case 'rar':
+                                                $icon = 'fa-file-archive';
+                                                $colorClass = 'secondary';
+                                                break;
+                                        }
 
                                         $isLate = \Carbon\Carbon::parse($report->updated_at)->isAfter($report->reportType->deadline);
                                     @endphp
@@ -309,7 +506,7 @@
                             </span>
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $report->unique_id }}">
+                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" onclick="previewFile('{{ route('facilitator.files.download', $report->id) }}', '{{ basename($report->file_path) }}')">
                                 <i class="fas fa-eye me-1"></i>
                                 View
                             </button>
@@ -324,22 +521,38 @@
                                     @php
                                         $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
                                         $fileName = basename($report->file_path);
-                                        $iconClass = match($extension) {
-                                            'pdf' => 'fa-file-pdf',
-                                            'doc', 'docx' => 'fa-file-word',
-                                            'xls', 'xlsx' => 'fa-file-excel',
-                                            'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
-                                            'txt' => 'fa-file-alt',
-                                            default => 'fa-file'
-                                        };
-                                        $colorClass = match($extension) {
-                                            'pdf' => 'danger',
-                                            'doc', 'docx' => 'primary',
-                                            'xls', 'xlsx' => 'success',
-                                            'jpg', 'jpeg', 'png', 'gif' => 'info',
-                                            'txt' => 'secondary',
-                                            default => 'primary'
-                                        };
+                                        // Set icon and color based on file type
+                                        $iconClass = 'fa-file';
+                                        $colorClass = 'primary';
+
+                                        switch($extension) {
+                                            case 'pdf':
+                                                $iconClass = 'fa-file-pdf';
+                                                $colorClass = 'danger';
+                                                break;
+                                            case 'doc':
+                                            case 'docx':
+                                                $iconClass = 'fa-file-word';
+                                                $colorClass = 'primary';
+                                                break;
+                                            case 'xls':
+                                            case 'xlsx':
+                                                $iconClass = 'fa-file-excel';
+                                                $colorClass = 'success';
+                                                break;
+                                            case 'jpg':
+                                            case 'jpeg':
+                                            case 'png':
+                                            case 'gif':
+                                                $iconClass = 'fa-file-image';
+                                                $colorClass = 'info';
+                                                break;
+                                            case 'zip':
+                                            case 'rar':
+                                                $iconClass = 'fa-file-archive';
+                                                $colorClass = 'secondary';
+                                                break;
+                                        }
                                     @endphp
                                     <div class="d-flex align-items-center">
                                         <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--{{ $colorClass }}-rgb), 0.1); color: var(--{{ $colorClass }});">
@@ -834,6 +1047,50 @@ function showDeleteConfirmationModal(reportTypeId) {
                     <i class="fas fa-download me-1"></i>
                     Download
                 </a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- File Preview Modal -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center">
+                    <div id="fileTypeIcon" class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
+                        <i class="fas fa-file fa-lg text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold">
+                            <span id="previewFileName"></span>
+                        </h5>
+                        <div class="text-muted small">Document Preview</div>
+                    </div>
+                </div>
+                <div>
+                    <a id="downloadLink" href="#" class="btn btn-primary me-2">
+                        <i class="fas fa-download me-1"></i>
+                        Download
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0 bg-light">
+                <div id="previewContainer" class="d-flex justify-content-center align-items-center p-4" style="min-height: 70vh; background-color: #f8f9fa;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted">Loading document preview...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <div class="d-flex align-items-center text-muted me-auto small">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span>If the document doesn't load correctly, please use the download button.</span>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

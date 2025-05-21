@@ -157,9 +157,9 @@
                                                                        class="form-control"
                                                                        id="file{{ $report->id }}"
                                                                        name="file"
-                                                                       accept=".pdf,.doc,.docx,.xlsx"
+                                                                       accept=".pdf,.docx,.xlsx"
                                                                        required>
-                                                                <div class="form-text">Accepted formats: PDF, DOC, DOCX, XLSX (Max: 2MB)</div>
+                                                                <div class="form-text">Accepted formats: PDF, DOCX, XLSX (Max: 2MB)</div>
                                                             </div>
 
                                                             @if($report->frequency === 'weekly')
@@ -507,7 +507,7 @@
                 input.addEventListener('change', function() {
                     const file = this.files[0];
                     const maxSize = 2 * 1024 * 1024; // 2MB
-                    const allowedTypes = ['.pdf', '.doc', '.docx', '.xlsx'];
+                    const allowedTypes = ['.pdf', '.docx', '.xlsx'];
 
                     if (file) {
                         // Check file size
@@ -520,7 +520,7 @@
                         // Check file type
                         const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
                         if (!allowedTypes.includes(fileExtension)) {
-                            alert('Only PDF, DOC, DOCX, and XLSX files are allowed');
+                            alert('Only PDF, DOCX, and XLSX files are allowed');
                             this.value = '';
                             return;
                         }

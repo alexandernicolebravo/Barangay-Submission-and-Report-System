@@ -27,7 +27,7 @@ class WeeklyReportController extends Controller
             'num_of_participants' => 'required|integer|min:0',
             'num_of_barangays' => 'required|integer|min:0',
             'total_volume' => 'required|integer|min:0',
-            'file' => 'required|file|mimes:pdf,doc,docx|max:2048',
+            'file' => 'required|file|mimes:pdf,docx|max:2048',
         ]);
 
         // Handle File Upload

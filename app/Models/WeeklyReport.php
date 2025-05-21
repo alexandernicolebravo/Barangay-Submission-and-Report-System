@@ -24,6 +24,8 @@ class WeeklyReport extends Model
         'file_name',
         'file_path',
         'remarks',
+        'updates_allowed',
+        'can_update',
     ];
 
     public function user(){

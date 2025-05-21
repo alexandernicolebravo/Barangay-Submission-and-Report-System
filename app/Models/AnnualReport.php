@@ -18,7 +18,8 @@ class AnnualReport extends Model
         'file_path',
         'deadline',
         'status',
-        'remarks'
+        'remarks',
+        'can_update'
     ];
 
     public function user()

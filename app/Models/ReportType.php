@@ -36,7 +36,6 @@ class ReportType extends Model
     {
         return [
             'pdf' => 'PDF Document',
-            'doc' => 'Word Document',
             'docx' => 'Word Document',
             'xls' => 'Excel Spreadsheet',
             'xlsx' => 'Excel Spreadsheet',

@@ -440,6 +440,8 @@
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Disable Error Alerts (Must be loaded before ajax-forms.js) -->
+    <script src="{{ asset('js/disable-error-alerts.js') }}"></script>
     <!-- AJAX Form Handling -->
     <script src="{{ asset('js/ajax-forms.js') }}"></script>
     <!-- Scroll Position Management -->

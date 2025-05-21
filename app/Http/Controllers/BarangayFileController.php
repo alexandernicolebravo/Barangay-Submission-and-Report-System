@@ -13,7 +13,7 @@ class BarangayFileController extends Controller {
     public function store(Request $request) {
         $request->validate([
             'report_id' => 'required|exists:reports,id',
-            'file' => 'required|mimes:pdf,doc,docx,xlsx|max:2048',
+            'file' => 'required|mimes:pdf,vnd.openxmlformats-officedocument.wordprocessingml.document,vnd.openxmlformats-officedocument.spreadsheetml.sheet|max:2048',
         ]);
 
         $filePath = $request->file('file')->store('barangay_files', 'public');

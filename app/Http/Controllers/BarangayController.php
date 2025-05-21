@@ -505,8 +505,49 @@ class BarangayController extends Controller
 
     public function storeFile(Request $request)
     {
+        // For file uploads, we'll use a default set of allowed file types
+        $allowedTypes = ['pdf', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'zip', 'rar'];
+
+        // Log the allowed file types for debugging
+        Log::info('Default allowed file types for file upload:', [
+            'allowed_types' => $allowedTypes
+        ]);
+
+        // Map file extensions to MIME types
+        $mimeTypeMap = [
+            'pdf' => 'application/pdf',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'application/vnd.ms-excel',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'zip' => 'application/zip',
+            'rar' => 'application/x-rar-compressed'
+        ];
+
+        // Convert file extensions to Laravel's expected MIME type format
+        $mimeTypes = [];
+        foreach ($allowedTypes as $type) {
+            if (isset($mimeTypeMap[$type])) {
+                $mimeTypes[] = $mimeTypeMap[$type];
+            }
+        }
+
+        // Convert MIME types to file extensions for validation
+        $fileExtensions = [];
+        foreach ($allowedTypes as $type) {
+            $fileExtensions[] = $type;
+        }
+
+        $fileExtensionsStr = implode(',', $fileExtensions);
+
+        // Log the file extensions for debugging
+        Log::info('File extensions for validation (storeFile): ' . $fileExtensionsStr);
+        Log::info('MIME types for validation (storeFile): ' . implode(',', $mimeTypes));
+
         $request->validate([
-            'file' => 'required|file|mimes:pdf,doc,docx,xlsx|max:2048',
+            'file' => 'required|file|mimes:' . $fileExtensionsStr . '|max:102400',
             'report_id' => 'required|exists:reports,id',
         ]);
 
@@ -729,15 +770,84 @@ class BarangayController extends Controller
     public function store(Request $request)
     {
         try {
+            // Log the request data for debugging
+            Log::info('Report submission request data:', $request->all());
+
+            // Log the request method and headers
+            Log::info('Request method: ' . $request->method());
+            Log::info('Request headers:', $request->headers->all());
+
+            // Log the form data
+            Log::info('Form data:', $request->post());
+
+            // Log the files
+            if ($request->hasFile('file')) {
+                Log::info('File uploaded: ' . $request->file('file')->getClientOriginalName());
+                Log::info('File MIME type: ' . $request->file('file')->getMimeType());
+                Log::info('File extension: ' . $request->file('file')->getClientOriginalExtension());
+            } else {
+                Log::info('No file uploaded');
+            }
+
+            // Check if this is a direct form submission
+            $isDirectSubmission = $request->has('form_submitted');
+            Log::info('Is direct form submission: ' . ($isDirectSubmission ? 'Yes' : 'No'));
+
             DB::beginTransaction();
 
             // Get the report type
             $reportType = ReportType::findOrFail($request->report_type_id);
 
             // Validate based on report type
+            // Get allowed file types from the report type or use default (pdf)
+            $allowedTypes = $reportType->allowed_file_types ?? ['pdf'];
+
+            // Log the allowed file types for debugging
+            Log::info('Allowed file types for report type ' . $reportType->id . ':', [
+                'report_type' => $reportType->name,
+                'allowed_types' => $allowedTypes
+            ]);
+
+            // Map file extensions to MIME types
+            $mimeTypeMap = [
+                'pdf' => 'application/pdf',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'zip' => 'application/zip',
+                'rar' => 'application/x-rar-compressed'
+            ];
+
+            // Convert file extensions to Laravel's expected MIME type format
+            $mimeTypes = [];
+            foreach ($allowedTypes as $type) {
+                if (isset($mimeTypeMap[$type])) {
+                    $mimeTypes[] = $mimeTypeMap[$type];
+                }
+            }
+
+            // Check if docx is in the allowed types
+            $hasDocx = in_array('application/vnd.openxmlformats-officedocument.wordprocessingml.document', $mimeTypes);
+            Log::info('DOCX is ' . ($hasDocx ? 'allowed' : 'not allowed') . ' for this report type');
+
+            // Convert MIME types to file extensions for validation
+            $fileExtensions = [];
+            foreach ($allowedTypes as $type) {
+                $fileExtensions[] = $type;
+            }
+
+            $fileExtensionsStr = implode(',', $fileExtensions);
+
+            // Log the file extensions for debugging
+            Log::info('File extensions for validation: ' . $fileExtensionsStr);
+            Log::info('MIME types for validation: ' . implode(',', $mimeTypes));
+
             $validationRules = [
                 'report_type_id' => 'required|exists:report_types,id',
-                'file' => 'required|file|mimes:pdf,doc,docx,xlsx|max:2048'
+                'file' => 'required|file|mimes:' . $fileExtensionsStr . '|max:102400'
             ];
 
             // Add validation rules based on report type
@@ -770,11 +880,12 @@ class BarangayController extends Controller
             $validator = Validator::make($request->all(), $validationRules);
 
             if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
+                Log::error('Validation failed: ', $validator->errors()->toArray());
+
+                // Always redirect back with validation errors
+                return redirect()->back()
+                    ->withErrors($validator)
+                    ->withInput();
             }
 
             // Store the file
@@ -861,18 +972,18 @@ class BarangayController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Report submitted successfully.'
-            ]);
+            // Redirect to the dashboard with a success message
+            return redirect()->route('barangay.dashboard')
+                ->with('success', 'Report submitted successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Report submission error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to submit report. Please try again. Error: ' . $e->getMessage()
-            ], 500);
+
+            // Always redirect back with an error message
+            return redirect()->back()
+                ->with('error', 'Failed to submit report. Please try again: ' . $e->getMessage())
+                ->withInput();
         }
     }
 
@@ -1092,8 +1203,44 @@ class BarangayController extends Controller
         }
 
         // Basic validation for file - make file optional for resubmission
+        // Get allowed file types from the report type or use default (pdf)
+        $reportTypeObj = ReportType::findOrFail($request->report_type_id);
+        $allowedTypes = $reportTypeObj->allowed_file_types ?? ['pdf'];
+
+        // Log the allowed file types for debugging
+        Log::info('Allowed file types for resubmission of report type ' . $reportTypeObj->id . ':', [
+            'report_type' => $reportTypeObj->name,
+            'allowed_types' => $allowedTypes
+        ]);
+
+        // Map file extensions to MIME types
+        $mimeTypeMap = [
+            'pdf' => 'pdf',
+            'docx' => 'vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls' => 'vnd.ms-excel',
+            'xlsx' => 'vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'jpg' => 'jpg',
+            'jpeg' => 'jpeg',
+            'png' => 'png',
+            'zip' => 'zip',
+            'rar' => 'rar'
+        ];
+
+        // Convert file extensions to Laravel's expected MIME type format
+        $mimeTypes = [];
+        foreach ($allowedTypes as $type) {
+            if (isset($mimeTypeMap[$type])) {
+                $mimeTypes[] = $mimeTypeMap[$type];
+            }
+        }
+
+        $mimeTypesStr = implode(',', $mimeTypes);
+
+        // Log the MIME types for debugging
+        Log::info('MIME types for validation (resubmit): ' . $mimeTypesStr);
+
         $validationRules = [
-            'file' => 'nullable|file|mimes:pdf,doc,docx,xlsx|max:2048',
+            'file' => 'nullable|file|mimes:' . $mimeTypesStr . '|max:102400',
             'report_type_id' => 'required|exists:report_types,id',
             'report_type' => 'required|string|in:weekly,monthly,quarterly,semestral,annual'
         ];

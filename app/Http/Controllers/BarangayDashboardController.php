@@ -27,7 +27,7 @@ class BarangayDashboardController extends Controller
             'num_of_participants' => 'required|integer',
             'num_of_barangays' => 'required|integer',
             'total_volume' => 'required|integer',
-            'file' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:2048',
+            'file' => 'required|file|mimes:pdf,vnd.openxmlformats-officedocument.wordprocessingml.document,jpg,jpeg,png|max:2048',
         ]);
 
         $file = $request->file('file');

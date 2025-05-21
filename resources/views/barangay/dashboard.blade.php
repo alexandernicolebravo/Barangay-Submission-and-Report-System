@@ -781,7 +781,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="submitReportForm" method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                <form id="submitReportForm" method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" data-no-ajax="true" novalidate>
                     @csrf
                     @if(session('error'))
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -817,7 +817,9 @@
                                 <select id="report_type" class="form-select @error('report_type_id') is-invalid @enderror" name="report_type_id" required>
                                     <option value="">Select Report Type</option>
                                     @foreach($reportTypes as $reportType)
-                                        <option value="{{ $reportType->id }}" data-frequency="{{ $reportType->frequency }}">
+                                        <option value="{{ $reportType->id }}"
+                                            data-frequency="{{ $reportType->frequency }}"
+                                            data-allowed-types="{{ json_encode($reportType->allowed_file_types ?? ['pdf']) }}">
                                             {{ $reportType->name }}
                                         </option>
                                     @endforeach
@@ -861,13 +863,19 @@
                                 <label for="file" class="form-label">
                                     Upload File
                                 </label>
+                                <div class="mb-2">
+                                    <div class="alert alert-info py-2 mb-2" id="allowedFormatsAlert">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <span id="allowedFormatsText">Please select a report type to see accepted file formats</span>
+                                    </div>
+                                </div>
                                 <div class="drop-zone" id="dropZone">
                                     <div class="drop-zone__prompt">
                                         <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-primary"></i>
                                         <p class="mb-1">Drag and drop your file here or click to browse</p>
-                                        <small class="text-muted">Accepted formats: PDF, DOC, DOCX, XLSX (Max: 2MB)</small>
+                                        <small class="text-muted" id="dropZoneFormatsText">Select a report type first</small>
                                     </div>
-                                    <input type="file" name="file" id="file" class="drop-zone__input" accept=".pdf,.doc,.docx,.xlsx" required>
+                                    <input type="file" name="file" id="file" class="drop-zone__input" accept=".pdf,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar" required>
                                 </div>
                                 @error('file')
                                     <div class="invalid-feedback d-block">
@@ -1005,6 +1013,10 @@
 
                     <div class="text-end">
                         <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="debugBtn" class="btn btn-secondary me-2">
+                            <i class="fas fa-bug me-2"></i>
+                            Debug
+                        </button>
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-paper-plane me-2"></i>
                             Submit Report
@@ -1016,9 +1028,64 @@
     </div>
 </div>
 
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white justify-content-center">
+                <h5 class="modal-title text-center mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Success
+                </h5>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-3">
+                    <div class="success-icon mb-3">
+                        <i class="fas fa-check-circle fa-5x text-success"></i>
+                    </div>
+                    <h4 class="mb-3" id="successModalTitle">Report Submitted Successfully!</h4>
+                    <p class="text-muted" id="successModalMessage">Your report has been submitted and is now available for review.</p>
+                    <div class="mt-3">
+                        <small class="text-muted">This message will close automatically in <span id="countdown">2</span> seconds</small>
+                    </div>
+                </div>
+            </div>
+            <!-- No footer with close button -->
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if we need to show the success modal (after form submission)
+    @if(session('success'))
+    var successModal = new bootstrap.Modal(document.getElementById('successModal'), {
+        backdrop: 'static',  // Prevent closing when clicking outside
+        keyboard: false      // Prevent closing with keyboard
+    });
+    document.getElementById('successModalMessage').textContent = "{{ session('success') }}";
+
+    // Show the modal
+    successModal.show();
+
+    // Set up countdown timer
+    let countdown = 2;
+    const countdownElement = document.getElementById('countdown');
+
+    // Update countdown every second
+    const countdownInterval = setInterval(function() {
+        countdown--;
+        countdownElement.textContent = countdown;
+
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            successModal.hide();
+            window.location.reload();
+        }
+    }, 1000);
+    @endif
+
     // Report type change handler
     const reportTypeSelect = document.getElementById('report_type');
     const frequencyFilter = document.getElementById('frequency_filter');
@@ -1109,7 +1176,60 @@ document.addEventListener('DOMContentLoaded', function() {
                 semestralFields.style.display = 'block';
                 break;
         }
+
+        // Update allowed formats display
+        updateAllowedFormatsDisplay();
+
+        // Reset the file input and drop zone
+        if (fileInput) {
+            fileInput.value = '';
+            resetDropZone();
+        }
     });
+
+    // Function to update the allowed formats display
+    function updateAllowedFormatsDisplay() {
+        const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
+        const allowedFormatsAlert = document.getElementById('allowedFormatsAlert');
+        const allowedFormatsText = document.getElementById('allowedFormatsText');
+        const dropZoneFormatsText = document.getElementById('dropZoneFormatsText');
+
+        if (selectedOption && selectedOption.value) {
+            try {
+                // Get allowed file types
+                let allowedTypes = ['pdf']; // Default
+                if (selectedOption.dataset.allowedTypes) {
+                    allowedTypes = JSON.parse(selectedOption.dataset.allowedTypes);
+                }
+
+                // Format for display
+                const formattedTypes = allowedTypes.map(type => type.toUpperCase()).join(', ');
+
+                // Update the alert
+                allowedFormatsAlert.classList.remove('alert-warning');
+                allowedFormatsAlert.classList.add('alert-info');
+                allowedFormatsText.innerHTML = `<strong>Accepted file formats:</strong> ${formattedTypes} (Max: 100MB)`;
+
+                // Update the drop zone text
+                dropZoneFormatsText.textContent = `Accepted formats: ${formattedTypes} (Max: 100MB)`;
+
+                // Update the file input accept attribute
+                const acceptAttr = allowedTypes.map(type => '.' + type).join(',');
+                fileInput.setAttribute('accept', acceptAttr);
+            } catch (e) {
+                console.error('Error updating allowed formats:', e);
+                allowedFormatsAlert.classList.remove('alert-info');
+                allowedFormatsAlert.classList.add('alert-warning');
+                allowedFormatsText.innerHTML = '<strong>Error:</strong> Could not determine accepted file formats';
+            }
+        } else {
+            // No report type selected
+            allowedFormatsAlert.classList.remove('alert-info');
+            allowedFormatsAlert.classList.add('alert-warning');
+            allowedFormatsText.innerHTML = 'Please select a report type to see accepted file formats';
+            dropZoneFormatsText.textContent = 'Select a report type first';
+        }
+    }
 
     // Handle submit buttons in upcoming deadlines
     const submitButtons = document.querySelectorAll('[data-bs-target="#submitReportModal"]');
@@ -1133,6 +1253,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial filter application
     filterReportTypes();
+
+    // Initialize the allowed formats display
+    updateAllowedFormatsDisplay();
 
     // Handle scroll indicator for upcoming deadlines
     const deadlineList = document.querySelector('.deadline-list');
@@ -1222,17 +1345,57 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function validateFile(file) {
-        const validTypes = ['.pdf', '.doc', '.docx', '.xlsx'];
-        const maxSize = 2 * 1024 * 1024; // 2MB
+        // Get the selected report type to check allowed file types
+        const reportTypeSelect = document.getElementById('report_type');
+        const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
 
-        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        // Default to PDF if no allowed types are specified
+        let validTypes = ['pdf'];
+
+        // Check if the report type has data-allowed-types attribute
+        if (selectedOption.dataset.allowedTypes) {
+            try {
+                console.log('Raw allowed types:', selectedOption.dataset.allowedTypes);
+                validTypes = JSON.parse(selectedOption.dataset.allowedTypes);
+                console.log('Parsed allowed types:', validTypes);
+                // Remove dots from the beginning of file extensions if they exist
+                validTypes = validTypes.map(type => type.startsWith('.') ? type.substring(1) : type);
+                console.log('Processed allowed types:', validTypes);
+            } catch (e) {
+                console.error('Error parsing allowed file types:', e);
+                console.error('Raw data:', selectedOption.dataset.allowedTypes);
+            }
+        }
+
+        const maxSize = 100 * 1024 * 1024; // 100MB
+
+        // Get file extension without the dot
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+
+        // Get file MIME type
+        const fileType = file.type;
+
+        console.log('File extension:', fileExtension);
+        console.log('File MIME type:', fileType);
+        console.log('Valid types:', validTypes);
+
+        // Special handling for docx files - accept them regardless of MIME type
+        if (fileExtension === 'docx' && validTypes.includes('docx')) {
+            console.log('Accepting docx file');
+            if (file.size > maxSize) {
+                alert('File size exceeds 100MB limit.');
+                return false;
+            }
+            return true;
+        }
+
         if (!validTypes.includes(fileExtension)) {
-            alert('Invalid file type. Please upload PDF, DOC, DOCX, or XLSX files only.');
+            alert(`Invalid file type. Please upload one of these formats: ${validTypes.join(', ')}`);
             return false;
         }
 
         if (file.size > maxSize) {
-            alert('File size exceeds 2MB limit.');
+            alert('File size exceeds 100MB limit.');
             return false;
         }
 
@@ -1240,10 +1403,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function resetDropZone() {
+        // Update the allowed formats display
+        updateAllowedFormatsDisplay();
+
+        // Get the selected report type to check allowed file types
+        const reportTypeSelect = document.getElementById('report_type');
+        const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
+
+        // Default message if no report type is selected
+        let message = 'Select a report type first';
+
+        // If a report type is selected, show the allowed formats
+        if (selectedOption && selectedOption.value) {
+            try {
+                // Get allowed file types
+                let allowedTypes = ['pdf']; // Default
+                if (selectedOption.dataset.allowedTypes) {
+                    allowedTypes = JSON.parse(selectedOption.dataset.allowedTypes);
+                }
+
+                // Format for display
+                const formattedTypes = allowedTypes.map(type => type.toUpperCase()).join(', ');
+                message = `Accepted formats: ${formattedTypes} (Max: 100MB)`;
+            } catch (e) {
+                console.error('Error parsing allowed file types:', e);
+                message = 'Error determining accepted file formats';
+            }
+        }
+
+        // Update the drop zone
         dropZone.querySelector('.drop-zone__prompt').innerHTML = `
             <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-primary"></i>
             <p class="mb-1">Drag and drop your file here or click to browse</p>
-            <small class="text-muted">Accepted formats: PDF, DOC, DOCX, XLSX (Max: 2MB)</small>
+            <small class="text-muted" id="dropZoneFormatsText">${message}</small>
         `;
     }
 
@@ -1276,8 +1468,17 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'doc':
             case 'docx':
                 return 'fa-file-word';
+            case 'xls':
             case 'xlsx':
                 return 'fa-file-excel';
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+                return 'fa-file-image';
+            case 'zip':
+            case 'rar':
+                return 'fa-file-archive';
             default:
                 return 'fa-file';
         }
@@ -1297,6 +1498,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Check if a report type is selected
+        if (!reportTypeSelect.value) {
+            alert('Please select a report type.');
+            reportTypeSelect.focus();
+            return;
+        }
+
         // Validate file
         if (!fileInput.files.length) {
             alert('Please select a file to upload.');
@@ -1308,97 +1516,51 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Validate report type
-        if (!reportTypeSelect.value) {
-            alert('Please select a report type.');
-            return;
+        // If all validations pass, submit the form normally
+        console.log('Submitting form...');
+
+        // Show loading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+
+        // Submit the form normally
+        this.submit();
+
+
+    });
+
+    // Debug button
+    document.getElementById('debugBtn').addEventListener('click', function() {
+        const reportTypeSelect = document.getElementById('report_type');
+        const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
+
+        console.log('Selected report type:', selectedOption.value);
+        console.log('Selected report type name:', selectedOption.text);
+        console.log('Selected report type frequency:', selectedOption.dataset.frequency);
+        console.log('Selected report type allowed types:', selectedOption.dataset.allowedTypes);
+
+        try {
+            const allowedTypes = JSON.parse(selectedOption.dataset.allowedTypes);
+            console.log('Parsed allowed types:', allowedTypes);
+        } catch (e) {
+            console.error('Error parsing allowed types:', e);
         }
 
-        // Validate frequency-specific fields
-        const frequency = reportTypeSelect.options[reportTypeSelect.selectedIndex].dataset.frequency;
-        let isValid = true;
+        if (fileInput.files.length) {
+            const file = fileInput.files[0];
+            console.log('Selected file:', file);
+            console.log('File name:', file.name);
+            console.log('File type:', file.type);
+            console.log('File size:', file.size);
+            console.log('File extension:', file.name.split('.').pop().toLowerCase());
 
-        switch (frequency) {
-            case 'weekly':
-                if (!form.querySelector('[name="month"]').value ||
-                    !form.querySelector('[name="week_number"]').value ||
-                    !form.querySelector('[name="num_of_clean_up_sites"]').value ||
-                    !form.querySelector('[name="num_of_participants"]').value ||
-                    !form.querySelector('[name="num_of_barangays"]').value ||
-                    !form.querySelector('[name="total_volume"]').value) {
-                    isValid = false;
-                }
-                break;
-            case 'monthly':
-                if (!form.querySelector('[name="month"]').value) {
-                    isValid = false;
-                }
-                break;
-            case 'quarterly':
-                if (!form.querySelector('[name="quarter_number"]').value) {
-                    isValid = false;
-                }
-                break;
-            case 'semestral':
-                if (!form.querySelector('[name="sem_number"]').value) {
-                    isValid = false;
-                }
-                break;
+            // Test validation
+            const isValid = validateFile(file);
+            console.log('File validation result:', isValid);
+        } else {
+            console.log('No file selected');
         }
-
-        if (!isValid) {
-            alert('Please fill in all required fields for the selected report type.');
-            return;
-        }
-
-        // Create FormData object
-        const formData = new FormData(form);
-
-        // Submit form using fetch
-        fetch(form.action, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Show success message
-                const successAlert = document.createElement('div');
-                successAlert.className = 'alert alert-success alert-dismissible fade show';
-                successAlert.innerHTML = `
-                    ${data.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                form.insertBefore(successAlert, form.firstChild);
-
-                // Reset form
-                form.reset();
-                resetDropZone();
-
-                // Close modal after 2 seconds
-                setTimeout(() => {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('submitReportModal'));
-                    modal.hide();
-                    window.location.reload(); // Reload page to update the list
-                }, 2000);
-            } else {
-                // Show error message
-                const errorAlert = document.createElement('div');
-                errorAlert.className = 'alert alert-danger alert-dismissible fade show';
-                errorAlert.innerHTML = `
-                    ${data.message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                form.insertBefore(errorAlert, form.firstChild);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while submitting the report. Please try again.');
-        });
     });
 });
 </script>

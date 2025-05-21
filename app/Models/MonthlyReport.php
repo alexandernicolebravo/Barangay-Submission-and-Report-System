@@ -5,8 +5,6 @@ namespace App\Models;
 use App\Models\Traits\ReportStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Testing\Fluent\Concerns\Has;
-use SebastianBergmann\CodeCoverage\Report\Xml\Report;
 
 class MonthlyReport extends Model
 {
@@ -21,7 +19,8 @@ class MonthlyReport extends Model
         'file_path',
         'deadline',
         'status',
-        'remarks'
+        'remarks',
+        'can_update'
     ];
 
     public function user()

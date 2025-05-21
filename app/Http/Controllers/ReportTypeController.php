@@ -207,5 +207,35 @@ class ReportTypeController extends Controller
                 ->with('error', 'Error deleting report type. Please try again.');
         }
     }
-}
 
+    /**
+     * Get the allowed file types for a report type
+     */
+    public function getAllowedFileTypes($id)
+    {
+        try {
+            $reportType = ReportType::findOrFail($id);
+
+            // Get the allowed file types
+            $allowedTypes = json_decode($reportType->allowed_file_types, true);
+
+            // If no allowed file types are specified, use the default
+            if (empty($allowedTypes)) {
+                $allowedTypes = ['pdf', 'docx', 'xlsx'];
+            }
+
+            return response()->json([
+                'success' => true,
+                'allowed_types' => $allowedTypes
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting allowed file types: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting allowed file types: ' . $e->getMessage(),
+                'allowed_types' => ['pdf', 'docx', 'xlsx'] // Default types
+            ]);
+        }
+    }
+}
