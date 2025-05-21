@@ -57,9 +57,28 @@ class BarangayController extends Controller
                 ->concat($annualReports);
 
             // Calculate statistics
-            $totalReports = $allReports->count();
-            $submittedReports = $allReports->where('status', 'submitted')->count();
-            $noSubmissionReports = $allReports->where('status', 'no submission')->count();
+            // Total reports is the count of all report types created by admin
+            $totalReports = ReportType::count();
+
+            // Get unique report_type_ids that have been submitted
+            $uniqueSubmittedReportTypeIds = $allReports
+                ->where('status', 'submitted')
+                ->pluck('report_type_id')
+                ->unique()
+                ->count();
+
+            // Submitted reports is the count of unique report types submitted by the user
+            $submittedReports = $uniqueSubmittedReportTypeIds;
+
+            // No submission reports is the difference between total and submitted
+            $noSubmissionReports = $totalReports - $submittedReports;
+
+            // Log the statistics for debugging
+            Log::info('Dashboard statistics:', [
+                'total_report_types' => $totalReports,
+                'unique_submitted_report_types' => $submittedReports,
+                'no_submission_reports' => $noSubmissionReports
+            ]);
 
             // Get recent reports (last 5)
             $recentReports = $allReports
