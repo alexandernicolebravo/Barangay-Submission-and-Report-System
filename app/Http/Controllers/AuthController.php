@@ -38,9 +38,21 @@ class AuthController extends Controller
         return back()->withErrors(['email' => 'Invalid login credentials']);
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
+        // Logout the user
         Auth::logout();
-        return redirect()->route('login');
+
+        // Invalidate the session
+        $request->session()->invalidate();
+
+        // Regenerate the CSRF token
+        $request->session()->regenerateToken();
+
+        // Redirect to login with cache control headers
+        return redirect()->route('login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 1990 00:00:00 GMT');
     }
 }

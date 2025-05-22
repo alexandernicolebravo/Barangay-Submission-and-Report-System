@@ -309,7 +309,19 @@ class AdminController extends Controller
     public function userManagement()
     {
         // Get all users with their relationships for client-side filtering
-        $users = User::with(['cluster', 'assignedClusters'])->orderBy('name')->get();
+        // Sort users by role (admin, facilitator, barangay) and then by cluster_id for barangays
+        $users = User::with(['cluster', 'assignedClusters'])
+            ->orderByRaw("
+                CASE
+                    WHEN role = 'admin' OR user_type = 'admin' THEN 1
+                    WHEN role = 'facilitator' OR user_type = 'facilitator' THEN 2
+                    WHEN role = 'barangay' OR user_type = 'barangay' THEN 3
+                    ELSE 4
+                END
+            ")
+            ->orderBy('cluster_id') // Sort barangays by cluster_id
+            ->orderBy('name') // Then sort by name within each group
+            ->get();
 
         // Add assigned_clusters property to each user for easier access in the view
         $users->each(function ($user) {

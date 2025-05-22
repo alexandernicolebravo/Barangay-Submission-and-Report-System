@@ -257,7 +257,7 @@ Route::get('/test-notification-specific/{userId}/{reportId}/{reportType}', funct
 });
 
 // Protected Routes (Requires Authentication)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
     // Admin Routes
     Route::prefix('admin')->name('admin.')->group(function () {
         // Dashboard
