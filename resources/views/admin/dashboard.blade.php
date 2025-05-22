@@ -228,6 +228,204 @@
         margin-bottom: 0;
     }
 
+    /* Report Type Cards */
+    .report-type-cards {
+        padding: 10px;
+    }
+
+    .report-type-card {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: all var(--transition-speed) ease;
+        height: 100%;
+    }
+
+    .report-type-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+    .report-type-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 1.2rem;
+    }
+
+    .report-type-content {
+        flex: 1;
+    }
+
+    .report-type-value {
+        font-size: 1.5rem;
+        font-weight: var(--font-weight-bold);
+        margin-bottom: 0;
+        line-height: 1.2;
+    }
+
+    .report-type-label {
+        color: var(--gray-600);
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+
+    /* Report Type Card Colors */
+    .weekly-card {
+        background-color: rgba(67, 97, 238, 0.05);
+        border-left: 3px solid var(--primary-color);
+    }
+
+    .weekly-card .report-type-icon {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .monthly-card {
+        background-color: rgba(54, 179, 126, 0.05);
+        border-left: 3px solid var(--success-color);
+    }
+
+    .monthly-card .report-type-icon {
+        background-color: rgba(54, 179, 126, 0.1);
+        color: var(--success-color);
+    }
+
+    .quarterly-card {
+        background-color: rgba(255, 171, 0, 0.05);
+        border-left: 3px solid #ffab00;
+    }
+
+    .quarterly-card .report-type-icon {
+        background-color: rgba(255, 171, 0, 0.1);
+        color: #ffab00;
+    }
+
+    .semestral-card {
+        background-color: rgba(0, 184, 217, 0.05);
+        border-left: 3px solid #00b8d9;
+    }
+
+    .semestral-card .report-type-icon {
+        background-color: rgba(0, 184, 217, 0.1);
+        color: #00b8d9;
+    }
+
+    .annual-card {
+        background-color: rgba(111, 66, 193, 0.05);
+        border-left: 3px solid #6f42c1;
+    }
+
+    .annual-card .report-type-icon {
+        background-color: rgba(111, 66, 193, 0.1);
+        color: #6f42c1;
+    }
+
+    /* Cluster Cards */
+    .cluster-cards {
+        padding: 10px;
+    }
+
+    .cluster-card {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-radius: var(--card-border-radius);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: all var(--transition-speed) ease;
+        height: 100%;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .cluster-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+    .cluster-card.active {
+        border: 2px solid;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-3px);
+    }
+
+
+
+    .cluster-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 1.2rem;
+    }
+
+    .cluster-content {
+        flex: 1;
+    }
+
+    .cluster-value {
+        font-size: 1.5rem;
+        font-weight: var(--font-weight-bold);
+        margin-bottom: 0;
+        line-height: 1.2;
+    }
+
+    .cluster-label {
+        color: var(--gray-600);
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+
+    /* Cluster Card Colors */
+    .cluster-1-card {
+        background-color: rgba(67, 97, 238, 0.05);
+        border-left: 3px solid var(--primary-color);
+    }
+
+    .cluster-1-card .cluster-icon {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .cluster-2-card {
+        background-color: rgba(54, 179, 126, 0.05);
+        border-left: 3px solid var(--success-color);
+    }
+
+    .cluster-2-card .cluster-icon {
+        background-color: rgba(54, 179, 126, 0.1);
+        color: var(--success-color);
+    }
+
+    .cluster-3-card {
+        background-color: rgba(255, 171, 0, 0.05);
+        border-left: 3px solid #ffab00;
+    }
+
+    .cluster-3-card .cluster-icon {
+        background-color: rgba(255, 171, 0, 0.1);
+        color: #ffab00;
+    }
+
+    .cluster-4-card {
+        background-color: rgba(0, 184, 217, 0.05);
+        border-left: 3px solid #00b8d9;
+    }
+
+    .cluster-4-card .cluster-icon {
+        background-color: rgba(0, 184, 217, 0.1);
+        color: #00b8d9;
+    }
+
     /* Responsive Adjustments */
     @media (max-width: 767.98px) {
         .stat-card {
@@ -240,6 +438,10 @@
 
         .chart-container {
             height: 220px;
+        }
+
+        .report-type-card {
+            margin-bottom: 1rem;
         }
     }
 </style>
@@ -430,7 +632,7 @@
 </div>
 
 <div class="row">
-    <!-- Report Type Distribution -->
+    <!-- Report Type Distribution Cards -->
     <div class="col-md-6">
         <div class="chart-card">
             <div class="card-header">
@@ -440,30 +642,113 @@
                 </h5>
             </div>
             <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="reportTypeDistributionChart"></canvas>
+                <div class="row report-type-cards">
+                    <!-- Weekly Reports Card -->
+                    <div class="col-md-6 mb-3">
+                        <div class="report-type-card weekly-card">
+                            <div class="report-type-icon">
+                                <i class="fas fa-calendar-week"></i>
+                            </div>
+                            <div class="report-type-content">
+                                <h3 class="report-type-value">{{ $weeklyCount }}</h3>
+                                <p class="report-type-label">Weekly Reports</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Reports Card -->
+                    <div class="col-md-6 mb-3">
+                        <div class="report-type-card monthly-card">
+                            <div class="report-type-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="report-type-content">
+                                <h3 class="report-type-value">{{ $monthlyCount }}</h3>
+                                <p class="report-type-label">Monthly Reports</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quarterly Reports Card -->
+                    <div class="col-md-6 mb-3">
+                        <div class="report-type-card quarterly-card">
+                            <div class="report-type-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="report-type-content">
+                                <h3 class="report-type-value">{{ $quarterlyCount }}</h3>
+                                <p class="report-type-label">Quarterly Reports</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Semestral Reports Card -->
+                    <div class="col-md-6 mb-3">
+                        <div class="report-type-card semestral-card">
+                            <div class="report-type-icon">
+                                <i class="fas fa-calendar-plus"></i>
+                            </div>
+                            <div class="report-type-content">
+                                <h3 class="report-type-value">{{ $semestralCount }}</h3>
+                                <p class="report-type-label">Semestral Reports</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Annual Reports Card -->
+                    <div class="col-md-6 mb-3">
+                        <div class="report-type-card annual-card">
+                            <div class="report-type-icon">
+                                <i class="fas fa-calendar"></i>
+                            </div>
+                            <div class="report-type-content">
+                                <h3 class="report-type-value">{{ $annualCount }}</h3>
+                                <p class="report-type-label">Annual Reports</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Submissions per Cluster -->
+    <!-- Submissions per Cluster Cards -->
     <div class="col-md-6">
         <div class="chart-card">
             <div class="card-header">
                 <h5>
                     <i class="fas fa-layer-group"></i>
                     Submissions per Cluster
+                    <button id="clear-filter" class="btn btn-sm btn-outline-secondary float-end d-none">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
                 </h5>
             </div>
             <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="clusterSubmissionsChart"></canvas>
+                <div class="row cluster-cards">
+                    @foreach($clusterSubmissions as $clusterName => $submissionCount)
+                    <div class="col-md-6 mb-3">
+                        <div class="cluster-card cluster-{{ substr($clusterName, -1) }}-card"
+                             data-cluster-id="{{ substr($clusterName, -1) }}"
+                             onclick="filterByCluster({{ substr($clusterName, -1) }})">
+                            <div class="cluster-icon">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            <div class="cluster-content">
+                                <h3 class="cluster-value">{{ $submissionCount }}</h3>
+                                <p class="cluster-label">{{ $clusterName }}</p>
+                            </div>
+
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -476,6 +761,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const clusterSelect = document.getElementById('cluster_id');
     const searchInput = document.getElementById('search');
     const filterForm = document.getElementById('dashboardFilterForm');
+
+    // Check if cluster filter is active on page load
+    const currentClusterId = clusterSelect.value;
+    if (currentClusterId) {
+        document.getElementById('clear-filter').classList.remove('d-none');
+        const activeCard = document.querySelector(`.cluster-card[data-cluster-id="${currentClusterId}"]`);
+        if (activeCard) {
+            activeCard.classList.add('active');
+        }
+    }
 
     // Function to submit the form
     function submitFilterForm() {
@@ -738,194 +1033,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Report Type Distribution Chart
-    const reportTypeDistributionCtx = document.getElementById('reportTypeDistributionChart').getContext('2d');
-    new Chart(reportTypeDistributionCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Weekly', 'Monthly', 'Quarterly', 'Semestral', 'Annual'],
-            datasets: [{
-                label: 'Submissions',
-                data: [
-                    {{ $weeklyCount }},
-                    {{ $monthlyCount }},
-                    {{ $quarterlyCount }},
-                    {{ $semestralCount }},
-                    {{ $annualCount }}
-                ],
-                backgroundColor: chartColors.slice(0, 5),
-                borderWidth: 0,
-                borderRadius: 4,
-                borderSkipped: false,
-                barPercentage: 0.6,
-                categoryPercentage: 0.7
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false
-                },
-                title: {
-                    display: true,
-                    text: 'Report Type Distribution',
-                    font: {
-                        size: 14,
-                        weight: 'normal'
-                    },
-                    padding: {
-                        bottom: 15
-                    },
-                    color: '#495057'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Number of Submissions',
-                        font: {
-                            size: 12
-                        },
-                        padding: {
-                            top: 10
-                        },
-                        color: '#6c757d'
-                    },
-                    ticks: {
-                        precision: 0,
-                        font: {
-                            size: 11
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.03)'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Report Type',
-                        font: {
-                            size: 12
-                        },
-                        padding: {
-                            top: 10
-                        },
-                        color: '#6c757d'
-                    },
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: {
-                            size: 11
-                        }
-                    }
-                }
-            }
-        }
-    });
+    // No chart needed for Report Type Distribution as it's now displayed as cards
 
-    // Cluster Submissions Chart
-    const clusterSubmissionsCtx = document.getElementById('clusterSubmissionsChart').getContext('2d');
-    new Chart(clusterSubmissionsCtx, {
-        type: 'bar',
-        data: {
-            labels: {!! json_encode(array_keys($clusterSubmissions)) !!},
-            datasets: [{
-                label: 'Submissions',
-                data: {!! json_encode(array_values($clusterSubmissions)) !!},
-                backgroundColor: chartColors,
-                borderWidth: 0,
-                borderRadius: 4,
-                borderSkipped: false,
-                barPercentage: 0.6,
-                categoryPercentage: 0.7
-            }]
-        },
-        options: {
-            indexAxis: 'y', // This makes the chart vertical
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' + context.raw;
-                        }
-                    }
-                },
-                title: {
-                    display: true,
-                    text: 'Number of Submissions per Cluster',
-                    font: {
-                        size: 14,
-                        weight: 'normal'
-                    },
-                    padding: {
-                        bottom: 15
-                    },
-                    color: '#495057'
-                }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Number of Submissions',
-                        font: {
-                            size: 12
-                        },
-                        padding: {
-                            top: 10
-                        },
-                        color: '#6c757d'
-                    },
-                    ticks: {
-                        precision: 0,
-                        font: {
-                            size: 11
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.03)'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Cluster',
-                        font: {
-                            size: 12
-                        },
-                        padding: {
-                            right: 10
-                        },
-                        color: '#6c757d'
-                    },
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: {
-                            size: 11
-                        }
-                    }
-                }
-            }
-        }
+    // No chart needed for Cluster Submissions as it's now displayed as cards
+
+
+
+    // Function to filter by cluster
+    function filterByCluster(clusterId) {
+        // Show the clear filter button
+        document.getElementById('clear-filter').classList.remove('d-none');
+
+        // Set active class on the selected cluster card
+        document.querySelectorAll('.cluster-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        document.querySelector(`.cluster-card[data-cluster-id="${clusterId}"]`).classList.add('active');
+
+        // Update the filter in the URL without reloading the page
+        const url = new URL(window.location);
+        url.searchParams.set('cluster_id', clusterId);
+        window.history.pushState({}, '', url);
+
+        // Submit the form to apply the filter
+        document.getElementById('cluster_id').value = clusterId;
+        submitFilterForm();
+    }
+
+    // Function to clear the filter
+    document.getElementById('clear-filter').addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent the click from bubbling up
+
+        // Hide the clear filter button
+        document.getElementById('clear-filter').classList.add('d-none');
+
+        // Remove active class from all cluster cards
+        document.querySelectorAll('.cluster-card').forEach(card => {
+            card.classList.remove('active');
+        });
+
+        // Clear the filter in the URL
+        const url = new URL(window.location);
+        url.searchParams.delete('cluster_id');
+        window.history.pushState({}, '', url);
+
+        // Reset the filter and submit the form
+        document.getElementById('cluster_id').value = '';
+        submitFilterForm();
     });
 });
 </script>
