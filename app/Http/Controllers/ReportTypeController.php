@@ -56,7 +56,8 @@ class ReportTypeController extends Controller
                 'frequency' => 'required|string|in:' . implode(',', array_keys(ReportType::frequencies())),
                 'deadline' => 'required|date',
                 'allowed_file_types' => 'nullable|array',
-                'allowed_file_types.*' => 'string|in:' . implode(',', array_keys(ReportType::availableFileTypes()))
+                'allowed_file_types.*' => 'string|in:' . implode(',', array_keys(ReportType::availableFileTypes())),
+                'file_naming_format' => 'nullable|string|max:255'
             ]);
 
             // Convert empty array to null for allowed_file_types
@@ -108,7 +109,8 @@ class ReportTypeController extends Controller
                 'frequency' => 'required|string|in:' . implode(',', array_keys(ReportType::frequencies())),
                 'deadline' => 'required|date',
                 'allowed_file_types' => 'nullable|array',
-                'allowed_file_types.*' => 'string|in:' . implode(',', array_keys(ReportType::availableFileTypes()))
+                'allowed_file_types.*' => 'string|in:' . implode(',', array_keys(ReportType::availableFileTypes())),
+                'file_naming_format' => 'nullable|string|max:255'
             ]);
 
             Log::info('Validated data', ['validated' => $validated]);

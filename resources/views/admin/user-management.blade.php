@@ -176,11 +176,31 @@
                 </table>
             </div>
 
-            <!-- Pagination info -->
+            <!-- Pagination info and links -->
             <div class="pagination-wrapper">
                 <div class="d-flex justify-content-between align-items-center">
-                    <div class="pagination-info" id="paginationInfo">
-                        Showing <span class="fw-medium" id="visibleCount">{{ count($users) }}</span> of <span class="fw-medium" id="totalCount">{{ count($users) }}</span> users
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="pagination-info" id="paginationInfo">
+                            @if($users->total() > 0)
+                                Showing {{ $users->firstItem() }} to {{ $users->lastItem() }} of {{ $users->total() }} users
+                            @else
+                                No users found
+                            @endif
+                        </div>
+                        <div class="dropdown per-page-dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="perPageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ $users->perPage() }} per page
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="perPageDropdown">
+                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 10]) }}">10 per page</a></li>
+                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 25]) }}">25 per page</a></li>
+                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 50]) }}">50 per page</a></li>
+                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 100]) }}">100 per page</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="pagination-container">
+                        {{ $users->links('pagination::bootstrap-5') }}
                     </div>
                 </div>
             </div>
@@ -713,6 +733,39 @@
         color: white;
     }
 
+    /* Per-page dropdown styles */
+    .per-page-dropdown .btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-color: var(--gray-300);
+        color: var(--gray-700);
+        background-color: white;
+    }
+
+    .per-page-dropdown .btn:hover {
+        background-color: var(--gray-100);
+        border-color: var(--gray-400);
+    }
+
+    .per-page-dropdown .dropdown-menu {
+        min-width: 100%;
+        padding: 0.25rem 0;
+        font-size: 0.75rem;
+        border-radius: 6px;
+        border-color: var(--gray-300);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+
+    .per-page-dropdown .dropdown-item {
+        padding: 0.25rem 0.75rem;
+        color: var(--gray-700);
+    }
+
+    .per-page-dropdown .dropdown-item:hover {
+        background-color: var(--gray-100);
+        color: var(--gray-900);
+    }
+
     /* Empty State Styles */
     .empty-state {
         padding: 2rem;
@@ -855,7 +908,7 @@
         updateEmptyState();
     }, 300);
 
-    // Function to update empty state visibility and pagination info
+    // Function to update empty state visibility
     function updateEmptyState() {
         let visibleRows = 0;
         userRows.forEach(row => {
@@ -863,18 +916,6 @@
                 visibleRows++;
             }
         });
-
-        // Update pagination info
-        const visibleCountElement = document.getElementById('visibleCount');
-        const totalCountElement = document.getElementById('totalCount');
-
-        if (visibleCountElement) {
-            visibleCountElement.textContent = visibleRows;
-        }
-
-        if (totalCountElement) {
-            totalCountElement.textContent = userRows.length - 1; // Subtract 1 for the empty state row
-        }
 
         // Get or create the empty state row
         let emptyStateRow = document.querySelector('.empty-filter-results');

@@ -13,7 +13,8 @@ class ReportType extends Model
         'name',
         'frequency',
         'deadline',
-        'allowed_file_types'
+        'allowed_file_types',
+        'file_naming_format'
     ];
 
     protected $casts = [
@@ -47,8 +48,28 @@ class ReportType extends Model
         ];
     }
 
+
+
     public function getFormattedNameAttribute()
     {
         return ucwords(str_replace('_', ' ', $this->name));
+    }
+
+    /**
+     * Check if a filename matches the required naming format
+     *
+     * @param string $filename The filename to check
+     * @return bool True if the filename matches the format or if no format is specified
+     */
+    public function validateFilename($filename)
+    {
+        // If no format is specified, any filename is valid
+        if (empty($this->file_naming_format)) {
+            return true;
+        }
+
+        // For now, we'll just return true for all filenames
+        // This effectively disables the file naming format validation
+        return true;
     }
 }

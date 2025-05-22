@@ -19,5 +19,8 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Uncomment the line below to seed report submissions
+        // $this->call(ReportSubmissionsSeeder::class);
     }
 }

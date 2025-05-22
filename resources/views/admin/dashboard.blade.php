@@ -3,183 +3,204 @@
 @section('title', 'Dashboard')
 
 @push('styles')
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+    :root {
+        /* Color Variables */
+        --primary-color: #4361ee;
+        --primary-light: rgba(67, 97, 238, 0.1);
+        --success-color: #36b37e;
+        --success-light: rgba(54, 179, 126, 0.1);
+        --warning-color: #ffab00;
+        --warning-light: rgba(255, 171, 0, 0.1);
+        --danger-color: #f5365c;
+        --danger-light: rgba(245, 54, 92, 0.1);
+        --info-color: #00b8d9;
+        --info-light: rgba(0, 184, 217, 0.1);
+        --dark-color: #2d3748;
+        --gray-100: #f8f9fa;
+        --gray-200: #e9ecef;
+        --gray-300: #dee2e6;
+        --gray-400: #ced4da;
+        --gray-500: #adb5bd;
+        --gray-600: #6c757d;
+        --gray-700: #495057;
+        --gray-800: #343a40;
+        --gray-900: #212529;
+
+        /* Spacing & Sizing */
+        --card-border-radius: 8px;
+        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        --card-hover-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+        --transition-speed: 0.2s;
+        --section-spacing: 1.5rem;
+        --card-padding: 1.25rem;
+
+        /* Typography */
+        --font-weight-normal: 400;
+        --font-weight-medium: 500;
+        --font-weight-semibold: 600;
+        --font-weight-bold: 700;
+        --font-size-xs: 0.75rem;
+        --font-size-sm: 0.875rem;
+        --font-size-md: 1rem;
+        --font-size-lg: 1.25rem;
+        --font-size-xl: 1.5rem;
+        --font-size-xxl: 2rem;
+        --line-height-tight: 1.2;
+        --line-height-normal: 1.5;
+    }
+
+    /* Global Styles */
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #f9fafb;
+        color: var(--gray-800);
+    }
+
+    /* Dashboard Container */
+    .dashboard-container {
+        padding: var(--section-spacing) 0;
+    }
+
+    /* Stat Card Styles */
     .stat-card {
-        border-radius: 1rem;
+        border-radius: var(--card-border-radius);
         border: none;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        transition: transform 0.2s ease;
+        box-shadow: var(--card-shadow);
+        transition: all var(--transition-speed) ease;
+        background: white;
+        margin-bottom: 1rem;
+        overflow: hidden;
     }
 
     .stat-card:hover {
-        transform: translateY(-5px);
+        box-shadow: var(--card-hover-shadow);
+    }
+
+    .stat-card .card-body {
+        padding: var(--card-padding);
+        display: flex;
+        align-items: center;
     }
 
     .stat-icon {
         width: 48px;
         height: 48px;
-        border-radius: 12px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: var(--font-size-md);
+        margin-right: 1rem;
+    }
+
+    .stat-icon.primary-icon {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .stat-icon.success-icon {
+        background-color: var(--success-light);
+        color: var(--success-color);
+    }
+
+    .stat-icon.warning-icon {
+        background-color: var(--warning-light);
+        color: var(--warning-color);
+    }
+
+    .stat-icon.danger-icon {
+        background-color: var(--danger-light);
+        color: var(--danger-color);
+    }
+
+    .stat-content {
+        flex: 1;
     }
 
     .stat-value {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0.5rem 0;
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        margin: 0;
+        color: var(--dark-color);
+        line-height: var(--line-height-tight);
     }
 
     .stat-label {
         color: var(--gray-600);
-        font-size: 0.875rem;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        margin: 0.25rem 0 0;
     }
 
-    .recent-activity {
-        max-height: 450px;
-        overflow-y: auto;
-        padding: 0.5rem;
-    }
-
-    .recent-activity::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .recent-activity::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-
-    .recent-activity::-webkit-scrollbar-thumb {
-        background: #ddd;
-        border-radius: 10px;
-    }
-
-    .recent-activity::-webkit-scrollbar-thumb:hover {
-        background: #ccc;
-    }
-
-    .activity-item {
-        padding: 1.25rem;
-        margin-bottom: 1rem;
+    /* Chart Card Styles */
+    .chart-card {
+        border-radius: var(--card-border-radius);
+        border: none;
+        box-shadow: var(--card-shadow);
+        transition: all var(--transition-speed) ease;
         background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        transition: all 0.2s ease;
-        position: relative;
-        overflow: hidden;
-        border: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .activity-item::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
         height: 100%;
-        width: 4px;
-        background: var(--primary);
+        margin-bottom: 1.5rem;
     }
 
-    .activity-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    .chart-card:hover {
+        box-shadow: var(--card-hover-shadow);
     }
 
-    .activity-item.late::before {
-        background: var(--danger);
+    .chart-card .card-header {
+        background: white;
+        border-bottom: 1px solid var(--gray-200);
+        padding: 1rem var(--card-padding);
     }
 
-    .activity-item.ontime::before {
-        background: var(--success);
-    }
-
-    .activity-meta {
-        font-size: 0.8125rem;
-        color: var(--gray-600);
+    .chart-card .card-header h5 {
+        font-weight: var(--font-weight-semibold);
+        font-size: var(--font-size-md);
+        color: var(--dark-color);
+        margin: 0;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
     }
 
-    .activity-title {
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: var(--gray-800);
-        font-size: 1rem;
+    .chart-card .card-header i {
+        font-size: var(--font-size-md);
+        color: var(--primary-color);
+        margin-right: 0.5rem;
     }
 
-    .status-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.25rem 0.75rem;
-        border-radius: 2rem;
-        font-size: 0.75rem;
-        font-weight: 500;
-        line-height: 1;
-        transition: all 0.2s ease;
-        white-space: nowrap;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        border: 1px solid rgba(0, 0, 0, 0.03);
-    }
-
-    .status-pill:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .status-pill i {
-        margin-right: 0.375rem;
-        font-size: 0.75rem;
-    }
-
-    .activity-content {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .activity-status {
-        margin-left: 1rem;
+    .chart-card .card-body {
+        padding: var(--card-padding);
     }
 
     .chart-container {
         position: relative;
-        height: 260px;
+        height: 280px;
     }
 
-    .stat-items {
-        margin-top: 1.5rem;
+    /* Row & Column Spacing */
+    .row {
+        margin-bottom: var(--section-spacing);
     }
 
-    .stat-item {
-        transition: all 0.2s ease;
-        border-radius: 0.75rem;
-        overflow: hidden;
+    .row:last-child {
+        margin-bottom: 0;
     }
 
-    .stat-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    }
+    /* Responsive Adjustments */
+    @media (max-width: 767.98px) {
+        .stat-card {
+            margin-bottom: 1rem;
+        }
 
-    .stat-icon-wrapper {
-        transition: all 0.2s ease;
-    }
+        .chart-card {
+            margin-bottom: 1.5rem;
+        }
 
-    .stat-item:hover .stat-icon-wrapper {
-        transform: scale(1.1);
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: var(--gray-700);
-        font-weight: 500;
-    }
-
-    .stat-value {
-        font-size: 1.1rem;
-        font-weight: 600;
+        .chart-container {
+            height: 220px;
+        }
     }
 </style>
 @endpush
@@ -195,63 +216,91 @@
 </div>
 
 <!-- Statistics Cards -->
+<div class="row">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="card-body">
+                <div class="stat-icon primary-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ $totalReportTypes }}</div>
+                    <div class="stat-label">Report Types</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="card-body">
+                <div class="stat-icon success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ $totalSubmittedReports }}</div>
+                    <div class="stat-label">Submitted Reports</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="card-body">
+                <div class="stat-icon warning-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ $noSubmissionReports }}</div>
+                    <div class="stat-label">No Submissions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="card-body">
+                <div class="stat-icon danger-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-value">{{ $lateSubmissions }}</div>
+                    <div class="stat-label">Late Submissions</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card stat-card">
+    <!-- Submission by Type Chart -->
+    <div class="col-md-6">
+        <div class="chart-card">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-chart-pie"></i>
+                    Submissions by Type
+                </h5>
+            </div>
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon" style="background: var(--primary-light); color: var(--primary);">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <div class="ms-3">
-                        <div class="stat-value">{{ $totalSubmissions }}</div>
-                        <div class="stat-label">Total Submissions</div>
-                    </div>
+                <div class="chart-container">
+                    <canvas id="submissionTypeChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card stat-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon" style="background: var(--success-light); color: var(--success);">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="ms-3">
-                        <div class="stat-value">{{ $submittedReports }}</div>
-                        <div class="stat-label">Submitted Reports</div>
-                    </div>
-                </div>
+
+    <!-- Monthly Trend Chart -->
+    <div class="col-md-6">
+        <div class="chart-card">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-chart-line"></i>
+                    Monthly Submission Trend
+                </h5>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon" style="background: var(--warning-light); color: var(--warning);">
-                        <i class="fas fa-times-circle"></i>
-                    </div>
-                    <div class="ms-3">
-                        <div class="stat-value">{{ $noSubmissionReports }}</div>
-                        <div class="stat-label">No Submission Reports</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card">
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="stat-icon" style="background: var(--danger-light); color: var(--danger);">
-                        <i class="fas fa-exclamation-circle"></i>
-                    </div>
-                    <div class="ms-3">
-                        <div class="stat-value">{{ $lateSubmissions }}</div>
-                        <div class="stat-label">Late Submissions</div>
-                    </div>
+                <div class="chart-container">
+                    <canvas id="monthlyTrendChart"></canvas>
                 </div>
             </div>
         </div>
@@ -259,165 +308,35 @@
 </div>
 
 <div class="row">
-    <!-- Recent Submissions -->
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                <h5 class="mb-0 fw-semibold">
-                    <i class="fas fa-history me-2" style="color: var(--primary);"></i>
-                    Recent Submissions
+    <!-- Report Type Distribution -->
+    <div class="col-md-6">
+        <div class="chart-card">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-chart-bar"></i>
+                    Report Type Distribution
                 </h5>
-                <a href="{{ route('admin.view.submissions') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                    <i class="fas fa-eye me-1"></i> View All
-                </a>
             </div>
-            <div class="card-body p-0">
-                <div class="recent-activity">
-                    @forelse($recentSubmissions as $submission)
-                    <div class="activity-item {{ $submission->is_late ? 'late' : 'ontime' }}">
-                        <div class="d-flex justify-content-between">
-                            <div class="activity-content">
-                                <h6 class="activity-title">{{ $submission->report_type }}</h6>
-                                <div class="activity-meta">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <span class="d-flex align-items-center">
-                                            <i class="fas fa-user-circle me-1"></i>
-                                            {{ $submission->submitter }}
-                                        </span>
-                                        <span class="d-flex align-items-center">
-                                            <i class="far fa-calendar-alt me-1"></i>
-                                            {{ \Carbon\Carbon::parse($submission->submitted_at)->format('M d, Y') }}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="activity-status d-flex align-items-center gap-2">
-                                @php
-                                    // Status badge configuration
-                                    $statusConfig = [
-                                        'submitted' => [
-                                            'icon' => 'fa-check-circle',
-                                            'color' => 'var(--success)',
-                                            'bgColor' => 'rgba(25, 135, 84, 0.1)'
-                                        ],
-                                        'no submission' => [
-                                            'icon' => 'fa-times-circle',
-                                            'color' => 'var(--danger)',
-                                            'bgColor' => 'rgba(220, 53, 69, 0.1)'
-                                        ],
-                                        'pending' => [
-                                            'icon' => 'fa-clock',
-                                            'color' => 'var(--warning)',
-                                            'bgColor' => 'rgba(255, 193, 7, 0.1)'
-                                        ]
-                                    ];
-
-                                    // Default values if status is not in the config
-                                    $statusData = $statusConfig[$submission->status] ?? [
-                                        'icon' => 'fa-info-circle',
-                                        'color' => 'var(--gray-600)',
-                                        'bgColor' => 'rgba(108, 117, 125, 0.1)'
-                                    ];
-
-                                    // Timeliness configuration
-                                    $timelinessData = $submission->is_late
-                                        ? [
-                                            'icon' => 'fa-exclamation-circle',
-                                            'text' => 'Late',
-                                            'color' => 'var(--danger)',
-                                            'bgColor' => 'rgba(220, 53, 69, 0.1)'
-                                        ]
-                                        : [
-                                            'icon' => 'fa-check-circle',
-                                            'text' => 'On Time',
-                                            'color' => 'var(--success)',
-                                            'bgColor' => 'rgba(25, 135, 84, 0.1)'
-                                        ];
-                                @endphp
-
-                                <div class="status-pill" style="background-color: {{ $statusData['bgColor'] }}; color: {{ $statusData['color'] }}">
-                                    <i class="fas {{ $statusData['icon'] }}"></i>
-                                    {{ ucfirst($submission->status) }}
-                                </div>
-
-                                <div class="status-pill" style="background-color: {{ $timelinessData['bgColor'] }}; color: {{ $timelinessData['color'] }}">
-                                    <i class="fas {{ $timelinessData['icon'] }}"></i>
-                                    {{ $timelinessData['text'] }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center py-5">
-                        <div class="mb-3" style="color: var(--gray-300);">
-                            <i class="fas fa-inbox fa-3x"></i>
-                        </div>
-                        <p class="text-muted mb-0">No recent submissions</p>
-                    </div>
-                    @endforelse
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="reportTypeDistributionChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Submission Statistics -->
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                <h5 class="mb-0 fw-semibold">
-                    <i class="fas fa-chart-pie me-2" style="color: var(--primary);"></i>
-                    Submission Statistics
+    <!-- Submissions per Cluster -->
+    <div class="col-md-6">
+        <div class="chart-card">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-layer-group"></i>
+                    Submissions per Cluster
                 </h5>
             </div>
             <div class="card-body">
-                <div class="chart-container mb-4">
-                    <canvas id="submissionChart"></canvas>
-                </div>
-                <div class="mt-4">
-                    @php
-                        $reportTypes = [
-                            [
-                                'name' => 'Weekly Reports',
-                                'count' => $weeklyCount,
-                                'icon' => 'fa-clock',
-                                'color' => 'var(--primary)'
-                            ],
-                            [
-                                'name' => 'Monthly Reports',
-                                'count' => $monthlyCount,
-                                'icon' => 'fa-calendar-day',
-                                'color' => 'var(--danger)'
-                            ],
-                            [
-                                'name' => 'Quarterly Reports',
-                                'count' => $quarterlyCount,
-                                'icon' => 'fa-chart-pie',
-                                'color' => 'var(--warning)'
-                            ],
-                            [
-                                'name' => 'Annual Reports',
-                                'count' => $annualCount,
-                                'icon' => 'fa-chart-line',
-                                'color' => 'var(--success)'
-                            ]
-                        ];
-                    @endphp
-
-                    <div class="stat-items">
-                        @foreach($reportTypes as $type)
-                        <div class="stat-item d-flex justify-content-between align-items-center p-3 mb-3 rounded"
-                            style="background-color: {{ $type['color'] }}08; border-left: 3px solid {{ $type['color'] }}">
-                            <div class="d-flex align-items-center">
-                                <div class="stat-icon-wrapper me-3 d-flex align-items-center justify-content-center rounded-circle"
-                                    style="background-color: {{ $type['color'] }}15; width: 36px; height: 36px;">
-                                    <i class="fas {{ $type['icon'] }}" style="color: {{ $type['color'] }}"></i>
-                                </div>
-                                <span class="stat-label">{{ $type['name'] }}</span>
-                            </div>
-                            <span class="stat-value fw-bold" style="color: {{ $type['color'] }}">{{ $type['count'] }}</span>
-                        </div>
-                        @endforeach
-                    </div>
+                <div class="chart-container">
+                    <canvas id="clusterSubmissionsChart"></canvas>
                 </div>
             </div>
         </div>
@@ -428,32 +347,60 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Submission Statistics Chart
-    const ctx = document.getElementById('submissionChart').getContext('2d');
-    new Chart(ctx, {
+    // Common chart options
+    Chart.defaults.font.family = "'Poppins', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#6c757d';
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(45, 55, 72, 0.9)';
+    Chart.defaults.plugins.tooltip.padding = 8;
+    Chart.defaults.plugins.tooltip.cornerRadius = 4;
+    Chart.defaults.plugins.tooltip.titleFont = { weight: 600, size: 13 };
+    Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
+    Chart.defaults.plugins.tooltip.displayColors = true;
+    Chart.defaults.plugins.tooltip.boxPadding = 4;
+
+    // Modern minimal color palette
+    const colors = {
+        primary: 'rgba(67, 97, 238, 0.7)',
+        success: 'rgba(54, 179, 126, 0.7)',
+        warning: 'rgba(255, 171, 0, 0.7)',
+        danger: 'rgba(245, 54, 92, 0.7)',
+        info: 'rgba(0, 184, 217, 0.7)',
+        purple: 'rgba(111, 66, 193, 0.7)',
+        orange: 'rgba(253, 126, 20, 0.7)',
+        teal: 'rgba(32, 201, 151, 0.7)'
+    };
+
+    // Chart colors
+    const chartColors = [
+        colors.primary,
+        colors.success,
+        colors.warning,
+        colors.info,
+        colors.danger,
+        colors.purple,
+        colors.orange,
+        colors.teal
+    ];
+
+    // Submission Type Chart
+    const submissionTypeCtx = document.getElementById('submissionTypeChart').getContext('2d');
+    new Chart(submissionTypeCtx, {
         type: 'doughnut',
         data: {
-            labels: ['Weekly', 'Monthly', 'Quarterly', 'Annual'],
+            labels: ['Weekly', 'Monthly', 'Quarterly', 'Semestral', 'Annual'],
             datasets: [{
                 data: [
                     {{ $weeklyCount }},
                     {{ $monthlyCount }},
                     {{ $quarterlyCount }},
+                    {{ $semestralCount }},
                     {{ $annualCount }}
                 ],
-                backgroundColor: [
-                    'rgba(13, 110, 253, 0.8)',  // Primary (blue)
-                    'rgba(220, 53, 69, 0.8)',   // Danger (red)
-                    'rgba(255, 193, 7, 0.8)',   // Warning (yellow)
-                    'rgba(25, 135, 84, 0.8)'    // Success (green)
-                ],
-                borderColor: [
-                    'rgba(13, 110, 253, 1)',
-                    'rgba(220, 53, 69, 1)',
-                    'rgba(255, 193, 7, 1)',
-                    'rgba(25, 135, 84, 1)'
-                ],
-                borderWidth: 1
+                backgroundColor: chartColors.slice(0, 5),
+                borderWidth: 0,
+                borderRadius: 4,
+                hoverOffset: 6
             }]
         },
         options: {
@@ -465,26 +412,327 @@ document.addEventListener('DOMContentLoaded', function() {
                     position: 'bottom',
                     labels: {
                         usePointStyle: true,
-                        padding: 15,
+                        padding: 10,
                         font: {
-                            size: 12
+                            size: 11,
+                            weight: '500'
                         }
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    titleColor: '#333',
-                    bodyColor: '#666',
-                    borderColor: 'rgba(0, 0, 0, 0.1)',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    boxPadding: 6,
-                    usePointStyle: true
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((acc, data) => acc + data, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Distribution of Submissions by Report Type',
+                    font: {
+                        size: 14,
+                        weight: 'normal'
+                    },
+                    padding: {
+                        bottom: 15
+                    },
+                    color: '#495057'
                 }
             },
-            elements: {
-                arc: {
-                    borderWidth: 2
+            animation: {
+                animateScale: true,
+                animateRotate: true
+            }
+        }
+    });
+
+    // Monthly Trend Chart
+    const monthlyTrendCtx = document.getElementById('monthlyTrendChart').getContext('2d');
+    new Chart(monthlyTrendCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Submissions',
+                data: {{ json_encode($submissionsByMonth) }},
+                borderColor: colors.primary,
+                backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: colors.primary,
+                pointBorderWidth: 1.5,
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                },
+                title: {
+                    display: true,
+                    text: 'Monthly Submission Trend',
+                    font: {
+                        size: 14,
+                        weight: 'normal'
+                    },
+                    padding: {
+                        bottom: 15
+                    },
+                    color: '#495057'
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Submissions',
+                        font: {
+                            size: 12
+                        },
+                        padding: {
+                            top: 10
+                        },
+                        color: '#6c757d'
+                    },
+                    ticks: {
+                        precision: 0,
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.03)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month',
+                        font: {
+                            size: 12
+                        },
+                        padding: {
+                            top: 10
+                        },
+                        color: '#6c757d'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Report Type Distribution Chart
+    const reportTypeDistributionCtx = document.getElementById('reportTypeDistributionChart').getContext('2d');
+    new Chart(reportTypeDistributionCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Weekly', 'Monthly', 'Quarterly', 'Semestral', 'Annual'],
+            datasets: [{
+                label: 'Submissions',
+                data: [
+                    {{ $weeklyCount }},
+                    {{ $monthlyCount }},
+                    {{ $quarterlyCount }},
+                    {{ $semestralCount }},
+                    {{ $annualCount }}
+                ],
+                backgroundColor: chartColors.slice(0, 5),
+                borderWidth: 0,
+                borderRadius: 4,
+                borderSkipped: false,
+                barPercentage: 0.6,
+                categoryPercentage: 0.7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                },
+                title: {
+                    display: true,
+                    text: 'Report Type Distribution',
+                    font: {
+                        size: 14,
+                        weight: 'normal'
+                    },
+                    padding: {
+                        bottom: 15
+                    },
+                    color: '#495057'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Submissions',
+                        font: {
+                            size: 12
+                        },
+                        padding: {
+                            top: 10
+                        },
+                        color: '#6c757d'
+                    },
+                    ticks: {
+                        precision: 0,
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.03)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Report Type',
+                        font: {
+                            size: 12
+                        },
+                        padding: {
+                            top: 10
+                        },
+                        color: '#6c757d'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Cluster Submissions Chart
+    const clusterSubmissionsCtx = document.getElementById('clusterSubmissionsChart').getContext('2d');
+    new Chart(clusterSubmissionsCtx, {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode(array_keys($clusterSubmissions)) !!},
+            datasets: [{
+                label: 'Submissions',
+                data: {!! json_encode(array_values($clusterSubmissions)) !!},
+                backgroundColor: chartColors,
+                borderWidth: 0,
+                borderRadius: 4,
+                borderSkipped: false,
+                barPercentage: 0.6,
+                categoryPercentage: 0.7
+            }]
+        },
+        options: {
+            indexAxis: 'y', // This makes the chart vertical
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.raw;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Number of Submissions per Cluster',
+                    font: {
+                        size: 14,
+                        weight: 'normal'
+                    },
+                    padding: {
+                        bottom: 15
+                    },
+                    color: '#495057'
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Submissions',
+                        font: {
+                            size: 12
+                        },
+                        padding: {
+                            top: 10
+                        },
+                        color: '#6c757d'
+                    },
+                    ticks: {
+                        precision: 0,
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.03)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Cluster',
+                        font: {
+                            size: 12
+                        },
+                        padding: {
+                            right: 10
+                        },
+                        color: '#6c757d'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
                 }
             }
         }

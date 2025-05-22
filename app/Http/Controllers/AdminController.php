@@ -19,27 +19,63 @@ use Illuminate\Support\Facades\Log;
 class AdminController extends Controller
 {
     /**
-     * Display the admin dashboard with users list.
+     * Display the admin dashboard with charts and statistics.
      */
     public function index()
     {
-        // Get total submissions count
-        $totalSubmissions = WeeklyReport::count() +
-                          MonthlyReport::count() +
-                          QuarterlyReport::count() +
-                          AnnualReport::count();
+        // Count total report types created by admin
+        $totalReportTypes = ReportType::count();
 
-        // Get submitted reports count
-        $submittedReports = WeeklyReport::where('status', 'submitted')->count() +
-                            MonthlyReport::where('status', 'submitted')->count() +
-                            QuarterlyReport::where('status', 'submitted')->count() +
-                            AnnualReport::where('status', 'submitted')->count();
+        // Count total barangays in the system
+        $totalBarangays = User::where(function($query) {
+            $query->where('role', 'barangay')
+                  ->orWhere('user_type', 'barangay');
+        })->count();
 
-        // Get no submission reports count
-        $noSubmissionReports = WeeklyReport::where('status', 'no submission')->count() +
-                               MonthlyReport::where('status', 'no submission')->count() +
-                               QuarterlyReport::where('status', 'no submission')->count() +
-                               AnnualReport::where('status', 'no submission')->count();
+        // Calculate the total expected reports (report types × barangays)
+        $totalExpectedReports = $totalReportTypes * $totalBarangays;
+
+        // Get unique submitted reports (count each report type per barangay only once)
+        $weeklySubmitted = DB::table('weekly_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted')
+            ->groupBy('user_id', 'report_type_id')
+            ->get()
+            ->count();
+
+        $monthlySubmitted = DB::table('monthly_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted')
+            ->groupBy('user_id', 'report_type_id')
+            ->get()
+            ->count();
+
+        $quarterlySubmitted = DB::table('quarterly_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted')
+            ->groupBy('user_id', 'report_type_id')
+            ->get()
+            ->count();
+
+        $semestralSubmitted = DB::table('semestral_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted')
+            ->groupBy('user_id', 'report_type_id')
+            ->get()
+            ->count();
+
+        $annualSubmitted = DB::table('annual_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted')
+            ->groupBy('user_id', 'report_type_id')
+            ->get()
+            ->count();
+
+        // Total submitted reports (counting each report type per barangay only once)
+        $totalSubmittedReports = $weeklySubmitted + $monthlySubmitted + $quarterlySubmitted + $semestralSubmitted + $annualSubmitted;
+
+        // Calculate no submissions (expected - submitted)
+        $noSubmissionReports = $totalExpectedReports - $totalSubmittedReports;
 
         // Get late submissions count
         $lateSubmissions = DB::table('weekly_reports')
@@ -57,91 +93,116 @@ class AdminController extends Controller
             ->where('quarterly_reports.created_at', '>', DB::raw('report_types.deadline'))
             ->where('quarterly_reports.status', 'submitted')
             ->count() +
+            DB::table('semestral_reports')
+            ->join('report_types', 'semestral_reports.report_type_id', '=', 'report_types.id')
+            ->where('semestral_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('semestral_reports.status', 'submitted')
+            ->count() +
             DB::table('annual_reports')
             ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
             ->where('annual_reports.created_at', '>', DB::raw('report_types.deadline'))
             ->where('annual_reports.status', 'submitted')
             ->count();
 
-        // Get recent submissions
-        $recentSubmissions = DB::table('weekly_reports')
-            ->select([
-                'weekly_reports.id',
-                'weekly_reports.user_id',
-                'weekly_reports.report_type_id',
-                'weekly_reports.status',
-                'weekly_reports.created_at as submitted_at',
-                'users.name as submitter',
-                'report_types.name as report_type',
-                DB::raw('CASE WHEN weekly_reports.status = "pending" AND weekly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
-            ])
-            ->join('users', 'weekly_reports.user_id', '=', 'users.id')
-            ->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id')
-            ->union(
-                DB::table('monthly_reports')
-                ->select([
-                    'monthly_reports.id',
-                    'monthly_reports.user_id',
-                    'monthly_reports.report_type_id',
-                    'monthly_reports.status',
-                    'monthly_reports.created_at as submitted_at',
-                    'users.name as submitter',
-                    'report_types.name as report_type',
-                    DB::raw('CASE WHEN monthly_reports.status = "submitted" AND monthly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
-                ])
-                ->join('users', 'monthly_reports.user_id', '=', 'users.id')
-                ->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id')
-            )
-            ->union(
-                DB::table('quarterly_reports')
-                ->select([
-                    'quarterly_reports.id',
-                    'quarterly_reports.user_id',
-                    'quarterly_reports.report_type_id',
-                    'quarterly_reports.status',
-                    'quarterly_reports.created_at as submitted_at',
-                    'users.name as submitter',
-                    'report_types.name as report_type',
-                    DB::raw('CASE WHEN quarterly_reports.status = "submitted" AND quarterly_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
-                ])
-                ->join('users', 'quarterly_reports.user_id', '=', 'users.id')
-                ->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id')
-            )
-            ->union(
-                DB::table('annual_reports')
-                ->select([
-                    'annual_reports.id',
-                    'annual_reports.user_id',
-                    'annual_reports.report_type_id',
-                    'annual_reports.status',
-                    'annual_reports.created_at as submitted_at',
-                    'users.name as submitter',
-                    'report_types.name as report_type',
-                    DB::raw('CASE WHEN annual_reports.status = "submitted" AND annual_reports.created_at > report_types.deadline THEN true ELSE false END as is_late')
-                ])
-                ->join('users', 'annual_reports.user_id', '=', 'users.id')
-                ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
-            )
-            ->orderBy('submitted_at', 'desc')
-            ->limit(5)
-            ->get();
+        // Get submissions by frequency for chart
+        $weeklyCount = WeeklyReport::where('status', 'submitted')->count();
+        $monthlyCount = MonthlyReport::where('status', 'submitted')->count();
+        $quarterlyCount = QuarterlyReport::where('status', 'submitted')->count();
+        $semestralCount = SemestralReport::where('status', 'submitted')->count();
+        $annualCount = AnnualReport::where('status', 'submitted')->count();
 
-        // Get submissions by type for chart
-        $weeklyCount = WeeklyReport::count();
-        $monthlyCount = MonthlyReport::count();
-        $quarterlyCount = QuarterlyReport::count();
-        $annualCount = AnnualReport::count();
+        // Get submissions by month for trend chart
+        $submissionsByMonth = [];
+        $currentYear = date('Y');
+
+        for ($month = 1; $month <= 12; $month++) {
+            $startDate = Carbon::createFromDate($currentYear, $month, 1)->startOfMonth();
+            $endDate = Carbon::createFromDate($currentYear, $month, 1)->endOfMonth();
+
+            $monthlyTotal =
+                WeeklyReport::where('status', 'submitted')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count() +
+                MonthlyReport::where('status', 'submitted')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count() +
+                QuarterlyReport::where('status', 'submitted')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count() +
+                SemestralReport::where('status', 'submitted')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count() +
+                AnnualReport::where('status', 'submitted')
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count();
+
+            $submissionsByMonth[] = $monthlyTotal;
+        }
+
+        // Get top 5 barangays with most submissions
+        $barangaySubmissions = [];
+        $barangays = User::where(function($query) {
+            $query->where('role', 'barangay')
+                  ->orWhere('user_type', 'barangay');
+        })->get();
+
+        foreach ($barangays as $barangay) {
+            $submissionCount =
+                WeeklyReport::where('user_id', $barangay->id)->where('status', 'submitted')->count() +
+                MonthlyReport::where('user_id', $barangay->id)->where('status', 'submitted')->count() +
+                QuarterlyReport::where('user_id', $barangay->id)->where('status', 'submitted')->count() +
+                SemestralReport::where('user_id', $barangay->id)->where('status', 'submitted')->count() +
+                AnnualReport::where('user_id', $barangay->id)->where('status', 'submitted')->count();
+
+            $barangaySubmissions[$barangay->name] = $submissionCount;
+        }
+
+        // Sort by submission count (descending) and take top 5
+        arsort($barangaySubmissions);
+        $topBarangays = array_slice($barangaySubmissions, 0, 5, true);
+
+        // Get submissions per cluster
+        $clusterSubmissions = [];
+        $clusters = Cluster::all();
+
+        foreach ($clusters as $cluster) {
+            // Get all barangays in this cluster
+            $clusterBarangays = User::where('cluster_id', $cluster->id)
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            // Count submissions for all barangays in this cluster
+            $submissionCount = 0;
+
+            if (!empty($clusterBarangays)) {
+                $submissionCount =
+                    WeeklyReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count() +
+                    MonthlyReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count() +
+                    QuarterlyReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count() +
+                    SemestralReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count() +
+                    AnnualReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count();
+            }
+
+            $clusterSubmissions["Cluster " . $cluster->id] = $submissionCount;
+        }
 
         return view('admin.dashboard', compact(
-            'totalSubmissions',
-            'submittedReports',
+            'totalReportTypes',
+            'totalSubmittedReports',
             'noSubmissionReports',
             'lateSubmissions',
-            'recentSubmissions',
             'weeklyCount',
             'monthlyCount',
             'quarterlyCount',
-            'annualCount'
+            'semestralCount',
+            'annualCount',
+            'submissionsByMonth',
+            'topBarangays',
+            'clusterSubmissions'
         ));
     }
 
@@ -306,9 +367,12 @@ class AdminController extends Controller
     /**
      * Display the user management page.
      */
-    public function userManagement()
+    public function userManagement(Request $request)
     {
-        // Get all users with their relationships for client-side filtering
+        // Get the number of users per page from the request or use default
+        $perPage = $request->get('per_page', 10);
+
+        // Get users with their relationships for client-side filtering
         // Sort users by role (admin, facilitator, barangay) and then by cluster_id for barangays
         $users = User::with(['cluster', 'assignedClusters'])
             ->orderByRaw("
@@ -321,7 +385,8 @@ class AdminController extends Controller
             ")
             ->orderBy('cluster_id') // Sort barangays by cluster_id
             ->orderBy('name') // Then sort by name within each group
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString(); // Preserve other query parameters
 
         // Add assigned_clusters property to each user for easier access in the view
         $users->each(function ($user) {

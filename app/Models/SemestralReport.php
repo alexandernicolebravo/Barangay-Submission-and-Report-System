@@ -21,7 +21,7 @@ class SemestralReport extends Model
         'status',
         'remarks',
         'sem_number',
-        'can_update'
+        'can_update',
     ];
 
     public function user()

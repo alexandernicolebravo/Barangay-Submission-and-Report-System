@@ -717,7 +717,8 @@ class ReportController extends Controller
             'file' => 'required|file|mimes:' . $mimeTypesStr . '|max:102400',
         ]);
 
-        $fileName = time() . '_' . str_replace([' ', '(', ')'], '_', $request->file('file')->getClientOriginalName());
+        $file = $request->file('file');
+        $fileName = time() . '_' . str_replace([' ', '(', ')'], '_', $file->getClientOriginalName());
         $filePath = "reports/{$report->reportType->frequency}/{$fileName}";
 
         DB::beginTransaction();
@@ -725,7 +726,7 @@ class ReportController extends Controller
             // Store file
             Storage::disk('public')->putFileAs(
                 "reports/{$report->reportType->frequency}",
-                $request->file('file'),
+                $file,
                 $fileName
             );
 

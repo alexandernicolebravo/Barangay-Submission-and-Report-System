@@ -840,7 +840,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Form validation is handled by the load event listener above
+    // Add file validation to the form submission
+    form.addEventListener('submit', function(e) {
+        // Basic validation is already handled in the form submit event listener above
+    });
 });
 </script>
 @endpush

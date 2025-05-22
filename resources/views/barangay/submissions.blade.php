@@ -494,6 +494,9 @@
                                                                     <i class="fas fa-upload text-primary me-2"></i>
                                                                     <h6 class="mb-0 small">Upload New Report</h6>
                                                                 </div>
+
+
+
                                                                 <div class="file-upload-container" id="dropZone{{ $reportId }}">
                                                                     <input type="file" name="file" class="d-none" id="fileInput{{ $reportId }}" accept=".pdf,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar">
                                                                     <div class="p-2 border rounded" style="background-color: rgba(var(--primary-rgb), 0.03);">
