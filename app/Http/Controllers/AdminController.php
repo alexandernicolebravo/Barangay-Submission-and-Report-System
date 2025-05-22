@@ -21,55 +21,163 @@ class AdminController extends Controller
     /**
      * Display the admin dashboard with charts and statistics.
      */
-    public function index()
+    public function index(Request $request)
     {
+        // Get filter parameters
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : null;
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
+        $reportType = $request->input('report_type');
+        $clusterId = $request->input('cluster_id');
+        $search = $request->input('search');
+
         // Count total report types created by admin
         $totalReportTypes = ReportType::count();
 
         // Count total barangays in the system
-        $totalBarangays = User::where(function($query) {
+        $barangayQuery = User::where(function($query) {
             $query->where('role', 'barangay')
                   ->orWhere('user_type', 'barangay');
-        })->count();
+        });
+
+        // Apply cluster filter to barangays if specified
+        if ($clusterId) {
+            $barangayQuery->where('cluster_id', $clusterId);
+        }
+
+        $totalBarangays = $barangayQuery->count();
 
         // Calculate the total expected reports (report types × barangays)
         $totalExpectedReports = $totalReportTypes * $totalBarangays;
 
         // Get unique submitted reports (count each report type per barangay only once)
-        $weeklySubmitted = DB::table('weekly_reports')
+        $weeklyQuery = DB::table('weekly_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted')
-            ->groupBy('user_id', 'report_type_id')
-            ->get()
-            ->count();
+            ->where('status', 'submitted');
 
-        $monthlySubmitted = DB::table('monthly_reports')
+        $monthlyQuery = DB::table('monthly_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted')
-            ->groupBy('user_id', 'report_type_id')
-            ->get()
-            ->count();
+            ->where('status', 'submitted');
 
-        $quarterlySubmitted = DB::table('quarterly_reports')
+        $quarterlyQuery = DB::table('quarterly_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted')
-            ->groupBy('user_id', 'report_type_id')
-            ->get()
-            ->count();
+            ->where('status', 'submitted');
 
-        $semestralSubmitted = DB::table('semestral_reports')
+        $semestralQuery = DB::table('semestral_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted')
-            ->groupBy('user_id', 'report_type_id')
-            ->get()
-            ->count();
+            ->where('status', 'submitted');
 
-        $annualSubmitted = DB::table('annual_reports')
+        $annualQuery = DB::table('annual_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted')
-            ->groupBy('user_id', 'report_type_id')
-            ->get()
-            ->count();
+            ->where('status', 'submitted');
+
+        // Apply date range filter if specified
+        if ($startDate && $endDate) {
+            $weeklyQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $monthlyQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $quarterlyQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $semestralQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $annualQuery->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        // Apply cluster filter if specified
+        if ($clusterId) {
+            $barangayIds = User::where('cluster_id', $clusterId)
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($barangayIds)) {
+                $weeklyQuery->whereIn('user_id', $barangayIds);
+                $monthlyQuery->whereIn('user_id', $barangayIds);
+                $quarterlyQuery->whereIn('user_id', $barangayIds);
+                $semestralQuery->whereIn('user_id', $barangayIds);
+                $annualQuery->whereIn('user_id', $barangayIds);
+            }
+        }
+
+        // Apply search filter if specified
+        if ($search) {
+            // Get report types matching the search
+            $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
+                ->pluck('id')
+                ->toArray();
+
+            // Get barangays matching the search
+            $barangayIds = User::where('name', 'like', "%{$search}%")
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($reportTypeIds) || !empty($barangayIds)) {
+                $weeklyQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+
+                $monthlyQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+
+                $quarterlyQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+
+                $semestralQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+
+                $annualQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+            }
+        }
+
+        // Apply report type filter if specified
+        if ($reportType) {
+            // Only count the specified report type
+            if ($reportType != 'weekly') $weeklyQuery->whereRaw('1=0');
+            if ($reportType != 'monthly') $monthlyQuery->whereRaw('1=0');
+            if ($reportType != 'quarterly') $quarterlyQuery->whereRaw('1=0');
+            if ($reportType != 'semestral') $semestralQuery->whereRaw('1=0');
+            if ($reportType != 'annual') $annualQuery->whereRaw('1=0');
+        }
+
+        // Execute the queries
+        $weeklySubmitted = $weeklyQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $monthlySubmitted = $monthlyQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $quarterlySubmitted = $quarterlyQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $semestralSubmitted = $semestralQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $annualSubmitted = $annualQuery->groupBy('user_id', 'report_type_id')->get()->count();
 
         // Total submitted reports (counting each report type per barangay only once)
         $totalSubmittedReports = $weeklySubmitted + $monthlySubmitted + $quarterlySubmitted + $semestralSubmitted + $annualSubmitted;
@@ -78,81 +186,463 @@ class AdminController extends Controller
         $noSubmissionReports = $totalExpectedReports - $totalSubmittedReports;
 
         // Get late submissions count
-        $lateSubmissions = DB::table('weekly_reports')
+        $weeklyLateQuery = DB::table('weekly_reports')
             ->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id')
             ->where('weekly_reports.created_at', '>', DB::raw('report_types.deadline'))
-            ->where('weekly_reports.status', 'submitted')
-            ->count() +
-            DB::table('monthly_reports')
+            ->where('weekly_reports.status', 'submitted');
+
+        $monthlyLateQuery = DB::table('monthly_reports')
             ->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id')
             ->where('monthly_reports.created_at', '>', DB::raw('report_types.deadline'))
-            ->where('monthly_reports.status', 'submitted')
-            ->count() +
-            DB::table('quarterly_reports')
+            ->where('monthly_reports.status', 'submitted');
+
+        $quarterlyLateQuery = DB::table('quarterly_reports')
             ->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id')
             ->where('quarterly_reports.created_at', '>', DB::raw('report_types.deadline'))
-            ->where('quarterly_reports.status', 'submitted')
-            ->count() +
-            DB::table('semestral_reports')
+            ->where('quarterly_reports.status', 'submitted');
+
+        $semestralLateQuery = DB::table('semestral_reports')
             ->join('report_types', 'semestral_reports.report_type_id', '=', 'report_types.id')
             ->where('semestral_reports.created_at', '>', DB::raw('report_types.deadline'))
-            ->where('semestral_reports.status', 'submitted')
-            ->count() +
-            DB::table('annual_reports')
+            ->where('semestral_reports.status', 'submitted');
+
+        $annualLateQuery = DB::table('annual_reports')
             ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
             ->where('annual_reports.created_at', '>', DB::raw('report_types.deadline'))
-            ->where('annual_reports.status', 'submitted')
-            ->count();
+            ->where('annual_reports.status', 'submitted');
+
+        // Apply date range filter if specified
+        if ($startDate && $endDate) {
+            $weeklyLateQuery->whereBetween('weekly_reports.created_at', [$startDate, $endDate]);
+            $monthlyLateQuery->whereBetween('monthly_reports.created_at', [$startDate, $endDate]);
+            $quarterlyLateQuery->whereBetween('quarterly_reports.created_at', [$startDate, $endDate]);
+            $semestralLateQuery->whereBetween('semestral_reports.created_at', [$startDate, $endDate]);
+            $annualLateQuery->whereBetween('annual_reports.created_at', [$startDate, $endDate]);
+        }
+
+        // Apply cluster filter if specified
+        if ($clusterId) {
+            $barangayIds = User::where('cluster_id', $clusterId)
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($barangayIds)) {
+                $weeklyLateQuery->whereIn('weekly_reports.user_id', $barangayIds);
+                $monthlyLateQuery->whereIn('monthly_reports.user_id', $barangayIds);
+                $quarterlyLateQuery->whereIn('quarterly_reports.user_id', $barangayIds);
+                $semestralLateQuery->whereIn('semestral_reports.user_id', $barangayIds);
+                $annualLateQuery->whereIn('annual_reports.user_id', $barangayIds);
+            }
+        }
+
+        // Apply search filter if specified
+        if ($search) {
+            // Get report types matching the search
+            $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
+                ->pluck('id')
+                ->toArray();
+
+            // Get barangays matching the search
+            $barangayIds = User::where('name', 'like', "%{$search}%")
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($reportTypeIds) || !empty($barangayIds)) {
+                $weeklyLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('weekly_reports.report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('weekly_reports.user_id', $barangayIds);
+                    }
+                });
+
+                $monthlyLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('monthly_reports.report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('monthly_reports.user_id', $barangayIds);
+                    }
+                });
+
+                $quarterlyLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('quarterly_reports.report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('quarterly_reports.user_id', $barangayIds);
+                    }
+                });
+
+                $semestralLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('semestral_reports.report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('semestral_reports.user_id', $barangayIds);
+                    }
+                });
+
+                $annualLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('annual_reports.report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('annual_reports.user_id', $barangayIds);
+                    }
+                });
+            }
+        }
+
+        // Apply report type filter if specified
+        if ($reportType) {
+            // Only count the specified report type
+            if ($reportType != 'weekly') $weeklyLateQuery->whereRaw('1=0');
+            if ($reportType != 'monthly') $monthlyLateQuery->whereRaw('1=0');
+            if ($reportType != 'quarterly') $quarterlyLateQuery->whereRaw('1=0');
+            if ($reportType != 'semestral') $semestralLateQuery->whereRaw('1=0');
+            if ($reportType != 'annual') $annualLateQuery->whereRaw('1=0');
+        }
+
+        // Execute the queries
+        $lateSubmissions = $weeklyLateQuery->count() +
+                          $monthlyLateQuery->count() +
+                          $quarterlyLateQuery->count() +
+                          $semestralLateQuery->count() +
+                          $annualLateQuery->count();
 
         // Get submissions by frequency for chart
-        $weeklyCount = WeeklyReport::where('status', 'submitted')->count();
-        $monthlyCount = MonthlyReport::where('status', 'submitted')->count();
-        $quarterlyCount = QuarterlyReport::where('status', 'submitted')->count();
-        $semestralCount = SemestralReport::where('status', 'submitted')->count();
-        $annualCount = AnnualReport::where('status', 'submitted')->count();
+        $weeklyCountQuery = WeeklyReport::where('status', 'submitted');
+        $monthlyCountQuery = MonthlyReport::where('status', 'submitted');
+        $quarterlyCountQuery = QuarterlyReport::where('status', 'submitted');
+        $semestralCountQuery = SemestralReport::where('status', 'submitted');
+        $annualCountQuery = AnnualReport::where('status', 'submitted');
+
+        // Apply date range filter if specified
+        if ($startDate && $endDate) {
+            $weeklyCountQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $monthlyCountQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $quarterlyCountQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $semestralCountQuery->whereBetween('created_at', [$startDate, $endDate]);
+            $annualCountQuery->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        // Apply cluster filter if specified
+        if ($clusterId) {
+            $barangayIds = User::where('cluster_id', $clusterId)
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($barangayIds)) {
+                $weeklyCountQuery->whereIn('user_id', $barangayIds);
+                $monthlyCountQuery->whereIn('user_id', $barangayIds);
+                $quarterlyCountQuery->whereIn('user_id', $barangayIds);
+                $semestralCountQuery->whereIn('user_id', $barangayIds);
+                $annualCountQuery->whereIn('user_id', $barangayIds);
+            }
+        }
+
+        // Apply search filter if specified
+        if ($search) {
+            // Get report types matching the search
+            $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
+                ->pluck('id')
+                ->toArray();
+
+            // Get barangays matching the search
+            $barangayIds = User::where('name', 'like', "%{$search}%")
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($reportTypeIds) || !empty($barangayIds)) {
+                $weeklyCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+
+                $monthlyCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+
+                $quarterlyCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+
+                $semestralCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+
+                $annualCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                    if (!empty($reportTypeIds)) {
+                        $query->whereIn('report_type_id', $reportTypeIds);
+                    }
+                    if (!empty($barangayIds)) {
+                        $query->orWhereIn('user_id', $barangayIds);
+                    }
+                });
+            }
+        }
+
+        // Execute the queries
+        $weeklyCount = $weeklyCountQuery->count();
+        $monthlyCount = $monthlyCountQuery->count();
+        $quarterlyCount = $quarterlyCountQuery->count();
+        $semestralCount = $semestralCountQuery->count();
+        $annualCount = $annualCountQuery->count();
 
         // Get submissions by month for trend chart
         $submissionsByMonth = [];
         $currentYear = date('Y');
 
+        // Get the year from the date filter if specified
+        if ($startDate && $endDate) {
+            // If the date range spans multiple years, use the year from the start date
+            $currentYear = $startDate->year;
+        }
+
         for ($month = 1; $month <= 12; $month++) {
-            $startDate = Carbon::createFromDate($currentYear, $month, 1)->startOfMonth();
-            $endDate = Carbon::createFromDate($currentYear, $month, 1)->endOfMonth();
+            $monthStartDate = Carbon::createFromDate($currentYear, $month, 1)->startOfMonth();
+            $monthEndDate = Carbon::createFromDate($currentYear, $month, 1)->endOfMonth();
+
+            // Skip months outside the filtered date range if specified
+            if ($startDate && $endDate) {
+                if ($monthEndDate->lt($startDate) || $monthStartDate->gt($endDate)) {
+                    $submissionsByMonth[] = 0;
+                    continue;
+                }
+            }
+
+            // Create queries for each report type
+            $weeklyMonthQuery = WeeklyReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            $monthlyMonthQuery = MonthlyReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            $quarterlyMonthQuery = QuarterlyReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            $semestralMonthQuery = SemestralReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            $annualMonthQuery = AnnualReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            // Apply cluster filter if specified
+            if ($clusterId) {
+                $barangayIds = User::where('cluster_id', $clusterId)
+                    ->where(function($query) {
+                        $query->where('role', 'barangay')
+                              ->orWhere('user_type', 'barangay');
+                    })
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($barangayIds)) {
+                    $weeklyMonthQuery->whereIn('user_id', $barangayIds);
+                    $monthlyMonthQuery->whereIn('user_id', $barangayIds);
+                    $quarterlyMonthQuery->whereIn('user_id', $barangayIds);
+                    $semestralMonthQuery->whereIn('user_id', $barangayIds);
+                    $annualMonthQuery->whereIn('user_id', $barangayIds);
+                }
+            }
+
+            // Apply search filter if specified
+            if ($search) {
+                // Get report types matching the search
+                $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
+                    ->pluck('id')
+                    ->toArray();
+
+                // Get barangays matching the search
+                $barangayIds = User::where('name', 'like', "%{$search}%")
+                    ->where(function($query) {
+                        $query->where('role', 'barangay')
+                              ->orWhere('user_type', 'barangay');
+                    })
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($reportTypeIds) || !empty($barangayIds)) {
+                    $weeklyMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                        if (!empty($reportTypeIds)) {
+                            $query->whereIn('report_type_id', $reportTypeIds);
+                        }
+                        if (!empty($barangayIds)) {
+                            $query->orWhereIn('user_id', $barangayIds);
+                        }
+                    });
+
+                    $monthlyMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                        if (!empty($reportTypeIds)) {
+                            $query->whereIn('report_type_id', $reportTypeIds);
+                        }
+                        if (!empty($barangayIds)) {
+                            $query->orWhereIn('user_id', $barangayIds);
+                        }
+                    });
+
+                    $quarterlyMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                        if (!empty($reportTypeIds)) {
+                            $query->whereIn('report_type_id', $reportTypeIds);
+                        }
+                        if (!empty($barangayIds)) {
+                            $query->orWhereIn('user_id', $barangayIds);
+                        }
+                    });
+
+                    $semestralMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                        if (!empty($reportTypeIds)) {
+                            $query->whereIn('report_type_id', $reportTypeIds);
+                        }
+                        if (!empty($barangayIds)) {
+                            $query->orWhereIn('user_id', $barangayIds);
+                        }
+                    });
+
+                    $annualMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
+                        if (!empty($reportTypeIds)) {
+                            $query->whereIn('report_type_id', $reportTypeIds);
+                        }
+                        if (!empty($barangayIds)) {
+                            $query->orWhereIn('user_id', $barangayIds);
+                        }
+                    });
+                }
+            }
+
+            // Apply report type filter if specified
+            if ($reportType) {
+                // Only count the specified report type
+                if ($reportType != 'weekly') $weeklyMonthQuery->whereRaw('1=0');
+                if ($reportType != 'monthly') $monthlyMonthQuery->whereRaw('1=0');
+                if ($reportType != 'quarterly') $quarterlyMonthQuery->whereRaw('1=0');
+                if ($reportType != 'semestral') $semestralMonthQuery->whereRaw('1=0');
+                if ($reportType != 'annual') $annualMonthQuery->whereRaw('1=0');
+            }
 
             $monthlyTotal =
-                WeeklyReport::where('status', 'submitted')
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count() +
-                MonthlyReport::where('status', 'submitted')
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count() +
-                QuarterlyReport::where('status', 'submitted')
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count() +
-                SemestralReport::where('status', 'submitted')
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count() +
-                AnnualReport::where('status', 'submitted')
-                    ->whereBetween('created_at', [$startDate, $endDate])
-                    ->count();
+                $weeklyMonthQuery->count() +
+                $monthlyMonthQuery->count() +
+                $quarterlyMonthQuery->count() +
+                $semestralMonthQuery->count() +
+                $annualMonthQuery->count();
 
             $submissionsByMonth[] = $monthlyTotal;
         }
 
         // Get top 5 barangays with most submissions
         $barangaySubmissions = [];
-        $barangays = User::where(function($query) {
+        $barangayQuery = User::where(function($query) {
             $query->where('role', 'barangay')
                   ->orWhere('user_type', 'barangay');
-        })->get();
+        });
+
+        // Apply cluster filter to barangays if specified
+        if ($clusterId) {
+            $barangayQuery->where('cluster_id', $clusterId);
+        }
+
+        // Apply search filter to barangays if specified
+        if ($search) {
+            $barangayQuery->where('name', 'like', "%{$search}%");
+        }
+
+        $barangays = $barangayQuery->get();
 
         foreach ($barangays as $barangay) {
+            // Create queries for each report type
+            $weeklyBarangayQuery = WeeklyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            $monthlyBarangayQuery = MonthlyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            $quarterlyBarangayQuery = QuarterlyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            $semestralBarangayQuery = SemestralReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            $annualBarangayQuery = AnnualReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            // Apply date range filter if specified
+            if ($startDate && $endDate) {
+                $weeklyBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
+                $monthlyBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
+                $quarterlyBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
+                $semestralBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
+                $annualBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
+            }
+
+            // Apply search filter for report types if specified
+            if ($search) {
+                $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($reportTypeIds)) {
+                    $weeklyBarangayQuery->whereIn('report_type_id', $reportTypeIds);
+                    $monthlyBarangayQuery->whereIn('report_type_id', $reportTypeIds);
+                    $quarterlyBarangayQuery->whereIn('report_type_id', $reportTypeIds);
+                    $semestralBarangayQuery->whereIn('report_type_id', $reportTypeIds);
+                    $annualBarangayQuery->whereIn('report_type_id', $reportTypeIds);
+                }
+            }
+
+            // Apply report type filter if specified
+            if ($reportType) {
+                // Only count the specified report type
+                if ($reportType != 'weekly') $weeklyBarangayQuery->whereRaw('1=0');
+                if ($reportType != 'monthly') $monthlyBarangayQuery->whereRaw('1=0');
+                if ($reportType != 'quarterly') $quarterlyBarangayQuery->whereRaw('1=0');
+                if ($reportType != 'semestral') $semestralBarangayQuery->whereRaw('1=0');
+                if ($reportType != 'annual') $annualBarangayQuery->whereRaw('1=0');
+            }
+
             $submissionCount =
-                WeeklyReport::where('user_id', $barangay->id)->where('status', 'submitted')->count() +
-                MonthlyReport::where('user_id', $barangay->id)->where('status', 'submitted')->count() +
-                QuarterlyReport::where('user_id', $barangay->id)->where('status', 'submitted')->count() +
-                SemestralReport::where('user_id', $barangay->id)->where('status', 'submitted')->count() +
-                AnnualReport::where('user_id', $barangay->id)->where('status', 'submitted')->count();
+                $weeklyBarangayQuery->count() +
+                $monthlyBarangayQuery->count() +
+                $quarterlyBarangayQuery->count() +
+                $semestralBarangayQuery->count() +
+                $annualBarangayQuery->count();
 
             $barangaySubmissions[$barangay->name] = $submissionCount;
         }
@@ -163,7 +653,14 @@ class AdminController extends Controller
 
         // Get submissions per cluster
         $clusterSubmissions = [];
-        $clusters = Cluster::all();
+        $clusterQuery = Cluster::query();
+
+        // Apply cluster filter if specified
+        if ($clusterId) {
+            $clusterQuery->where('id', $clusterId);
+        }
+
+        $clusters = $clusterQuery->get();
 
         foreach ($clusters as $cluster) {
             // Get all barangays in this cluster
@@ -171,24 +668,82 @@ class AdminController extends Controller
                 ->where(function($query) {
                     $query->where('role', 'barangay')
                           ->orWhere('user_type', 'barangay');
-                })
-                ->pluck('id')
-                ->toArray();
+                });
+
+            // Apply search filter to barangays if specified
+            if ($search) {
+                $clusterBarangays->where('name', 'like', "%{$search}%");
+            }
+
+            $clusterBarangayIds = $clusterBarangays->pluck('id')->toArray();
 
             // Count submissions for all barangays in this cluster
             $submissionCount = 0;
 
-            if (!empty($clusterBarangays)) {
+            if (!empty($clusterBarangayIds)) {
+                // Create queries for each report type
+                $weeklyClusterQuery = WeeklyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $monthlyClusterQuery = MonthlyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $quarterlyClusterQuery = QuarterlyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $semestralClusterQuery = SemestralReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $annualClusterQuery = AnnualReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                // Apply date range filter if specified
+                if ($startDate && $endDate) {
+                    $weeklyClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
+                    $monthlyClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
+                    $quarterlyClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
+                    $semestralClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
+                    $annualClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
+                }
+
+                // Apply search filter for report types if specified
+                if ($search) {
+                    $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
+                        ->pluck('id')
+                        ->toArray();
+
+                    if (!empty($reportTypeIds)) {
+                        $weeklyClusterQuery->whereIn('report_type_id', $reportTypeIds);
+                        $monthlyClusterQuery->whereIn('report_type_id', $reportTypeIds);
+                        $quarterlyClusterQuery->whereIn('report_type_id', $reportTypeIds);
+                        $semestralClusterQuery->whereIn('report_type_id', $reportTypeIds);
+                        $annualClusterQuery->whereIn('report_type_id', $reportTypeIds);
+                    }
+                }
+
+                // Apply report type filter if specified
+                if ($reportType) {
+                    // Only count the specified report type
+                    if ($reportType != 'weekly') $weeklyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'monthly') $monthlyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'quarterly') $quarterlyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'semestral') $semestralClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'annual') $annualClusterQuery->whereRaw('1=0');
+                }
+
                 $submissionCount =
-                    WeeklyReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count() +
-                    MonthlyReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count() +
-                    QuarterlyReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count() +
-                    SemestralReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count() +
-                    AnnualReport::whereIn('user_id', $clusterBarangays)->where('status', 'submitted')->count();
+                    $weeklyClusterQuery->count() +
+                    $monthlyClusterQuery->count() +
+                    $quarterlyClusterQuery->count() +
+                    $semestralClusterQuery->count() +
+                    $annualClusterQuery->count();
             }
 
             $clusterSubmissions["Cluster " . $cluster->id] = $submissionCount;
         }
+
+        // Get all clusters for the filter dropdown
+        $allClusters = Cluster::all();
 
         return view('admin.dashboard', compact(
             'totalReportTypes',
@@ -202,7 +757,13 @@ class AdminController extends Controller
             'annualCount',
             'submissionsByMonth',
             'topBarangays',
-            'clusterSubmissions'
+            'clusterSubmissions',
+            'allClusters',
+            'startDate',
+            'endDate',
+            'reportType',
+            'clusterId',
+            'search'
         ));
     }
 

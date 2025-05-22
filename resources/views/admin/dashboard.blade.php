@@ -5,6 +5,46 @@
 @push('styles')
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+    /* Filter Bar Styles */
+    .filter-bar {
+        background-color: white;
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--card-shadow);
+        transition: all var(--transition-speed) ease;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .filter-bar:hover {
+        box-shadow: var(--card-hover-shadow);
+    }
+
+    .filter-label {
+        width: 20px;
+        text-align: center;
+    }
+
+    .filter-bar .form-control,
+    .filter-bar .form-select {
+        font-size: 0.875rem;
+        border-color: var(--gray-300);
+        background-color: var(--gray-100);
+    }
+
+    .filter-bar .form-control:focus,
+    .filter-bar .form-select:focus {
+        box-shadow: none;
+        border-color: var(--primary-color);
+        background-color: white;
+    }
+
+    .date-separator {
+        display: flex;
+        align-items: center;
+        color: var(--gray-600);
+        font-weight: var(--font-weight-medium);
+    }
+
     :root {
         /* Color Variables */
         --primary-color: #4361ee;
@@ -215,6 +255,88 @@
     </div>
 </div>
 
+<!-- Professional Filter Bar -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="filter-bar">
+            <form id="dashboardFilterForm" action="{{ route('admin.dashboard') }}" method="GET">
+                <div class="row align-items-center">
+                    <!-- Search -->
+                    <div class="col-md-3 mb-2 mb-md-0">
+                        <div class="d-flex align-items-center">
+                            <div class="filter-label me-2">
+                                <i class="fas fa-search text-primary"></i>
+                            </div>
+                            <input type="text" class="form-control form-control-sm" id="search" name="search"
+                                placeholder="Search reports or barangays" value="{{ $search }}">
+                        </div>
+                    </div>
+
+                    <!-- Date Range -->
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <div class="d-flex align-items-center">
+                            <div class="filter-label me-2">
+                                <i class="fas fa-calendar-alt text-primary"></i>
+                            </div>
+                            <div class="d-flex">
+                                <input type="date" class="form-control form-control-sm me-1" id="start_date" name="start_date"
+                                    placeholder="Start Date" value="{{ $startDate ? $startDate->format('Y-m-d') : '' }}">
+                                <span class="date-separator mx-1">-</span>
+                                <input type="date" class="form-control form-control-sm ms-1" id="end_date" name="end_date"
+                                    placeholder="End Date" value="{{ $endDate ? $endDate->format('Y-m-d') : '' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report Type -->
+                    <div class="col-md-2 mb-2 mb-md-0">
+                        <div class="d-flex align-items-center">
+                            <div class="filter-label me-2">
+                                <i class="fas fa-file-alt text-primary"></i>
+                            </div>
+                            <select class="form-select form-select-sm" id="report_type" name="report_type">
+                                <option value="">All Types</option>
+                                <option value="weekly" {{ $reportType == 'weekly' ? 'selected' : '' }}>Weekly</option>
+                                <option value="monthly" {{ $reportType == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                                <option value="quarterly" {{ $reportType == 'quarterly' ? 'selected' : '' }}>Quarterly</option>
+                                <option value="semestral" {{ $reportType == 'semestral' ? 'selected' : '' }}>Semestral</option>
+                                <option value="annual" {{ $reportType == 'annual' ? 'selected' : '' }}>Annual</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Cluster -->
+                    <div class="col-md-2 mb-2 mb-md-0">
+                        <div class="d-flex align-items-center">
+                            <div class="filter-label me-2">
+                                <i class="fas fa-layer-group text-primary"></i>
+                            </div>
+                            <select class="form-select form-select-sm" id="cluster_id" name="cluster_id">
+                                <option value="">All Clusters</option>
+                                @foreach($allClusters as $cluster)
+                                    <option value="{{ $cluster->id }}" {{ $clusterId == $cluster->id ? 'selected' : '' }}>
+                                        Cluster {{ $cluster->id }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Clear Button -->
+                    @if($startDate || $endDate || $reportType || $clusterId || $search)
+                    <div class="col-md-1 mb-2 mb-md-0 text-end">
+                        <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                    @endif
+                </div>
+                <input type="submit" id="submitFilter" class="d-none">
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Statistics Cards -->
 <div class="row">
     <div class="col-md-3">
@@ -347,6 +469,74 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize date pickers with validation
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const reportTypeSelect = document.getElementById('report_type');
+    const clusterSelect = document.getElementById('cluster_id');
+    const searchInput = document.getElementById('search');
+    const filterForm = document.getElementById('dashboardFilterForm');
+
+    // Function to submit the form
+    function submitFilterForm() {
+        // Show loading indicator
+        document.body.style.cursor = 'wait';
+
+        // Submit the form
+        filterForm.submit();
+    }
+
+    // Validate date range and submit form on change
+    startDateInput.addEventListener('change', function() {
+        if (endDateInput.value && this.value > endDateInput.value) {
+            alert('Start date cannot be after end date');
+            this.value = '';
+            return;
+        }
+        submitFilterForm();
+    });
+
+    endDateInput.addEventListener('change', function() {
+        if (startDateInput.value && this.value < startDateInput.value) {
+            alert('End date cannot be before start date');
+            this.value = '';
+            return;
+        }
+        submitFilterForm();
+    });
+
+    // Submit form when select options change
+    reportTypeSelect.addEventListener('change', submitFilterForm);
+    clusterSelect.addEventListener('change', submitFilterForm);
+
+    // Add debounce function for search input
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                func.apply(context, args);
+            }, wait);
+        };
+    }
+
+    // Debounced search function (wait 500ms after typing stops)
+    const debouncedSearch = debounce(function() {
+        submitFilterForm();
+    }, 500);
+
+    // Add event listener for search input
+    searchInput.addEventListener('input', debouncedSearch);
+
+    // Add event listener for search input to submit form on Enter key
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitFilterForm();
+        }
+    });
     // Common chart options
     Chart.defaults.font.family = "'Poppins', sans-serif";
     Chart.defaults.font.size = 12;
