@@ -19,17 +19,199 @@ use Illuminate\Support\Facades\Log;
 class AdminController extends Controller
 {
     /**
-     * Display the admin dashboard with charts and statistics.
+     * Get dashboard chart data for AJAX requests
      */
-    public function index(Request $request)
+    public function getDashboardChartData(Request $request)
     {
         // Get filter parameters
-        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : null;
-        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
         $reportType = $request->input('report_type');
         $clusterId = $request->input('cluster_id');
         $search = $request->input('search');
 
+        // Get filtered chart data based on the request parameters
+        $filteredChartData = $this->getChartData($reportType, $clusterId, $search);
+
+        // Get all cluster data regardless of filter
+        $allClusterData = $this->getAllClusterData($reportType, $search);
+
+        // Get all report type data regardless of filter
+        $allReportTypeData = $this->getAllReportTypeData($clusterId, $search);
+
+        // Create a merged data object with both filtered and all data
+        $mergedData = $filteredChartData;
+
+        // Always use all cluster data
+        $mergedData['clusterSubmissions'] = $allClusterData;
+
+        // Use all report type data
+        $mergedData['weeklyCount'] = $allReportTypeData['weeklyCount'];
+        $mergedData['monthlyCount'] = $allReportTypeData['monthlyCount'];
+        $mergedData['quarterlyCount'] = $allReportTypeData['quarterlyCount'];
+        $mergedData['semestralCount'] = $allReportTypeData['semestralCount'];
+        $mergedData['annualCount'] = $allReportTypeData['annualCount'];
+
+        // Return JSON response with all chart data
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'totalReportTypes' => $mergedData['totalReportTypes'],
+                'totalSubmittedReports' => $mergedData['totalSubmittedReports'],
+                'noSubmissionReports' => $mergedData['noSubmissionReports'],
+                'lateSubmissions' => $mergedData['lateSubmissions'],
+                'weeklyCount' => $mergedData['weeklyCount'],
+                'monthlyCount' => $mergedData['monthlyCount'],
+                'quarterlyCount' => $mergedData['quarterlyCount'],
+                'semestralCount' => $mergedData['semestralCount'],
+                'annualCount' => $mergedData['annualCount'],
+                'submissionsByMonth' => $mergedData['submissionsByMonth'],
+                'topBarangays' => $mergedData['topBarangays'],
+                'clusterSubmissions' => $mergedData['clusterSubmissions'],
+            ]
+        ]);
+    }
+
+    /**
+     * Get all report type data regardless of filter
+     */
+    private function getAllReportTypeData($clusterId, $search)
+    {
+        // Get all barangay users
+        $barangayQuery = User::where(function($query) {
+            $query->where('role', 'barangay')
+                  ->orWhere('user_type', 'barangay');
+        });
+
+        // Apply cluster filter if specified
+        if ($clusterId) {
+            $barangayQuery->where('cluster_id', $clusterId);
+        }
+
+        // Apply search filter if specified
+        if ($search) {
+            $barangayQuery->where('name', 'like', "%{$search}%");
+        }
+
+        $barangayIds = $barangayQuery->pluck('id')->toArray();
+
+        // Initialize counts
+        $weeklyCount = 0;
+        $monthlyCount = 0;
+        $quarterlyCount = 0;
+        $semestralCount = 0;
+        $annualCount = 0;
+
+        if (!empty($barangayIds)) {
+            // Weekly reports
+            $weeklyQuery = WeeklyReport::whereIn('user_id', $barangayIds)
+                ->where('status', 'submitted');
+
+            // Monthly reports
+            $monthlyQuery = MonthlyReport::whereIn('user_id', $barangayIds)
+                ->where('status', 'submitted');
+
+            // Quarterly reports
+            $quarterlyQuery = QuarterlyReport::whereIn('user_id', $barangayIds)
+                ->where('status', 'submitted');
+
+            // Semestral reports
+            $semestralQuery = SemestralReport::whereIn('user_id', $barangayIds)
+                ->where('status', 'submitted');
+
+            // Annual reports
+            $annualQuery = AnnualReport::whereIn('user_id', $barangayIds)
+                ->where('status', 'submitted');
+
+            // No date range filter in this method
+
+            // Execute the queries and get the counts
+            $weeklyCount = $weeklyQuery->count();
+            $monthlyCount = $monthlyQuery->count();
+            $quarterlyCount = $quarterlyQuery->count();
+            $semestralCount = $semestralQuery->count();
+            $annualCount = $annualQuery->count();
+        }
+
+        return [
+            'weeklyCount' => $weeklyCount,
+            'monthlyCount' => $monthlyCount,
+            'quarterlyCount' => $quarterlyCount,
+            'semestralCount' => $semestralCount,
+            'annualCount' => $annualCount
+        ];
+    }
+
+    /**
+     * Get all cluster data regardless of filter
+     */
+    private function getAllClusterData($reportType, $search)
+    {
+        $clusterSubmissions = [];
+        $allClusters = Cluster::all();
+
+        foreach ($allClusters as $cluster) {
+            // Get all barangays in this cluster
+            $clusterBarangays = User::where('cluster_id', $cluster->id)
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                });
+
+            // Apply search filter to barangays if specified
+            if ($search) {
+                $clusterBarangays->where('name', 'like', "%{$search}%");
+            }
+
+            $clusterBarangayIds = $clusterBarangays->pluck('id')->toArray();
+            $submissionCount = 0;
+
+            if (!empty($clusterBarangayIds)) {
+                // Create queries for each report type
+                $weeklyClusterQuery = WeeklyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $monthlyClusterQuery = MonthlyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $quarterlyClusterQuery = QuarterlyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $semestralClusterQuery = SemestralReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $annualClusterQuery = AnnualReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                // No date range filter in this method
+
+                // Apply report type filter if specified
+                if ($reportType) {
+                    // Only count the specified report type
+                    if ($reportType != 'weekly') $weeklyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'monthly') $monthlyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'quarterly') $quarterlyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'semestral') $semestralClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'annual') $annualClusterQuery->whereRaw('1=0');
+                }
+
+                $submissionCount =
+                    $weeklyClusterQuery->count() +
+                    $monthlyClusterQuery->count() +
+                    $quarterlyClusterQuery->count() +
+                    $semestralClusterQuery->count() +
+                    $annualClusterQuery->count();
+            }
+
+            $clusterSubmissions["Cluster " . $cluster->id] = $submissionCount;
+        }
+
+        return $clusterSubmissions;
+    }
+
+    /**
+     * Get all chart data based on filters
+     */
+    private function getChartData($reportType, $clusterId, $search)
+    {
         // Count total report types created by admin
         $totalReportTypes = ReportType::count();
 
@@ -70,14 +252,493 @@ class AdminController extends Controller
             ->select('user_id', 'report_type_id')
             ->where('status', 'submitted');
 
-        // Apply date range filter if specified
-        if ($startDate && $endDate) {
-            $weeklyQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $monthlyQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $quarterlyQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $semestralQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $annualQuery->whereBetween('created_at', [$startDate, $endDate]);
+        // We no longer use date filters
+
+        // Apply cluster filter if specified
+        if ($clusterId) {
+            $barangayIds = User::where('cluster_id', $clusterId)
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($barangayIds)) {
+                $weeklyQuery->whereIn('user_id', $barangayIds);
+                $monthlyQuery->whereIn('user_id', $barangayIds);
+                $quarterlyQuery->whereIn('user_id', $barangayIds);
+                $semestralQuery->whereIn('user_id', $barangayIds);
+                $annualQuery->whereIn('user_id', $barangayIds);
+            }
         }
+
+        // Apply report type filter if specified
+        if ($reportType) {
+            // Only count the specified report type
+            if ($reportType != 'weekly') $weeklyQuery->whereRaw('1=0');
+            if ($reportType != 'monthly') $monthlyQuery->whereRaw('1=0');
+            if ($reportType != 'quarterly') $quarterlyQuery->whereRaw('1=0');
+            if ($reportType != 'semestral') $semestralQuery->whereRaw('1=0');
+            if ($reportType != 'annual') $annualQuery->whereRaw('1=0');
+        }
+
+        // Execute the queries
+        $weeklySubmitted = $weeklyQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $monthlySubmitted = $monthlyQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $quarterlySubmitted = $quarterlyQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $semestralSubmitted = $semestralQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $annualSubmitted = $annualQuery->groupBy('user_id', 'report_type_id')->get()->count();
+
+        // Total submitted reports (counting each report type per barangay only once)
+        $totalSubmittedReports = $weeklySubmitted + $monthlySubmitted + $quarterlySubmitted + $semestralSubmitted + $annualSubmitted;
+
+        // Calculate no submissions (expected - submitted)
+        $noSubmissionReports = $totalExpectedReports - $totalSubmittedReports;
+
+        // Get late submissions count
+        $weeklyLateQuery = DB::table('weekly_reports')
+            ->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id')
+            ->where('weekly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('weekly_reports.status', 'submitted');
+
+        $monthlyLateQuery = DB::table('monthly_reports')
+            ->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id')
+            ->where('monthly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('monthly_reports.status', 'submitted');
+
+        $quarterlyLateQuery = DB::table('quarterly_reports')
+            ->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id')
+            ->where('quarterly_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('quarterly_reports.status', 'submitted');
+
+        $semestralLateQuery = DB::table('semestral_reports')
+            ->join('report_types', 'semestral_reports.report_type_id', '=', 'report_types.id')
+            ->where('semestral_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('semestral_reports.status', 'submitted');
+
+        $annualLateQuery = DB::table('annual_reports')
+            ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
+            ->where('annual_reports.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('annual_reports.status', 'submitted');
+
+        // We no longer use date filters
+
+        // Apply cluster filter if specified
+        if ($clusterId) {
+            $barangayIds = User::where('cluster_id', $clusterId)
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($barangayIds)) {
+                $weeklyLateQuery->whereIn('weekly_reports.user_id', $barangayIds);
+                $monthlyLateQuery->whereIn('monthly_reports.user_id', $barangayIds);
+                $quarterlyLateQuery->whereIn('quarterly_reports.user_id', $barangayIds);
+                $semestralLateQuery->whereIn('semestral_reports.user_id', $barangayIds);
+                $annualLateQuery->whereIn('annual_reports.user_id', $barangayIds);
+            }
+        }
+
+        // Apply report type filter if specified
+        if ($reportType) {
+            // Only count the specified report type
+            if ($reportType != 'weekly') $weeklyLateQuery->whereRaw('1=0');
+            if ($reportType != 'monthly') $monthlyLateQuery->whereRaw('1=0');
+            if ($reportType != 'quarterly') $quarterlyLateQuery->whereRaw('1=0');
+            if ($reportType != 'semestral') $semestralLateQuery->whereRaw('1=0');
+            if ($reportType != 'annual') $annualLateQuery->whereRaw('1=0');
+        }
+
+        // Execute the queries
+        $weeklyLate = $weeklyLateQuery->count();
+        $monthlyLate = $monthlyLateQuery->count();
+        $quarterlyLate = $quarterlyLateQuery->count();
+        $semestralLate = $semestralLateQuery->count();
+        $annualLate = $annualLateQuery->count();
+
+        // Total late submissions
+        $lateSubmissions = $weeklyLate + $monthlyLate + $quarterlyLate + $semestralLate + $annualLate;
+
+        // Get report type counts by frequency
+        $weeklyCount = $weeklySubmitted;
+        $monthlyCount = $monthlySubmitted;
+        $quarterlyCount = $quarterlySubmitted;
+        $semestralCount = $semestralSubmitted;
+        $annualCount = $annualSubmitted;
+
+        // Get monthly trend data
+        $currentYear = Carbon::now()->year;
+        $submissionsByMonth = [];
+
+        for ($month = 1; $month <= 12; $month++) {
+            $monthStartDate = Carbon::createFromDate($currentYear, $month, 1)->startOfMonth();
+            $monthEndDate = Carbon::createFromDate($currentYear, $month, 1)->endOfMonth();
+
+            // We no longer use date filters
+
+            // Create queries for each report type
+            $weeklyMonthQuery = WeeklyReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            $monthlyMonthQuery = MonthlyReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            $quarterlyMonthQuery = QuarterlyReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            $semestralMonthQuery = SemestralReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            $annualMonthQuery = AnnualReport::where('status', 'submitted')
+                ->whereBetween('created_at', [$monthStartDate, $monthEndDate]);
+
+            // Apply cluster filter if specified
+            if ($clusterId) {
+                $barangayIds = User::where('cluster_id', $clusterId)
+                    ->where(function($query) {
+                        $query->where('role', 'barangay')
+                              ->orWhere('user_type', 'barangay');
+                    })
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($barangayIds)) {
+                    $weeklyMonthQuery->whereIn('user_id', $barangayIds);
+                    $monthlyMonthQuery->whereIn('user_id', $barangayIds);
+                    $quarterlyMonthQuery->whereIn('user_id', $barangayIds);
+                    $semestralMonthQuery->whereIn('user_id', $barangayIds);
+                    $annualMonthQuery->whereIn('user_id', $barangayIds);
+                }
+            }
+
+            // Apply report type filter if specified
+            if ($reportType) {
+                // Only count the specified report type
+                if ($reportType != 'weekly') $weeklyMonthQuery->whereRaw('1=0');
+                if ($reportType != 'monthly') $monthlyMonthQuery->whereRaw('1=0');
+                if ($reportType != 'quarterly') $quarterlyMonthQuery->whereRaw('1=0');
+                if ($reportType != 'semestral') $semestralMonthQuery->whereRaw('1=0');
+                if ($reportType != 'annual') $annualMonthQuery->whereRaw('1=0');
+            }
+
+            // Count submissions for this month
+            $monthlyTotal =
+                $weeklyMonthQuery->count() +
+                $monthlyMonthQuery->count() +
+                $quarterlyMonthQuery->count() +
+                $semestralMonthQuery->count() +
+                $annualMonthQuery->count();
+
+            $submissionsByMonth[] = $monthlyTotal;
+        }
+
+        // Get top 5 barangays with most submissions
+        $barangaySubmissions = [];
+        $barangayQuery = User::where(function($query) {
+            $query->where('role', 'barangay')
+                  ->orWhere('user_type', 'barangay');
+        });
+
+        // Apply cluster filter to barangays if specified
+        if ($clusterId) {
+            $barangayQuery->where('cluster_id', $clusterId);
+        }
+
+        // Apply search filter to barangays if specified
+        if ($search) {
+            $barangayQuery->where('name', 'like', "%{$search}%");
+        }
+
+        $barangays = $barangayQuery->get();
+
+        foreach ($barangays as $barangay) {
+            // Create queries for each report type
+            $weeklyBarangayQuery = WeeklyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            $monthlyBarangayQuery = MonthlyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            $quarterlyBarangayQuery = QuarterlyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            $semestralBarangayQuery = SemestralReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            $annualBarangayQuery = AnnualReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted');
+
+            // We no longer use date filters
+
+            // Apply report type filter if specified
+            if ($reportType) {
+                // Only count the specified report type
+                if ($reportType != 'weekly') $weeklyBarangayQuery->whereRaw('1=0');
+                if ($reportType != 'monthly') $monthlyBarangayQuery->whereRaw('1=0');
+                if ($reportType != 'quarterly') $quarterlyBarangayQuery->whereRaw('1=0');
+                if ($reportType != 'semestral') $semestralBarangayQuery->whereRaw('1=0');
+                if ($reportType != 'annual') $annualBarangayQuery->whereRaw('1=0');
+            }
+
+            // Count submissions for this barangay
+            $submissionCount =
+                $weeklyBarangayQuery->count() +
+                $monthlyBarangayQuery->count() +
+                $quarterlyBarangayQuery->count() +
+                $semestralBarangayQuery->count() +
+                $annualBarangayQuery->count();
+
+            $barangaySubmissions[$barangay->name] = $submissionCount;
+        }
+
+        // Sort by submission count (descending)
+        arsort($barangaySubmissions);
+
+        // Get all barangays with their submission counts
+        // We need to make sure we're counting ALL barangays, not just the ones with submissions
+        $allBarangays = User::where(function($query) {
+            $query->where('role', 'barangay')
+                  ->orWhere('user_type', 'barangay');
+        })->get();
+
+        // Create a comprehensive array of all barangays and their submission counts
+        $completeBarangaySubmissions = [];
+
+        foreach ($allBarangays as $barangay) {
+            // If we already have submission data for this barangay, use it
+            if (isset($barangaySubmissions[$barangay->name])) {
+                $completeBarangaySubmissions[$barangay->name] = $barangaySubmissions[$barangay->name];
+            } else {
+                // Otherwise, count submissions for this barangay
+                $weeklyCount = WeeklyReport::where('user_id', $barangay->id)
+                    ->where('status', 'submitted')
+                    ->count();
+
+                $monthlyCount = MonthlyReport::where('user_id', $barangay->id)
+                    ->where('status', 'submitted')
+                    ->count();
+
+                $quarterlyCount = QuarterlyReport::where('user_id', $barangay->id)
+                    ->where('status', 'submitted')
+                    ->count();
+
+                $semestralCount = SemestralReport::where('user_id', $barangay->id)
+                    ->where('status', 'submitted')
+                    ->count();
+
+                $annualCount = AnnualReport::where('user_id', $barangay->id)
+                    ->where('status', 'submitted')
+                    ->count();
+
+                $totalCount = $weeklyCount + $monthlyCount + $quarterlyCount + $semestralCount + $annualCount;
+                $completeBarangaySubmissions[$barangay->name] = $totalCount;
+            }
+        }
+
+        // Sort by submission count (descending)
+        arsort($completeBarangaySubmissions);
+
+        // Get the top 10 barangays with the highest submission counts
+        $topBarangays = array_slice($completeBarangaySubmissions, 0, 10, true);
+
+        // Get barangay submissions by report type for the chart
+        $barangayReportTypes = [];
+
+        // Get the top 10 barangays
+        $topBarangayNames = array_keys($topBarangays);
+        $topBarangayUsers = User::whereIn('name', $topBarangayNames)
+            ->where(function($query) {
+                $query->where('role', 'barangay')
+                      ->orWhere('user_type', 'barangay');
+            })->get();
+
+        foreach ($topBarangayUsers as $barangay) {
+            $weeklyCount = WeeklyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted')
+                ->count();
+
+            $monthlyCount = MonthlyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted')
+                ->count();
+
+            $quarterlyCount = QuarterlyReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted')
+                ->count();
+
+            $semestralCount = SemestralReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted')
+                ->count();
+
+            $annualCount = AnnualReport::where('user_id', $barangay->id)
+                ->where('status', 'submitted')
+                ->count();
+
+            $barangayReportTypes[$barangay->name] = [
+                'weekly' => $weeklyCount,
+                'monthly' => $monthlyCount,
+                'quarterly' => $quarterlyCount,
+                'semestral' => $semestralCount,
+                'annual' => $annualCount
+            ];
+        }
+
+        // Debug information
+        Log::info('Top Barangays Count: ' . count($topBarangays));
+        Log::info('Top Barangays: ' . json_encode($topBarangays));
+
+        // Get submissions per cluster
+        $clusterSubmissions = [];
+
+        // Always get all clusters regardless of filter
+        $allClusters = Cluster::all();
+
+        // Store the filtered cluster data separately if a cluster filter is applied
+        $filteredClusterData = null;
+
+        foreach ($allClusters as $cluster) {
+            // Get all barangays in this cluster
+            $clusterBarangays = User::where('cluster_id', $cluster->id)
+                ->where(function($query) {
+                    $query->where('role', 'barangay')
+                          ->orWhere('user_type', 'barangay');
+                });
+
+            // Apply search filter to barangays if specified
+            if ($search) {
+                $clusterBarangays->where('name', 'like', "%{$search}%");
+            }
+
+            $clusterBarangayIds = $clusterBarangays->pluck('id')->toArray();
+            $submissionCount = 0;
+
+            if (!empty($clusterBarangayIds)) {
+                // Create queries for each report type
+                $weeklyClusterQuery = WeeklyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $monthlyClusterQuery = MonthlyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $quarterlyClusterQuery = QuarterlyReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $semestralClusterQuery = SemestralReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                $annualClusterQuery = AnnualReport::whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted');
+
+                // We no longer use date filters
+
+                // Apply report type filter if specified
+                if ($reportType) {
+                    // Only count the specified report type
+                    if ($reportType != 'weekly') $weeklyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'monthly') $monthlyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'quarterly') $quarterlyClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'semestral') $semestralClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'annual') $annualClusterQuery->whereRaw('1=0');
+                }
+
+                $submissionCount =
+                    $weeklyClusterQuery->count() +
+                    $monthlyClusterQuery->count() +
+                    $quarterlyClusterQuery->count() +
+                    $semestralClusterQuery->count() +
+                    $annualClusterQuery->count();
+            }
+
+            $clusterSubmissions["Cluster " . $cluster->id] = $submissionCount;
+
+            // If this is the filtered cluster, store its data separately
+            if ($clusterId && $cluster->id == $clusterId) {
+                $filteredClusterData = $submissionCount;
+            }
+        }
+
+        // If a cluster filter is applied, we might need to adjust other statistics
+        // but for now we want to keep all cluster data
+        if ($clusterId && $filteredClusterData !== null) {
+            // No adjustments needed at this time
+        }
+
+        return [
+            'totalReportTypes' => $totalReportTypes,
+            'totalSubmittedReports' => $totalSubmittedReports,
+            'noSubmissionReports' => $noSubmissionReports,
+            'lateSubmissions' => $lateSubmissions,
+            'weeklyCount' => $weeklyCount,
+            'monthlyCount' => $monthlyCount,
+            'quarterlyCount' => $quarterlyCount,
+            'semestralCount' => $semestralCount,
+            'annualCount' => $annualCount,
+            'submissionsByMonth' => $submissionsByMonth,
+            'topBarangays' => $topBarangays,
+            'clusterSubmissions' => $clusterSubmissions,
+            'barangayReportTypes' => $barangayReportTypes,
+        ];
+    }
+
+    /**
+     * Display the admin dashboard with charts and statistics.
+     */
+    public function index(Request $request)
+    {
+        // Get filter parameters
+        $reportType = $request->input('report_type');
+        $clusterId = $request->input('cluster_id');
+        $search = $request->input('search');
+
+        // Get all chart data
+        $chartData = $this->getChartData($reportType, $clusterId, $search);
+
+        // Get all cluster data regardless of filter
+        $allClusterData = $this->getAllClusterData($reportType, $search);
+
+        // Always use all cluster data for the view
+        $chartData['clusterSubmissions'] = $allClusterData;
+
+        // Extract chart data
+        $totalReportTypes = $chartData['totalReportTypes'];
+        $totalSubmittedReports = $chartData['totalSubmittedReports'];
+        $noSubmissionReports = $chartData['noSubmissionReports'];
+        $lateSubmissions = $chartData['lateSubmissions'];
+        $weeklyCount = $chartData['weeklyCount'];
+        $monthlyCount = $chartData['monthlyCount'];
+        $quarterlyCount = $chartData['quarterlyCount'];
+        $semestralCount = $chartData['semestralCount'];
+        $annualCount = $chartData['annualCount'];
+        $submissionsByMonth = $chartData['submissionsByMonth'];
+        $topBarangays = $chartData['topBarangays'];
+        $clusterSubmissions = $chartData['clusterSubmissions'];
+        $barangayReportTypes = $chartData['barangayReportTypes'];
+
+        // Get unique submitted reports (count each report type per barangay only once)
+        $weeklyQuery = DB::table('weekly_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted');
+
+        $monthlyQuery = DB::table('monthly_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted');
+
+        $quarterlyQuery = DB::table('quarterly_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted');
+
+        $semestralQuery = DB::table('semestral_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted');
+
+        $annualQuery = DB::table('annual_reports')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted');
+
+        // We no longer use date filters
 
         // Apply cluster filter if specified
         if ($clusterId) {
@@ -182,6 +843,25 @@ class AdminController extends Controller
         // Total submitted reports (counting each report type per barangay only once)
         $totalSubmittedReports = $weeklySubmitted + $monthlySubmitted + $quarterlySubmitted + $semestralSubmitted + $annualSubmitted;
 
+        // Count total report types created by admin
+        $totalReportTypes = ReportType::count();
+
+        // Count total barangays in the system
+        $barangayQuery = User::where(function($query) {
+            $query->where('role', 'barangay')
+                  ->orWhere('user_type', 'barangay');
+        });
+
+        // Apply cluster filter to barangays if specified
+        if ($clusterId) {
+            $barangayQuery->where('cluster_id', $clusterId);
+        }
+
+        $totalBarangays = $barangayQuery->count();
+
+        // Calculate the total expected reports (report types × barangays)
+        $totalExpectedReports = $totalReportTypes * $totalBarangays;
+
         // Calculate no submissions (expected - submitted)
         $noSubmissionReports = $totalExpectedReports - $totalSubmittedReports;
 
@@ -211,14 +891,7 @@ class AdminController extends Controller
             ->where('annual_reports.created_at', '>', DB::raw('report_types.deadline'))
             ->where('annual_reports.status', 'submitted');
 
-        // Apply date range filter if specified
-        if ($startDate && $endDate) {
-            $weeklyLateQuery->whereBetween('weekly_reports.created_at', [$startDate, $endDate]);
-            $monthlyLateQuery->whereBetween('monthly_reports.created_at', [$startDate, $endDate]);
-            $quarterlyLateQuery->whereBetween('quarterly_reports.created_at', [$startDate, $endDate]);
-            $semestralLateQuery->whereBetween('semestral_reports.created_at', [$startDate, $endDate]);
-            $annualLateQuery->whereBetween('annual_reports.created_at', [$startDate, $endDate]);
-        }
+        // We no longer use date filters
 
         // Apply cluster filter if specified
         if ($clusterId) {
@@ -327,14 +1000,7 @@ class AdminController extends Controller
         $semestralCountQuery = SemestralReport::where('status', 'submitted');
         $annualCountQuery = AnnualReport::where('status', 'submitted');
 
-        // Apply date range filter if specified
-        if ($startDate && $endDate) {
-            $weeklyCountQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $monthlyCountQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $quarterlyCountQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $semestralCountQuery->whereBetween('created_at', [$startDate, $endDate]);
-            $annualCountQuery->whereBetween('created_at', [$startDate, $endDate]);
-        }
+        // We no longer use date filters
 
         // Apply cluster filter if specified
         if ($clusterId) {
@@ -430,23 +1096,13 @@ class AdminController extends Controller
         $submissionsByMonth = [];
         $currentYear = date('Y');
 
-        // Get the year from the date filter if specified
-        if ($startDate && $endDate) {
-            // If the date range spans multiple years, use the year from the start date
-            $currentYear = $startDate->year;
-        }
+        // We no longer use date filters
 
         for ($month = 1; $month <= 12; $month++) {
             $monthStartDate = Carbon::createFromDate($currentYear, $month, 1)->startOfMonth();
             $monthEndDate = Carbon::createFromDate($currentYear, $month, 1)->endOfMonth();
 
-            // Skip months outside the filtered date range if specified
-            if ($startDate && $endDate) {
-                if ($monthEndDate->lt($startDate) || $monthStartDate->gt($endDate)) {
-                    $submissionsByMonth[] = 0;
-                    continue;
-                }
-            }
+            // We no longer use date filters
 
             // Create queries for each report type
             $weeklyMonthQuery = WeeklyReport::where('status', 'submitted')
@@ -603,14 +1259,7 @@ class AdminController extends Controller
             $annualBarangayQuery = AnnualReport::where('user_id', $barangay->id)
                 ->where('status', 'submitted');
 
-            // Apply date range filter if specified
-            if ($startDate && $endDate) {
-                $weeklyBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
-                $monthlyBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
-                $quarterlyBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
-                $semestralBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
-                $annualBarangayQuery->whereBetween('created_at', [$startDate, $endDate]);
-            }
+            // We no longer use date filters
 
             // Apply search filter for report types if specified
             if ($search) {
@@ -697,14 +1346,7 @@ class AdminController extends Controller
                 $annualClusterQuery = AnnualReport::whereIn('user_id', $clusterBarangayIds)
                     ->where('status', 'submitted');
 
-                // Apply date range filter if specified
-                if ($startDate && $endDate) {
-                    $weeklyClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
-                    $monthlyClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
-                    $quarterlyClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
-                    $semestralClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
-                    $annualClusterQuery->whereBetween('created_at', [$startDate, $endDate]);
-                }
+                // We no longer use date filters
 
                 // Apply search filter for report types if specified
                 if ($search) {
@@ -758,9 +1400,8 @@ class AdminController extends Controller
             'submissionsByMonth',
             'topBarangays',
             'clusterSubmissions',
+            'barangayReportTypes',
             'allClusters',
-            'startDate',
-            'endDate',
             'reportType',
             'clusterId',
             'search'

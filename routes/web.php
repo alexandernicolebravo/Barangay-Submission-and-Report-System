@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Report;
 use App\Models\{WeeklyReport, MonthlyReport, QuarterlyReport, SemestralReport, AnnualReport};
 use App\Http\Controllers\AnnouncementController;
+use Illuminate\Support\Facades\App;
 
 // Public Routes
 Route::get('/', function () {
@@ -262,6 +263,13 @@ Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->gro
     Route::prefix('admin')->name('admin.')->group(function () {
         // Dashboard
         Route::get('/', [AdminController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard-chart-data', [AdminController::class, 'getDashboardChartData'])->name('dashboard.chart-data');
+
+        // Test route for AJAX endpoint
+        Route::get('/test-dashboard-chart-data', function() {
+            $controller = new \App\Http\Controllers\AdminController();
+            return $controller->getDashboardChartData(request());
+        });
 
         // User Management
         Route::get('/user-management', [AdminController::class, 'userManagement'])->name('user-management');

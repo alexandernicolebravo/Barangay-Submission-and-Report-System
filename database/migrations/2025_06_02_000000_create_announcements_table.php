@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
+    /**the subt
      * Run the migrations.
      */
     public function up(): void
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->integer('priority')->default(0);
             $table->timestamps();
-            
+
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
             $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');
         });
