@@ -4,22 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>@yield('title', 'Barangay Portal')</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Smooth Transitions CSS -->
-    <link href="{{ asset('css/smooth-transitions.css') }}" rel="stylesheet">
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- html2canvas for seamless page transitions -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --primary: #3b82f6;
@@ -68,6 +61,7 @@
             box-shadow: var(--shadow-sm);
             z-index: 1000;
             transition: all 0.3s ease;
+            overflow-y: auto;
         }
 
         .sidebar-header {
@@ -113,6 +107,11 @@
             width: 1.5rem;
             font-size: 1.1rem;
             margin-right: 0.75rem;
+        }
+
+        /* Font Sizes */
+        .fs-7 {
+            font-size: 0.85rem !important;
         }
 
         /* Main Content Styles */
@@ -405,10 +404,6 @@
                             <i class="fas fa-tachometer-alt"></i>
                             Dashboard
                         </a>
-                        <a href="{{ route('barangay.submit-report') }}" class="nav-link {{ request()->routeIs('barangay.submit-report') ? 'active' : '' }}">
-                            <i class="fas fa-file-upload"></i>
-                            Submit Report
-                        </a>
                         <a href="{{ route('barangay.submissions') }}" class="nav-link {{ request()->routeIs('barangay.submissions') ? 'active' : '' }}">
                             <i class="fas fa-list"></i>
                             My Submissions
@@ -428,6 +423,8 @@
                                 Logout
                             </button>
                         </form>
+
+                        @include('components.sidebar-announcements')
                     </nav>
                 </div>
             </div>
@@ -435,6 +432,7 @@
             <!-- Main Content -->
             <div class="col">
                 <div class="main-content">
+
                     @yield('content')
                 </div>
             </div>
@@ -443,12 +441,6 @@
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Disable Error Alerts (Must be loaded before ajax-forms.js) -->
-    <script src="{{ asset('js/disable-error-alerts.js') }}"></script>
-    <!-- AJAX Form Handling -->
-    <script src="{{ asset('js/ajax-forms.js') }}"></script>
-    <!-- Scroll Position Management -->
-    <script src="{{ asset('js/scroll-position.js') }}"></script>
     @stack('scripts')
 </body>
 </html>
