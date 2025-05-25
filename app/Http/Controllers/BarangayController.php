@@ -1008,6 +1008,12 @@ class BarangayController extends Controller
 
     public function resubmit(Request $request, $id)
     {
+        // IMMEDIATE DEBUG - Check if method is being called
+        Log::info('=== RESUBMIT METHOD CALLED ===');
+        Log::info('Request method: ' . $request->method());
+        Log::info('Report ID: ' . $id);
+        Log::info('All request data: ', $request->all());
+
         try {
             // Log the request data for debugging
             Log::info('Resubmit request data:', $request->all());
@@ -1222,13 +1228,12 @@ class BarangayController extends Controller
         }
 
         // Basic validation for file - make file optional for resubmission
-        // Get allowed file types from the report type or use default (pdf)
-        $reportTypeObj = ReportType::findOrFail($request->report_type_id);
-        $allowedTypes = $reportTypeObj->allowed_file_types ?? ['pdf'];
+        // For resubmission, allow common file types instead of restricting to report type
+        // This provides better user experience for updates
+        $allowedTypes = ['pdf', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'zip', 'rar'];
 
         // Log the allowed file types for debugging
-        Log::info('Allowed file types for resubmission of report type ' . $reportTypeObj->id . ':', [
-            'report_type' => $reportTypeObj->name,
+        Log::info('Allowed file types for resubmission (flexible):', [
             'allowed_types' => $allowedTypes
         ]);
 
@@ -1323,6 +1328,12 @@ class BarangayController extends Controller
         $validator = Validator::make($filteredRequest->all(), $validationRules);
 
         if ($validator->fails()) {
+            Log::error('Validation failed for resubmit', [
+                'errors' => $validator->errors()->toArray(),
+                'report_id' => $reportId,
+                'user_id' => Auth::id()
+            ]);
+
             // Check if the request is an AJAX request
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -1334,14 +1345,15 @@ class BarangayController extends Controller
 
             return redirect()->back()
                 ->withErrors($validator)
-                ->withInput();
+                ->withInput()
+                ->with('error', 'Validation failed: ' . $validator->errors()->first());
         }
 
         try {
             DB::beginTransaction();
 
-            // Get the report type object for validation
-            $reportTypeObj = ReportType::findOrFail($filteredRequest->report_type_id);
+            // Get the report type object for validation (use the existing report's type)
+            $reportTypeObj = ReportType::findOrFail($report->report_type_id);
             Log::info('Report type object found', ['id' => $reportTypeObj->id, 'name' => $reportTypeObj->name]);
 
             // Log if the report deadline has passed, but still allow updates
@@ -1383,9 +1395,9 @@ class BarangayController extends Controller
             $filePath = null;
             $fileName = null;
 
-            if ($filteredRequest->hasFile('file')) {
+            if ($request->hasFile('file')) {
                 try {
-                    $file = $filteredRequest->file('file');
+                    $file = $request->file('file');
 
                     // Log file information
                     Log::info('Processing file upload', [
@@ -1403,7 +1415,7 @@ class BarangayController extends Controller
                     ]);
                 } catch (\Exception $e) {
                     Log::error('File upload error: ' . $e->getMessage(), [
-                        'file' => $filteredRequest->file('file')->getClientOriginalName()
+                        'file' => $request->file('file')->getClientOriginalName()
                     ]);
                     throw new \Exception('Error uploading file: ' . $e->getMessage());
                 }
@@ -1426,12 +1438,12 @@ class BarangayController extends Controller
                         'file_name' => $fileName,
                         'status' => $newStatus,
                         'deadline' => $report->deadline,
-                        'month' => $filteredRequest->month,
-                        'week_number' => $filteredRequest->week_number,
-                        'num_of_clean_up_sites' => $filteredRequest->num_of_clean_up_sites,
-                        'num_of_participants' => $filteredRequest->num_of_participants,
-                        'num_of_barangays' => $filteredRequest->num_of_barangays,
-                        'total_volume' => $filteredRequest->total_volume
+                        'month' => $request->month,
+                        'week_number' => $request->week_number,
+                        'num_of_clean_up_sites' => $request->num_of_clean_up_sites,
+                        'num_of_participants' => $request->num_of_participants,
+                        'num_of_barangays' => $request->num_of_barangays,
+                        'total_volume' => $request->total_volume
                     ]);
                     break;
                 case 'monthly':
@@ -1442,7 +1454,7 @@ class BarangayController extends Controller
                         'file_name' => $fileName,
                         'status' => $newStatus,
                         'deadline' => $report->deadline,
-                        'month' => $filteredRequest->month
+                        'month' => $request->month
                     ]);
                     break;
                 case 'quarterly':
@@ -1453,7 +1465,7 @@ class BarangayController extends Controller
                         'file_name' => $fileName,
                         'status' => $newStatus,
                         'deadline' => $report->deadline,
-                        'quarter_number' => $filteredRequest->quarter_number
+                        'quarter_number' => $request->quarter_number
                     ]);
                     break;
                 case 'semestral':
@@ -1464,7 +1476,7 @@ class BarangayController extends Controller
                         'file_name' => $fileName,
                         'status' => $newStatus,
                         'deadline' => $report->deadline,
-                        'sem_number' => $filteredRequest->sem_number
+                        'sem_number' => $request->sem_number
                     ]);
                     break;
                 case 'annual':

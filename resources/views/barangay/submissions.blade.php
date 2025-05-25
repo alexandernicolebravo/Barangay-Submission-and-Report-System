@@ -340,7 +340,7 @@
                                                             </div>
                                                         </div>
 
-                                                        <form action="{{ route('barangay.submissions.resubmit', $reportId) }}" method="POST" enctype="multipart/form-data" id="resubmitForm{{ $reportId }}" onsubmit="console.log('Form submitted: {{ $reportId }}'); return true;">
+                                                        <form action="{{ route('barangay.submissions.resubmit', $reportId) }}" method="POST" enctype="multipart/form-data" id="resubmitForm{{ $reportId }}">
                                                             @csrf
                                                             <input type="hidden" name="report_type_id" value="{{ $report->report_type_id }}">
 
@@ -497,29 +497,10 @@
 
 
 
-                                                                <div class="file-upload-container" id="dropZone{{ $reportId }}">
-                                                                    <input type="file" name="file" class="d-none" id="fileInput{{ $reportId }}" accept=".pdf,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar">
-                                                                    <div class="p-2 border rounded" style="background-color: rgba(var(--primary-rgb), 0.03);">
-                                                                        <div class="d-flex align-items-center">
-                                                                            <div>
-                                                                                <button type="button" class="btn btn-sm btn-primary py-1 px-2" onclick="document.getElementById('fileInput{{ $reportId }}').click()">
-                                                                                    <i class="fas fa-folder-open me-1"></i> Browse
-                                                                                </button>
-                                                                                <small class="d-block mt-1 text-muted" style="font-size: 0.7rem;">PDF, DOCX, XLS, XLSX, etc. (Max: 100MB)</small>
-                                                                            </div>
-                                                                            <div id="fileInfo{{ $reportId }}" class="d-none ms-2 flex-grow-1">
-                                                                                <div class="d-flex align-items-center">
-                                                                                    <i class="fas fa-file-alt text-primary me-1"></i>
-                                                                                    <div>
-                                                                                        <p class="mb-0 small"><span id="fileName{{ $reportId }}"></span></p>
-                                                                                    </div>
-                                                                                    <button type="button" class="btn btn-sm btn-link text-danger ms-auto p-0" onclick="clearFile({{ $reportId }})">
-                                                                                        <i class="fas fa-times"></i>
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
+                                                                <div class="mb-3">
+                                                                    <label for="fileInput{{ $reportId }}" class="form-label small">Select New File</label>
+                                                                    <input type="file" name="file" id="fileInput{{ $reportId }}" accept=".pdf,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar" class="form-control form-control-sm">
+                                                                    <small class="d-block mt-1 text-muted" style="font-size: 0.7rem;">PDF, DOCX, XLS, XLSX, JPG, JPEG, PNG, ZIP, RAR (Max: 100MB)</small>
                                                                 </div>
                                                             </div>
 
@@ -1315,14 +1296,42 @@
             const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
             modal.show();
 
-            // Fetch the file
-            fetch(url)
+            // Fetch the file with proper headers
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('File not found or access denied');
                     }
+
+                    // Check if response is JSON (from AJAX request)
                     const contentType = response.headers.get('content-type');
-                    return response.blob().then(blob => ({ blob, contentType }));
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => {
+                            if (data.success) {
+                                // Use the file URL from the JSON response
+                                return fetch(data.file_url).then(fileResponse => {
+                                    if (!fileResponse.ok) {
+                                        throw new Error('File not found or access denied');
+                                    }
+                                    return fileResponse.blob().then(blob => ({
+                                        blob,
+                                        contentType: data.mime_type || fileResponse.headers.get('content-type'),
+                                        fileName: data.file_name
+                                    }));
+                                });
+                            } else {
+                                throw new Error(data.error || 'Failed to load file');
+                            }
+                        });
+                    } else {
+                        // Direct file response
+                        return response.blob().then(blob => ({ blob, contentType }));
+                    }
                 })
                 .then(({ blob, contentType }) => {
                     const fileUrl = URL.createObjectURL(blob);
@@ -1570,95 +1579,39 @@
                 fileInfo.classList.add('d-none');
             };
 
-            // File upload handling for report {{ $reportId }}
-            const dropZone{{ $reportId }} = document.getElementById('dropZone{{ $reportId }}');
-            const fileInput{{ $reportId }} = document.getElementById('fileInput{{ $reportId }}');
-            const fileInfo{{ $reportId }} = document.getElementById('fileInfo{{ $reportId }}');
-            const fileName{{ $reportId }} = document.getElementById('fileName{{ $reportId }}');
-            const submitBtn{{ $reportId }} = document.getElementById('submitBtn{{ $reportId }}');
-
-            // Prevent default drag behaviors
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone{{ $reportId }}.addEventListener(eventName, preventDefaults, false);
-                document.body.addEventListener(eventName, preventDefaults, false);
+            // Simple file validation for all file inputs
+            document.addEventListener('change', function(e) {
+                if (e.target && e.target.type === 'file' && e.target.name === 'file') {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const fileSize = file.size / 1024 / 1024; // in MB
+                        if (fileSize > 100) {
+                            alert('File size must be less than 100MB');
+                            e.target.value = '';
+                            return;
+                        }
+                    }
+                }
             });
 
-            // Highlight drop zone when item is dragged over it
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone{{ $reportId }}.addEventListener(eventName, highlight, false);
-            });
+            // Debug form submissions
+            document.addEventListener('submit', function(e) {
+                if (e.target.id && e.target.id.startsWith('resubmitForm')) {
+                    console.log('Form submission detected:', e.target.id);
+                    console.log('Form action:', e.target.action);
+                    console.log('Form method:', e.target.method);
 
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone{{ $reportId }}.addEventListener(eventName, unhighlight, false);
-            });
-
-            // Handle dropped files
-            dropZone{{ $reportId }}.addEventListener('drop', handleDrop, false);
-
-            function preventDefaults (e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            function highlight(e) {
-                dropZone{{ $reportId }}.classList.add('dragover');
-            }
-
-            function unhighlight(e) {
-                dropZone{{ $reportId }}.classList.remove('dragover');
-            }
-
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                fileInput{{ $reportId }}.files = files;
-                handleFiles(files);
-            }
-
-            fileInput{{ $reportId }}.addEventListener('change', function() {
-                handleFiles(this.files);
-            });
-
-            function handleFiles(files) {
-                if (files.length > 0) {
-                    const file = files[0];
-                    const fileSize = file.size / 1024 / 1024; // in MB
-
-                    if (fileSize > 100) {
-                        alert('File size must be less than 100MB');
-                        clearFile({{ $reportId }});
-                        return;
+                    // Get form data
+                    const formData = new FormData(e.target);
+                    console.log('Form data:');
+                    for (let [key, value] of formData.entries()) {
+                        console.log(key, value);
                     }
 
-                    const validTypes = ['.pdf', '.docx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.zip', '.rar'];
-                    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-
-                    if (!validTypes.includes(fileExtension)) {
-                        alert('Invalid file type. Please upload one of these formats: PDF, DOCX, XLS, XLSX, JPG, JPEG, PNG, ZIP, RAR');
-                        clearFile({{ $reportId }});
-                        return;
-                    }
-
-                    fileName{{ $reportId }}.textContent = file.name;
-                    fileInfo{{ $reportId }}.classList.remove('d-none');
+                    // Allow the form to submit normally
+                    return true;
                 }
-            }
-
-            function clearFile(id) {
-                const fileInput = document.getElementById('fileInput' + id);
-                const fileInfo = document.getElementById('fileInfo' + id);
-
-                if (fileInput && fileInfo) {
-                    fileInput.value = '';
-                    fileInfo.classList.add('d-none');
-                }
-            }
-
-            // No special form submission handling needed
-            // Let the form submit normally to ensure all fields are properly submitted
-
-            // No additional JavaScript needed for modal open
-            // The form fields are already populated with the existing data in the blade template
+            });
         });
         @endif
     </script>

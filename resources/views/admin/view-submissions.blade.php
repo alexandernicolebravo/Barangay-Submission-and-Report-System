@@ -72,14 +72,42 @@
             const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
             modal.show();
 
-            // Fetch the file
-            fetch(url)
+            // Fetch the file with proper headers
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('File not found or access denied');
                     }
+
+                    // Check if response is JSON (from AJAX request)
                     const contentType = response.headers.get('content-type');
-                    return response.blob().then(blob => ({ blob, contentType }));
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => {
+                            if (data.success) {
+                                // Use the file URL from the JSON response
+                                return fetch(data.file_url).then(fileResponse => {
+                                    if (!fileResponse.ok) {
+                                        throw new Error('File not found or access denied');
+                                    }
+                                    return fileResponse.blob().then(blob => ({
+                                        blob,
+                                        contentType: data.mime_type || fileResponse.headers.get('content-type'),
+                                        fileName: data.file_name
+                                    }));
+                                });
+                            } else {
+                                throw new Error(data.error || 'Failed to load file');
+                            }
+                        });
+                    } else {
+                        // Direct file response
+                        return response.blob().then(blob => ({ blob, contentType }));
+                    }
                 })
                 .then(({ blob, contentType }) => {
                     const fileUrl = URL.createObjectURL(blob);
@@ -1221,14 +1249,42 @@ function previewFile(url, fileName) {
     const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
     modal.show();
 
-    // Fetch the file
-    fetch(url)
+    // Fetch the file with proper headers
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error('File not found or access denied');
             }
+
+            // Check if response is JSON (from AJAX request)
             const contentType = response.headers.get('content-type');
-            return response.blob().then(blob => ({ blob, contentType }));
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(data => {
+                    if (data.success) {
+                        // Use the file URL from the JSON response
+                        return fetch(data.file_url).then(fileResponse => {
+                            if (!fileResponse.ok) {
+                                throw new Error('File not found or access denied');
+                            }
+                            return fileResponse.blob().then(blob => ({
+                                blob,
+                                contentType: data.mime_type || fileResponse.headers.get('content-type'),
+                                fileName: data.file_name
+                            }));
+                        });
+                    } else {
+                        throw new Error(data.error || 'Failed to load file');
+                    }
+                });
+            } else {
+                // Direct file response
+                return response.blob().then(blob => ({ blob, contentType }));
+            }
         })
         .then(({ blob, contentType }) => {
             const fileUrl = URL.createObjectURL(blob);
