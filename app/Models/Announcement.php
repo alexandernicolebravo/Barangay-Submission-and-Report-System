@@ -28,6 +28,7 @@ class Announcement extends Model
         'created_by',
         'updated_by',
         'priority',
+        'category',
     ];
 
     /**
@@ -96,4 +97,4 @@ class Announcement extends Model
             ->orderBy('created_at', 'desc')
             ->get();
     }
-}
+} 
