@@ -218,10 +218,7 @@ class FacilitatorController extends Controller
         }
 
         // Get barangays in those clusters for the filter dropdown
-        $barangays = User::where(function($query) {
-                $query->where('role', 'barangay')
-                      ->orWhere('user_type', 'barangay');
-            })
+        $barangays = User::where('user_type', 'barangay')
             ->whereIn('cluster_id', $clusterIds)
             ->where('is_active', true)
             ->get();

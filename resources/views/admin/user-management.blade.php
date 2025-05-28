@@ -108,14 +108,14 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="role-badge role-{{ $user->role }}">
-                                    {{ ucfirst($user->role) }}
+                                <span class="role-badge role-{{ $user->user_type }}">
+                                    {{ ucfirst($user->user_type) }}
                                 </span>
                             </td>
                             <td>
-                                @if(($user->role === 'barangay' || $user->user_type === 'barangay') && $user->cluster)
+                                @if($user->user_type === 'barangay' && $user->cluster)
                                     <span class="cluster-badge" data-cluster-id="{{ $user->cluster->id }}">{{ $user->cluster->name }}</span>
-                                @elseif(($user->role === 'facilitator' || $user->user_type === 'facilitator'))
+                                @elseif($user->user_type === 'facilitator')
                                     @php
                                         $assignedClusters = $user->assignedClusters;
                                         $clusterIds = $assignedClusters->pluck('id')->toArray();
@@ -147,8 +147,7 @@
                                             data-bs-toggle="modal"
                                             data-bs-target="#editUserModal"
                                             data-user="{{ json_encode($user) }}"
-                                            data-role="{{ $user->role ?? '' }}"
-                                            data-user-type="{{ $user->user_type ?? $user->role ?? '' }}"
+                                            data-user-type="{{ $user->user_type ?? '' }}"
                                             data-save-scroll>
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -1034,14 +1033,11 @@
         document.getElementById('editEmail').value = user.email;
 
         // Get the user type from data attributes
-        const userRole = button.getAttribute('data-role');
-        const userType = button.getAttribute('data-user-type') || userRole;
+        const userType = button.getAttribute('data-user-type');
 
         console.log('User data from attributes:', {
-            'data-role': userRole,
             'data-user-type': button.getAttribute('data-user-type'),
             'userType': userType,
-            'user.role': user.role,
             'user.user_type': user.user_type
         });
 
@@ -1053,8 +1049,7 @@
         selectContainer.innerHTML = ''; // Clear any existing content
 
         // Determine the correct user type to select first
-        // First try user_type, then fall back to role
-        const effectiveUserType = user.user_type || user.role || userType;
+        const effectiveUserType = user.user_type || userType;
         console.log('Effective user type determined as:', effectiveUserType);
 
         // Create the select element using HTML to ensure proper selection

@@ -87,7 +87,7 @@ Route::get('/test-email-to-barangay/{userId}', function($userId) {
 Route::get('/test-notification', function() {
     try {
         // Get a barangay user
-        $barangayUser = \App\Models\User::where('role', 'barangay')->first();
+        $barangayUser = \App\Models\User::where('user_type', 'barangay')->first();
 
         if (!$barangayUser) {
             return 'No barangay user found to send notification to.';
@@ -116,7 +116,7 @@ Route::get('/test-notification', function() {
 
 // List all barangay users and their reports
 Route::get('/list-barangay-reports', function() {
-    $barangayUsers = \App\Models\User::where('role', 'barangay')->get();
+    $barangayUsers = \App\Models\User::where('user_type', 'barangay')->get();
 
     if ($barangayUsers->isEmpty()) {
         return 'No barangay users found.';
@@ -260,7 +260,7 @@ Route::get('/test-notification-specific/{userId}/{reportId}/{reportType}', funct
 // Protected Routes (Requires Authentication)
 Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
     // Admin Routes
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         // Dashboard
         Route::get('/', [AdminController::class, 'index'])->name('dashboard');
         Route::get('/dashboard-chart-data', [AdminController::class, 'getDashboardChartData'])->name('dashboard.chart-data');

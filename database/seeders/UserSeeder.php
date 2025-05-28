@@ -14,14 +14,14 @@ class UserSeeder extends Seeder
             'name' => 'Admin',
             'email' => 'admin@gmail.com',
             'password' => Hash::make('adminpassword'),
-            'role' => 'admin',
+            'user_type' => 'admin',
         ]);
 
         $cluster = User::create([
             'name' => 'Sandra (Cluster 4)',
             'email' => 'sandra.cluster4@gmail.com',
             'password' => Hash::make('password'),
-            'role' => 'cluster',
+            'user_type' => 'facilitator', // Changed from 'cluster' to 'facilitator'
             'cluster_id' => null, // Clusters don’t belong to another cluster
             'is_active' => true,
         ]);
@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
                 'name' => "Barangay $barangay",
                 'email' => strtolower("barangay$barangay@gmail.com"),
                 'password' => Hash::make('password'),
-                'role' => 'barangay',
+                'user_type' => 'barangay',
                 'cluster_id' => $cluster->id, // Assign to Cluster 1
                 'is_active' => true,
             ]);

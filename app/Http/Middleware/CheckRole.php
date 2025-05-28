@@ -14,8 +14,8 @@ class CheckRole
             return redirect()->route('login')->with('error', 'Please log in to access this page.');
         }
 
-        // Check both user_type and role fields
-        $userRole = $request->user()->user_type ?? $request->user()->role;
+        // Check user_type field
+        $userRole = $request->user()->user_type;
 
         if ($userRole !== $role) {
             return redirect()->route('login')->with('error', 'Unauthorized access.');

@@ -210,7 +210,7 @@ class ReportController extends Controller
             }
 
             // Get all barangay users for the filter dropdown
-            $barangays = \App\Models\User::where('role', 'barangay')
+            $barangays = \App\Models\User::where('user_type', 'barangay')
                                         ->where('is_active', true)
                                         ->orderBy('name')
                                         ->get();
@@ -226,7 +226,7 @@ class ReportController extends Controller
             Log::error('Error in admin view submissions: ' . $e->getMessage());
             return view('admin.view-submissions', [
                 'reports' => collect(),
-                'barangays' => \App\Models\User::where('role', 'barangay')->where('is_active', true)->get(),
+                'barangays' => \App\Models\User::where('user_type', 'barangay')->where('is_active', true)->get(),
                 'selectedBarangay' => null
             ])->with('error', 'An error occurred while loading submissions.');
         }
@@ -327,7 +327,7 @@ class ReportController extends Controller
             ]);
 
             // Check if the user is an admin
-            $isAdmin = Auth::user()->role === 'admin';
+            $isAdmin = Auth::user()->user_type === 'admin';
             if (!$isAdmin) {
                 Log::error('Non-admin user attempted to update report: ' . Auth::id());
                 return redirect()->back()->with('error', 'You do not have permission to update this report.');
@@ -379,7 +379,7 @@ class ReportController extends Controller
                         'barangay_id' => $barangayUser->id,
                         'barangay_name' => $barangayUser->name,
                         'barangay_email' => $barangayUser->email,
-                        'barangay_role' => $barangayUser->role
+                        'barangay_user_type' => $barangayUser->user_type
                     ]);
 
                     // Get admin name
@@ -902,9 +902,9 @@ class ReportController extends Controller
             Log::info('Attempting to find report with ID: ' . $id);
 
             // Check if the user is an admin
-            $isAdmin = Auth::user()->role === 'admin';
+            $isAdmin = Auth::user()->user_type === 'admin';
             $userId = Auth::id();
-            Log::info('User role: ' . Auth::user()->role . ', User ID: ' . $userId);
+            Log::info('User type: ' . Auth::user()->user_type . ', User ID: ' . $userId);
 
             // Parse the unique identifier to get the table name and ID
             $parts = explode('_', $id);

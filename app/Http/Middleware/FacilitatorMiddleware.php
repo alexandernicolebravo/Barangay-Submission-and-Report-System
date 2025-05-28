@@ -21,8 +21,8 @@ class FacilitatorMiddleware
             return redirect()->route('login');
         }
 
-        // Check both user_type and role fields for backward compatibility
-        $userRole = Auth::user()->user_type ?? Auth::user()->role;
+        // Check user_type field
+        $userRole = Auth::user()->user_type;
 
         if ($userRole !== 'facilitator') {
             // If user is logged in but not a facilitator, redirect to their appropriate dashboard

@@ -76,10 +76,7 @@ class AdminController extends Controller
     private function getAllReportTypeData($clusterId, $search)
     {
         // Get all barangay users
-        $barangayQuery = User::where(function($query) {
-            $query->where('role', 'barangay')
-                  ->orWhere('user_type', 'barangay');
-        });
+        $barangayQuery = User::where('user_type', 'barangay');
 
         // Apply cluster filter if specified
         if ($clusterId) {
@@ -151,10 +148,7 @@ class AdminController extends Controller
         foreach ($allClusters as $cluster) {
             // Get all barangays in this cluster
             $clusterBarangays = User::where('cluster_id', $cluster->id)
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                });
+                ->where('user_type', 'barangay');
 
             // Apply search filter to barangays if specified
             if ($search) {
@@ -216,10 +210,7 @@ class AdminController extends Controller
         $totalReportTypes = ReportType::count();
 
         // Count total barangays in the system
-        $barangayQuery = User::where(function($query) {
-            $query->where('role', 'barangay')
-                  ->orWhere('user_type', 'barangay');
-        });
+        $barangayQuery = User::where('user_type', 'barangay');
 
         // Apply cluster filter to barangays if specified
         if ($clusterId) {
@@ -257,10 +248,7 @@ class AdminController extends Controller
         // Apply cluster filter if specified
         if ($clusterId) {
             $barangayIds = User::where('cluster_id', $clusterId)
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                })
+                ->where('user_type', 'barangay')
                 ->pluck('id')
                 ->toArray();
 
@@ -327,10 +315,7 @@ class AdminController extends Controller
         // Apply cluster filter if specified
         if ($clusterId) {
             $barangayIds = User::where('cluster_id', $clusterId)
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                })
+                ->where('user_type', 'barangay')
                 ->pluck('id')
                 ->toArray();
 
@@ -399,10 +384,7 @@ class AdminController extends Controller
             // Apply cluster filter if specified
             if ($clusterId) {
                 $barangayIds = User::where('cluster_id', $clusterId)
-                    ->where(function($query) {
-                        $query->where('role', 'barangay')
-                              ->orWhere('user_type', 'barangay');
-                    })
+                    ->where('user_type', 'barangay')
                     ->pluck('id')
                     ->toArray();
 
@@ -438,10 +420,7 @@ class AdminController extends Controller
 
         // Get top 5 barangays with most submissions
         $barangaySubmissions = [];
-        $barangayQuery = User::where(function($query) {
-            $query->where('role', 'barangay')
-                  ->orWhere('user_type', 'barangay');
-        });
+        $barangayQuery = User::where('user_type', 'barangay');
 
         // Apply cluster filter to barangays if specified
         if ($clusterId) {
@@ -500,10 +479,7 @@ class AdminController extends Controller
 
         // Get all barangays with their submission counts
         // We need to make sure we're counting ALL barangays, not just the ones with submissions
-        $allBarangays = User::where(function($query) {
-            $query->where('role', 'barangay')
-                  ->orWhere('user_type', 'barangay');
-        })->get();
+        $allBarangays = User::where('user_type', 'barangay')->get();
 
         // Create a comprehensive array of all barangays and their submission counts
         $completeBarangaySubmissions = [];
@@ -551,10 +527,8 @@ class AdminController extends Controller
         // Get the top 10 barangays
         $topBarangayNames = array_keys($topBarangays);
         $topBarangayUsers = User::whereIn('name', $topBarangayNames)
-            ->where(function($query) {
-                $query->where('role', 'barangay')
-                      ->orWhere('user_type', 'barangay');
-            })->get();
+            ->where('user_type', 'barangay')
+            ->get();
 
         foreach ($topBarangayUsers as $barangay) {
             $weeklyCount = WeeklyReport::where('user_id', $barangay->id)
@@ -602,10 +576,7 @@ class AdminController extends Controller
         foreach ($allClusters as $cluster) {
             // Get all barangays in this cluster
             $clusterBarangays = User::where('cluster_id', $cluster->id)
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                });
+                ->where('user_type', 'barangay');
 
             // Apply search filter to barangays if specified
             if ($search) {
@@ -743,10 +714,7 @@ class AdminController extends Controller
         // Apply cluster filter if specified
         if ($clusterId) {
             $barangayIds = User::where('cluster_id', $clusterId)
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                })
+                ->where('user_type', 'barangay')
                 ->pluck('id')
                 ->toArray();
 
@@ -768,10 +736,7 @@ class AdminController extends Controller
 
             // Get barangays matching the search
             $barangayIds = User::where('name', 'like', "%{$search}%")
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                })
+                ->where('user_type', 'barangay')
                 ->pluck('id')
                 ->toArray();
 
@@ -847,10 +812,7 @@ class AdminController extends Controller
         $totalReportTypes = ReportType::count();
 
         // Count total barangays in the system
-        $barangayQuery = User::where(function($query) {
-            $query->where('role', 'barangay')
-                  ->orWhere('user_type', 'barangay');
-        });
+        $barangayQuery = User::where('user_type', 'barangay');
 
         // Apply cluster filter to barangays if specified
         if ($clusterId) {
@@ -896,10 +858,7 @@ class AdminController extends Controller
         // Apply cluster filter if specified
         if ($clusterId) {
             $barangayIds = User::where('cluster_id', $clusterId)
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                })
+                ->where('user_type', 'barangay')
                 ->pluck('id')
                 ->toArray();
 
@@ -921,10 +880,7 @@ class AdminController extends Controller
 
             // Get barangays matching the search
             $barangayIds = User::where('name', 'like', "%{$search}%")
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                })
+                ->where('user_type', 'barangay')
                 ->pluck('id')
                 ->toArray();
 
@@ -1005,10 +961,7 @@ class AdminController extends Controller
         // Apply cluster filter if specified
         if ($clusterId) {
             $barangayIds = User::where('cluster_id', $clusterId)
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                })
+                ->where('user_type', 'barangay')
                 ->pluck('id')
                 ->toArray();
 
@@ -1030,10 +983,7 @@ class AdminController extends Controller
 
             // Get barangays matching the search
             $barangayIds = User::where('name', 'like', "%{$search}%")
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                })
+                ->where('user_type', 'barangay')
                 ->pluck('id')
                 ->toArray();
 
@@ -1123,10 +1073,7 @@ class AdminController extends Controller
             // Apply cluster filter if specified
             if ($clusterId) {
                 $barangayIds = User::where('cluster_id', $clusterId)
-                    ->where(function($query) {
-                        $query->where('role', 'barangay')
-                              ->orWhere('user_type', 'barangay');
-                    })
+                    ->where('user_type', 'barangay')
                     ->pluck('id')
                     ->toArray();
 
@@ -1148,10 +1095,7 @@ class AdminController extends Controller
 
                 // Get barangays matching the search
                 $barangayIds = User::where('name', 'like', "%{$search}%")
-                    ->where(function($query) {
-                        $query->where('role', 'barangay')
-                              ->orWhere('user_type', 'barangay');
-                    })
+                    ->where('user_type', 'barangay')
                     ->pluck('id')
                     ->toArray();
 
@@ -1225,10 +1169,7 @@ class AdminController extends Controller
 
         // Get top 5 barangays with most submissions
         $barangaySubmissions = [];
-        $barangayQuery = User::where(function($query) {
-            $query->where('role', 'barangay')
-                  ->orWhere('user_type', 'barangay');
-        });
+        $barangayQuery = User::where('user_type', 'barangay');
 
         // Apply cluster filter to barangays if specified
         if ($clusterId) {
@@ -1314,10 +1255,7 @@ class AdminController extends Controller
         foreach ($clusters as $cluster) {
             // Get all barangays in this cluster
             $clusterBarangays = User::where('cluster_id', $cluster->id)
-                ->where(function($query) {
-                    $query->where('role', 'barangay')
-                          ->orWhere('user_type', 'barangay');
-                });
+                ->where('user_type', 'barangay');
 
             // Apply search filter to barangays if specified
             if ($search) {
@@ -1465,7 +1403,6 @@ class AdminController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => $request->user_type, // For backward compatibility
                 'user_type' => $request->user_type,
                 'cluster_id' => $request->user_type === 'barangay' ? $request->cluster_id : null,
             ]);
@@ -1493,7 +1430,7 @@ class AdminController extends Controller
                 $createdUser->assigned_clusters = $createdUser->assignedClusters->pluck('id')->toArray();
 
                 // Add cluster names for facilitators
-                if ($createdUser->user_type === 'facilitator' || $createdUser->role === 'facilitator') {
+                if ($createdUser->user_type === 'facilitator') {
                     $createdUser->assigned_clusters_names = $createdUser->assignedClusters->pluck('name')->implode(', ');
                 }
 
@@ -1526,16 +1463,18 @@ class AdminController extends Controller
     {
         $user = User::findOrFail($id);
 
-        if ($user->role === 'cluster') {
-            $barangayExists = User::where('role', 'barangay')
-                ->where('cluster_id', $user->id)
+        if ($user->user_type === 'facilitator') {
+            $barangayExists = User::where('user_type', 'barangay')
+                ->whereHas('cluster.facilitators', function($query) use ($user) {
+                    $query->where('user_id', $user->id);
+                })
                 ->exists();
 
             if ($barangayExists) {
                 return response()->json([
                     'confirm' => $user->is_active
-                        ? 'This cluster has assigned barangays. Are you sure you want to deactivate it?'
-                        : 'This cluster has assigned barangays. Are you sure you want to reactivate it?'
+                        ? 'This facilitator has assigned barangays. Are you sure you want to deactivate it?'
+                        : 'This facilitator has assigned barangays. Are you sure you want to reactivate it?'
                 ]);
             }
         }
@@ -1558,12 +1497,12 @@ class AdminController extends Controller
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => ucfirst($user->role) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.',
+                'message' => ucfirst($user->user_type) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.',
                 'user' => $user
             ]);
         }
 
-        return back()->with('success', ucfirst($user->role) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.');
+        return back()->with('success', ucfirst($user->user_type) . ' status updated to ' . ($user->is_active ? 'active' : 'inactive') . '.');
     }
 
     /**
@@ -1575,13 +1514,13 @@ class AdminController extends Controller
         $perPage = $request->get('per_page', 10);
 
         // Get users with their relationships for client-side filtering
-        // Sort users by role (admin, facilitator, barangay) and then by cluster_id for barangays
+        // Sort users by user_type (admin, facilitator, barangay) and then by cluster_id for barangays
         $users = User::with(['cluster', 'assignedClusters'])
             ->orderByRaw("
                 CASE
-                    WHEN role = 'admin' OR user_type = 'admin' THEN 1
-                    WHEN role = 'facilitator' OR user_type = 'facilitator' THEN 2
-                    WHEN role = 'barangay' OR user_type = 'barangay' THEN 3
+                    WHEN user_type = 'admin' THEN 1
+                    WHEN user_type = 'facilitator' THEN 2
+                    WHEN user_type = 'barangay' THEN 3
                     ELSE 4
                 END
             ")
@@ -1595,7 +1534,7 @@ class AdminController extends Controller
             $user->assigned_clusters = $user->assignedClusters->pluck('id')->toArray();
 
             // Add cluster names for facilitators
-            if ($user->user_type === 'facilitator' || $user->role === 'facilitator') {
+            if ($user->user_type === 'facilitator') {
                 $user->assigned_clusters_names = $user->assignedClusters->pluck('name')->implode(', ');
             }
         });
@@ -1649,7 +1588,6 @@ class AdminController extends Controller
             $user->update([
                 'name' => $request->name,
                 'email' => $request->email,
-                'role' => $request->user_type, // For backward compatibility
                 'user_type' => $request->user_type,
                 'cluster_id' => $request->user_type === 'barangay' ? $request->cluster_id : null,
                 'is_active' => $request->has('is_active') ? 1 : 0,
@@ -1694,7 +1632,7 @@ class AdminController extends Controller
                 $updatedUser->assigned_clusters = $updatedUser->assignedClusters->pluck('id')->toArray();
 
                 // Add cluster names for facilitators
-                if ($updatedUser->user_type === 'facilitator' || $updatedUser->role === 'facilitator') {
+                if ($updatedUser->user_type === 'facilitator') {
                     $updatedUser->assigned_clusters_names = $updatedUser->assignedClusters->pluck('name')->implode(', ');
                 }
 
@@ -1724,7 +1662,7 @@ class AdminController extends Controller
     {
         try {
             // Get all barangays for the filter dropdown
-            $barangays = User::where('role', 'barangay')->orWhere('user_type', 'barangay')->get();
+            $barangays = User::where('user_type', 'barangay')->get();
             $perPage = $request->get('per_page', 10);
             $selectedBarangay = null;
 
@@ -1939,7 +1877,7 @@ class AdminController extends Controller
             Log::error('Error in admin view submissions: ' . $e->getMessage());
             return view('admin.view-submissions', [
                 'reports' => collect(),
-                'barangays' => User::where('role', 'barangay')->where('is_active', true)->get(),
+                'barangays' => User::where('user_type', 'barangay')->where('is_active', true)->get(),
                 'selectedBarangay' => null
             ])->with('error', 'An error occurred while loading submissions: ' . $e->getMessage());
         }

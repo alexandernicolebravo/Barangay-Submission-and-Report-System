@@ -14,7 +14,7 @@ class BarangayController extends Controller
 {
     public function __construct()
     {
-        if (!Auth::check() || Auth::user()->role !== 'barangay') {
+        if (!Auth::check() || Auth::user()->user_type !== 'barangay') {
             abort(403, 'Unauthorized access.');
         }
     }

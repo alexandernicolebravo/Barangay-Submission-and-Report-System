@@ -112,10 +112,7 @@
                             $search = request('search');
 
                             // Get all barangay users
-                            $barangayQuery = App\Models\User::where(function($query) {
-                                $query->where('role', 'barangay')
-                                      ->orWhere('user_type', 'barangay');
-                            });
+                            $barangayQuery = App\Models\User::where('user_type', 'barangay');
 
                             // Apply cluster filter if specified
                             if ($clusterId) {
@@ -268,10 +265,7 @@
                             foreach ($allClusters as $cluster) {
                                 // Get all barangays in this cluster
                                 $clusterBarangays = App\Models\User::where('cluster_id', $cluster->id)
-                                    ->where(function($query) {
-                                        $query->where('role', 'barangay')
-                                              ->orWhere('user_type', 'barangay');
-                                    });
+                                    ->where('user_type', 'barangay');
 
                                 // Apply search filter if specified
                                 if ($search) {
