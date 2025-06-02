@@ -51,16 +51,17 @@
             <div class="row mb-4">
                 <div class="col-md-8">
                     <div class="mb-3">
-                        <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('title') is-invalid @enderror" id="title" name="title" value="{{ old('title') }}" required>
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control @error('title') is-invalid @enderror" id="title" name="title" value="{{ old('title') }}">
                         @error('title')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     
                     <div class="mb-3">
-                        <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
-                        <select class="form-select @error('category') is-invalid @enderror" id="category" name="category" required>
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select @error('category') is-invalid @enderror" id="category" name="category">
+                            <option value="" disabled selected>Select category (optional)</option>
                             <option value="announcement" {{ old('category') == 'announcement' ? 'selected' : '' }}>General Announcement</option>
                             <option value="recognition" {{ old('category') == 'recognition' ? 'selected' : '' }}>Recognition</option>
                             <option value="important_update" {{ old('category') == 'important_update' ? 'selected' : '' }}>Important Update</option>
@@ -127,8 +128,8 @@
                     
                     <div class="mb-3">
                         <label for="priority" class="form-label">Priority</label>
-                        <input type="number" class="form-control @error('priority') is-invalid @enderror" id="priority" name="priority" value="{{ old('priority', 0) }}" min="0">
-                        <small class="text-muted">Higher numbers will appear first.</small>
+                        <input type="number" class="form-control @error('priority') is-invalid @enderror" id="priority" name="priority" value="{{ old('priority', 0) }}" min="0" max="10">
+                        <small class="text-muted">Priority: 0 (lowest) to 10 (highest). Higher numbers appear first.</small>
                         @error('priority')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

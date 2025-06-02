@@ -36,7 +36,7 @@ class AnnouncementController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
             'content' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:25600',
             'button_text' => 'nullable|string|max:50',
@@ -45,8 +45,8 @@ class AnnouncementController extends Controller
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
             'background_color' => 'nullable|string|max:10',
-            'priority' => 'nullable|integer|min:0',
-            'category' => 'required|string|in:announcement,recognition,important_update,upcoming_event',
+            'priority' => 'nullable|integer|min:0|max:10',
+            'category' => 'nullable|string|in:announcement,recognition,important_update,upcoming_event',
         ]);
 
         if ($validator->fails()) {
@@ -92,7 +92,7 @@ class AnnouncementController extends Controller
     public function update(Request $request, Announcement $announcement)
     {
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
+            'title' => 'nullable|string|max:255',
             'content' => 'nullable|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:25600',
             'button_text' => 'nullable|string|max:50',
@@ -101,8 +101,8 @@ class AnnouncementController extends Controller
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
             'background_color' => 'nullable|string|max:10',
-            'priority' => 'nullable|integer|min:0',
-            'category' => 'required|string|in:announcement,recognition,important_update,upcoming_event',
+            'priority' => 'nullable|integer|min:0|max:10',
+            'category' => 'nullable|string|in:announcement,recognition,important_update,upcoming_event',
         ]);
 
         if ($validator->fails()) {

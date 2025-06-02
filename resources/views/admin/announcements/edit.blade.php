@@ -142,8 +142,8 @@
                     
                     <div class="mb-3">
                         <label for="priority" class="form-label">Priority</label>
-                        <input type="number" class="form-control @error('priority') is-invalid @enderror" id="priority" name="priority" value="{{ old('priority', $announcement->priority) }}" min="0">
-                        <small class="text-muted">Higher numbers will appear first.</small>
+                        <input type="number" class="form-control @error('priority') is-invalid @enderror" id="priority" name="priority" value="{{ old('priority', $announcement->priority) }}" min="0" max="10">
+                        <small class="text-muted">Priority: 0 (lowest) to 10 (highest). Higher numbers appear first.</small>
                         @error('priority')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

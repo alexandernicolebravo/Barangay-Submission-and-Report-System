@@ -1,5 +1,5 @@
 <div id="announcementCarousel" class="carousel slide h-100" data-bs-ride="carousel">
-    <div class="carousel-indicators">
+    <div class="carousel-indicators" style="display: none;">
         @foreach($announcements as $index => $announcement)
             <button type="button" data-bs-target="#announcementCarousel" data-bs-slide-to="{{ $index }}" class="{{ $index === 0 ? 'active' : '' }}" aria-current="{{ $index === 0 ? 'true' : 'false' }}" aria-label="Slide {{ $index + 1 }}"></button>
         @endforeach
@@ -12,7 +12,8 @@
                     <!-- Image Background Layout -->
                     <div class="carousel-background" style="
                         background-image: url('{{ asset('storage/' . $announcement->image_path) }}');
-                        background-size: cover;
+                        background-size: contain;
+                        background-repeat: no-repeat;
                         background-position: center;
                         position: absolute;
                         top: 0;
@@ -20,43 +21,56 @@
                         width: 100%;
                         height: 100%;
                     "></div>
+                    <div class="d-flex flex-column h-100">
+                        <!-- This div will push the content overlay down -->
+                        <div style="flex-grow: 1;"></div>
                     
-                    <div class="d-flex flex-column justify-content-end h-100">
+                        <!-- Body -->
+                        @if($announcement->title || $announcement->content)
                         <div class="announcement-content-overlay" style="
-                            background: rgba(0, 0, 0, 0.5);
-                            padding: 30px 40px;
-                            backdrop-filter: blur(5px);
+                            background: rgba(0, 0, 0, 0.2);
+                            padding: 25px 30px 10px 30px;
+                            backdrop-filter: blur(3px);
+                            max-width: 77%;
+                            margin-left: auto;
+                            margin-right: auto;
                         ">
                             <div class="container">
+                                @if($announcement->title && $announcement->category)
                                 @if($announcement->category == 'recognition')
-                                    <div class="announcement-badge">
+                                        <div class="announcement-badge badge-recognition" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
                                         <i class="fas fa-award me-2"></i> Recognition
                                     </div>
                                 @elseif($announcement->category == 'important_update')
-                                    <div class="announcement-badge">
+                                        <div class="announcement-badge badge-important_update" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
                                         <i class="fas fa-bell me-2"></i> Important Update
                                     </div>
                                 @elseif($announcement->category == 'upcoming_event')
-                                    <div class="announcement-badge">
+                                        <div class="announcement-badge badge-upcoming_event" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
                                         <i class="fas fa-calendar me-2"></i> Upcoming Event
                                     </div>
                                 @else
-                                    <div class="announcement-badge">
+                                        <div class="announcement-badge badge-announcement" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
                                         <i class="fas fa-info-circle me-2"></i> Announcement
                                     </div>
+                                    @endif
                                 @endif
-                                
-                                <h2 class="announcement-title mb-3" style="font-size: 28px;">{{ $announcement->title }}</h2>
+                                @if($announcement->title)
+                                    <h2 class="announcement-title mb-2" style="font-size: 18px;">{{ $announcement->title }}</h2>
+                                @endif
+                                @if($announcement->content)
                                 <div class="announcement-text mb-3" style="
                                     font-size: 14px;
-                                    max-height: 120px;
-                                    overflow-y: auto;
                                     line-height: 1.5;
-                                    padding-right: 5px;
+                                    color: #fff;
+                                    max-height: 60px; /* Limit height */
+                                    overflow-y: auto; /* Allow vertical scroll */
+                                    padding-right: 5px; /* Space for scrollbar */
+                                    text-shadow: -1px -1px 1px #000, 1px -1px 1px #000, -1px 1px 1px #000, 1px 1px 1px #000;
                                 ">
                                     {!! $announcement->content !!}
                                 </div>
-                                
+                                @endif
                                 @if($announcement->button_text && $announcement->button_link)
                                     <a href="{{ $announcement->button_link }}" class="btn btn-light mt-2 px-4" target="_blank" rel="noopener noreferrer">
                                         {{ $announcement->button_text }}
@@ -65,6 +79,9 @@
                                 @endif
                             </div>
                         </div>
+                        @endif
+                        <!-- Footer (empty for spacing) -->
+                        <div class="w-100" style="height: 45px; flex-shrink: 0;"></div>
                     </div>
                 @else
                     <!-- Gradient Background Layout -->
@@ -77,7 +94,6 @@
                         height: 100%;
                         z-index: 0;
                     "></div>
-                    
                     <div class="overlay" style="
                         position: absolute;
                         top: 0;
@@ -90,37 +106,41 @@
                         z-index: 1;
                         opacity: 0.6;
                     "></div>
-                    
                     <div class="container d-flex align-items-center justify-content-center h-100">
-                        <div class="announcement-content position-relative" style="z-index: 2; max-width: 800px;">
+                        <div class="announcement-content position-relative" style="z-index: 2; max-width: 85%; margin: 0 auto;">
+                            @if($announcement->title && $announcement->category)
                             @if($announcement->category == 'recognition')
-                                <div class="announcement-badge">
+                                    <div class="announcement-badge badge-recognition" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
                                     <i class="fas fa-award me-2"></i> Recognition
                                 </div>
                             @elseif($announcement->category == 'important_update')
-                                <div class="announcement-badge">
+                                    <div class="announcement-badge badge-important_update" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
                                     <i class="fas fa-bell me-2"></i> Important Update
                                 </div>
                             @elseif($announcement->category == 'upcoming_event')
-                                <div class="announcement-badge">
+                                    <div class="announcement-badge badge-upcoming_event" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
                                     <i class="fas fa-calendar me-2"></i> Upcoming Event
                                 </div>
                             @else
-                                <div class="announcement-badge">
+                                    <div class="announcement-badge badge-announcement" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
                                     <i class="fas fa-info-circle me-2"></i> Announcement
                                 </div>
+                                @endif
                             @endif
-                            
                             <div class="text-center">
-                                <h2 class="announcement-title mb-4" style="font-size: 32px;">{{ $announcement->title }}</h2>
+                                @if($announcement->title)
+                                    <h2 class="announcement-title mb-4" style="font-size: 34px;">{{ $announcement->title }}</h2>
+                                @endif
+                                @if($announcement->content)
                                 <div class="announcement-text mb-4" style="
-                                    font-size: 15px;
-                                    max-height: 200px;
+                                    font-size: 16px;
+                                    max-height: 220px;
                                     overflow-y: auto;
                                     line-height: 1.5;
                                 ">
                                     {!! $announcement->content !!}
                                 </div>
+                                @endif
                                 @if($announcement->button_text && $announcement->button_link)
                                     <a href="{{ $announcement->button_link }}" class="btn btn-light btn-lg mt-3 px-4" target="_blank" rel="noopener noreferrer">
                                         {{ $announcement->button_text }}

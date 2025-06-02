@@ -56,7 +56,6 @@
         color: #333;
         margin-bottom: 12px;
         line-height: 1.3;
-        padding-right: 30px; /* Make room for category badge */
     }
     
     .announcement-image {
@@ -75,10 +74,21 @@
     }
     
     .announcement-category {
-        position: absolute;
-        top: 0;
-        right: 0;
-        z-index: 2;
+        text-align: right;
+        margin-bottom: 8px;
+    }
+    
+    .announcement-category .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        font-size: 0.8rem;
+        line-height: 1;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
     
     /* Navigation arrows */
@@ -220,23 +230,44 @@
     <!-- Modals container (outside the sidebar to prevent nesting issues) -->
     <div class="announcement-modals">
         @foreach($announcements as $announcement)
+            @php
+                // Determine if the modal should be in "image-only" mode
+                $isModalImageOnly = $announcement->image_path && 
+                                    empty(trim(strip_tags((string) $announcement->title))) && 
+                                    empty(trim(strip_tags((string) $announcement->content))) && 
+                                    empty(trim(strip_tags((string) $announcement->button_text)));
+            @endphp
             <div class="modal fade modal-announcement" id="modal-announcement-{{ $announcement->id }}" tabindex="-1" aria-labelledby="announcementModalLabel-{{ $announcement->id }}" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
+                <div class="modal-dialog {{ $isModalImageOnly ? 'modal-xl' : 'modal-lg' }}">
                     <div class="modal-content">
-                        <div class="modal-header" style="background-color: {{ $announcement->background_color ?? '#f8fafc' }}; color: #fff;">
+                        @if($isModalImageOnly)
+                            <div class="modal-header border-0 pb-0">
+                                <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close" onclick="closeAnnouncementModal({{ $announcement->id }})"></button>
+                            </div>
+                            <div class="modal-body p-2 text-center">
+                                <img src="{{ asset('storage/' . $announcement->image_path) }}" 
+                                     alt="Announcement Image"
+                                     class="img-fluid rounded mx-auto d-block"
+                                     style="max-height: 85vh; object-fit: contain;">
+                            </div>
+                            {{-- No footer for purely image-only modal if close is in header --}}
+                        @else
+                            <div class="modal-header" style="background-color: {{ $announcement->background_color ?? '#f8fafc' }}; color: {{ ($announcement->background_color ?? '#f8fafc') === '#f8fafc' ? '#000' : '#fff' }};">
                             <h5 class="modal-title" id="announcementModalLabel-{{ $announcement->id }}">{{ $announcement->title }}</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" onclick="closeAnnouncementModal({{ $announcement->id }})"></button>
+                                <button type="button" class="btn-close {{ ($announcement->background_color ?? '#f8fafc') === '#f8fafc' ? '' : 'btn-close-white' }}" data-bs-dismiss="modal" aria-label="Close" onclick="closeAnnouncementModal({{ $announcement->id }})"></button>
                         </div>
                         <div class="modal-body">
                             <div class="row">
                                 @if($announcement->image_path)
                                     <div class="col-md-4 mb-3 mb-md-0">
                                         <img src="{{ asset('storage/' . $announcement->image_path) }}" 
-                                            alt="{{ $announcement->title }}"
+                                                alt="{{ $announcement->title ?? 'Announcement Image' }}"
                                             class="img-fluid rounded">
                                     </div>
                                 @endif
                                 <div class="col-md-{{ $announcement->image_path ? '8' : '12' }}">
+                                        {{-- Display title within body only if not already in header (it is, so this could be removed or kept for consistency if header changes) --}}
+                                        {{-- <h5 class="modal-title mb-2 d-md-none">{{ $announcement->title }}</h5> --}}
                                     <div class="announcement-content">
                                         {!! $announcement->content !!}
                                     </div>
@@ -255,6 +286,7 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeAnnouncementModal({{ $announcement->id }})">Close</button>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
