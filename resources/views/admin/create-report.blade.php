@@ -190,6 +190,11 @@
         <h2 class="page-title">
             <i class="fas fa-file-alt"></i>
             Report Types Management
+            @if($showArchived)
+                <span class="badge ms-2" style="background: var(--warning-light); color: var(--warning);">
+                    <i class="fas fa-archive me-1"></i>Archived
+                </span>
+            @endif
         </h2>
     </div>
 </div>
@@ -214,7 +219,7 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
             <i class="fas fa-file-alt me-2" style="color: var(--primary);"></i>
-            Report Types
+            {{ $showArchived ? 'Archived Report Types' : 'Active Report Types' }}
         </h5>
         <div class="d-flex gap-2">
             <form action="{{ route('admin.create-report') }}" method="GET" class="d-flex gap-2">
@@ -242,10 +247,23 @@
                     </a>
                 @endif
             </form>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createReportTypeModal">
-                <i class="fas fa-plus"></i>
-                <span>Add Report Type</span>
-            </button>
+            <div class="d-flex gap-2">
+                @if($showArchived)
+                    <a href="{{ route('admin.create-report') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list"></i>
+                        <span>Show Active</span>
+                    </a>
+                @else
+                    <a href="{{ route('admin.create-report', ['show_archived' => 1]) }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-archive"></i>
+                        <span>Show Archived</span>
+                    </a>
+                @endif
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createReportTypeModal">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Report Type</span>
+                </button>
+            </div>
         </div>
     </div>
     <div class="card-body">
@@ -257,6 +275,7 @@
                         <th>Frequency</th>
                         <th>Deadline</th>
                         <th>Allowed File Types</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -291,13 +310,37 @@
                             @endif
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm edit-report-type" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#editReportTypeModal{{ $reportType->id }}">
-                                <i class="fas fa-edit"></i>
-                                <span>Edit</span>
-                            </button>
-                            <button type="button" class="btn btn-sm delete-report-type" style="background: var(--danger-light); color: var(--danger); border: none;" data-report-id="{{ $reportType->id }}" data-report-name="{{ $reportType->name }}">
-                                <i class="fas fa-trash"></i>
-                                <span>Delete</span>
+                            @if($reportType->isArchived())
+                                <span class="badge" style="background: var(--warning-light); color: var(--warning);">
+                                    <i class="fas fa-archive me-1"></i>Archived
+                                </span>
+                            @else
+                                <span class="badge" style="background: var(--success-light); color: var(--success);">
+                                    <i class="fas fa-check-circle me-1"></i>Active
+                                </span>
+                            @endif
+                        </td>
+                        <td>
+                            @if(!$reportType->isArchived())
+                                <button type="button" class="btn btn-sm edit-report-type" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#editReportTypeModal{{ $reportType->id }}">
+                                    <i class="fas fa-edit"></i>
+                                    <span>Edit</span>
+                                </button>
+                            @endif
+                            <button type="button" class="btn btn-sm delete-report-type"
+                                    style="background: {{ $reportType->isArchived() ? 'var(--success-light)' : 'var(--warning-light)' }};
+                                           color: {{ $reportType->isArchived() ? 'var(--success)' : 'var(--warning)' }};
+                                           border: none;"
+                                    data-report-id="{{ $reportType->id }}"
+                                    data-report-name="{{ $reportType->name }}"
+                                    data-archived="{{ $reportType->isArchived() ? 'true' : 'false' }}">
+                                @if($reportType->isArchived())
+                                    <i class="fas fa-undo"></i>
+                                    <span>Restore</span>
+                                @else
+                                    <i class="fas fa-archive"></i>
+                                    <span>Archive</span>
+                                @endif
                             </button>
                         </td>
                     </tr>
@@ -305,10 +348,10 @@
                     <!-- Edit Report Type Modal -->
                     <div class="modal fade" id="editReportTypeModal{{ $reportType->id }}" tabindex="-1">
                         <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
+                            <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+                                <div class="modal-header bg-light">
                                     <h5 class="modal-title">
-                                        <i class="fas fa-edit me-2" style="color: var(--primary);"></i>
+                                        <i class="fas fa-edit text-primary me-2"></i>
                                         Edit Report Type
                                     </h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -362,12 +405,9 @@
                                             @enderror
                                         </div>
                                     </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save"></i>
-                                            <span>Save Changes</span>
-                                        </button>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Update Report Type</button>
                                     </div>
                                 </form>
                             </div>
@@ -451,10 +491,10 @@
 <!-- Create Report Type Modal -->
 <div class="modal fade" id="createReportTypeModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+            <div class="modal-header bg-light">
                 <h5 class="modal-title">
-                    <i class="fas fa-plus me-2" style="color: var(--primary);"></i>
+                    <i class="fas fa-plus text-primary me-2"></i>
                     Add New Report Type
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -511,12 +551,9 @@
                         @enderror
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
-                        <span>Create Report Type</span>
-                    </button>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Report Type</button>
                 </div>
             </form>
         </div>
@@ -526,7 +563,7 @@
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteReportModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
             <div class="modal-body text-center p-4">
                 <div class="mb-4">
                     <div class="delete-icon-container">
@@ -669,24 +706,42 @@ $(document).ready(function() {
         });
     });
 
-    // Handle delete button click
+    // Handle archive/restore button click
     $('.delete-report-type').on('click', function(e) {
         e.preventDefault();
         var button = $(this);
         var reportId = button.data('report-id');
         var reportName = button.data('report-name');
+        var isArchived = button.data('archived') === true || button.data('archived') === 'true';
+
+        var title, text, confirmText, icon, confirmColor;
+
+        if (isArchived) {
+            title = 'Restore Report Type';
+            text = `Are you sure you want to restore "${reportName}"? It will become active again.`;
+            confirmText = 'Yes, restore it!';
+            icon = 'question';
+            confirmColor = '#28a745';
+        } else {
+            title = 'Archive Report Type';
+            text = `Are you sure you want to archive "${reportName}"? It will be hidden from active report types but can be restored later.`;
+            confirmText = 'Yes, archive it!';
+            icon = 'warning';
+            confirmColor = '#ffc107';
+        }
 
         Swal.fire({
-            title: 'Delete Report Type',
-            text: `Are you sure you want to delete "${reportName}"? This action cannot be undone.`,
-            icon: 'warning',
+            title: title,
+            text: text,
+            icon: icon,
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!',
+            confirmButtonColor: confirmColor,
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: confirmText,
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
+                var originalHtml = button.html();
                 button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
                 $.ajax({
@@ -696,7 +751,7 @@ $(document).ready(function() {
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
-                                title: 'Deleted!',
+                                title: isArchived ? 'Restored!' : 'Archived!',
                                 text: response.message,
                                 showConfirmButton: false,
                                 timer: 1500
@@ -717,7 +772,7 @@ $(document).ready(function() {
                         });
                     },
                     complete: function() {
-                        button.prop('disabled', false).html('<i class="fas fa-trash"></i> Delete');
+                        button.prop('disabled', false).html(originalHtml);
                     }
                 });
             }

@@ -39,24 +39,24 @@
                             <label class="filter-label">Search</label>
                             <div class="search-container">
                                 <i class="fas fa-search search-icon"></i>
-                                <input type="text" class="form-control search-input" id="searchInput" placeholder="Search users...">
+                                <input type="text" class="form-control search-input" id="searchInput" placeholder="Search users..." value="{{ request('search') }}">
                             </div>
                         </div>
                         <div class="filter-item me-3 mb-0">
                             <label class="filter-label">Role</label>
                             <select class="form-select filter-select" id="roleFilter">
                                 <option value="">All Roles</option>
-                                <option value="admin">Admin</option>
-                                <option value="facilitator">Facilitator</option>
-                                <option value="barangay">Barangay</option>
+                                <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                                <option value="facilitator" {{ request('role') == 'facilitator' ? 'selected' : '' }}>Facilitator</option>
+                                <option value="barangay" {{ request('role') == 'barangay' ? 'selected' : '' }}>Barangay</option>
                             </select>
                         </div>
                         <div class="filter-item me-3 mb-0">
                             <label class="filter-label">Status</label>
                             <select class="form-select filter-select" id="statusFilter">
                                 <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
+                                <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
                             </select>
                         </div>
                         <div class="filter-item mb-0">
@@ -64,7 +64,7 @@
                             <select class="form-select filter-select" id="clusterFilter">
                                 <option value="">All Clusters</option>
                                 @foreach(App\Models\Cluster::where('is_active', true)->get() as $cluster)
-                                    <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
+                                    <option value="{{ $cluster->id }}" {{ request('cluster') == $cluster->id ? 'selected' : '' }}>{{ $cluster->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -81,128 +81,8 @@
 
     <!-- Users Table -->
     <div class="card shadow-sm" style="border: none; border-radius: 8px; overflow: hidden;">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table id="usersTable" class="table modern-table mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-4">Name</th>
-                            <th>Role</th>
-                            <th>Cluster</th>
-                            <th>Status</th>
-                            <th class="text-end pe-4">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($users as $user)
-                        <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-circle me-3">
-                                        {{ strtoupper(substr($user->name, 0, 1)) }}
-                                    </div>
-                                    <div>
-                                        <div class="user-name">{{ $user->name }}</div>
-                                        <div class="user-email">{{ $user->email }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="role-badge role-{{ $user->user_type }}">
-                                    {{ ucfirst($user->user_type) }}
-                                </span>
-                            </td>
-                            <td>
-                                @if($user->user_type === 'barangay' && $user->cluster)
-                                    <span class="cluster-badge" data-cluster-id="{{ $user->cluster->id }}">{{ $user->cluster->name }}</span>
-                                @elseif($user->user_type === 'facilitator')
-                                    @php
-                                        $assignedClusters = $user->assignedClusters;
-                                        $clusterIds = $assignedClusters->pluck('id')->toArray();
-                                        $clusterNames = $assignedClusters->pluck('name')->toArray();
-                                    @endphp
-                                    @if(count($clusterIds) > 0)
-                                        <span class="cluster-badge"
-                                              data-bs-toggle="tooltip"
-                                              data-bs-placement="top"
-                                              data-cluster-ids="{{ json_encode($clusterIds) }}"
-                                              title="{{ implode(', ', $clusterNames) }}">
-                                            {{ count($clusterIds) }} cluster(s)
-                                        </span>
-                                    @else
-                                        <span class="cluster-badge cluster-none">No clusters</span>
-                                    @endif
-                                @else
-                                    -
-                                @endif
-                            </td>
-                            <td>
-                                <span class="status-indicator status-{{ $user->is_active ? 'active' : 'inactive' }}">
-                                    {{ $user->is_active ? 'Active' : 'Inactive' }}
-                                </span>
-                            </td>
-                            <td class="text-end pe-4">
-                                <div class="action-buttons">
-                                    <button type="button" class="btn action-btn edit-btn"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editUserModal"
-                                            data-user="{{ json_encode($user) }}"
-                                            data-user-type="{{ $user->user_type ?? '' }}"
-                                            data-save-scroll>
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn action-btn {{ $user->is_active ? 'deactivate-btn' : 'activate-btn' }}"
-                                            onclick="confirmStatusChange({{ $user->id }}, {{ $user->is_active ? 'false' : 'true' }})">
-                                        <i class="fas fa-{{ $user->is_active ? 'ban' : 'check' }}"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="text-center py-4">
-                                <div class="empty-state">
-                                    <i class="fas fa-users text-muted mb-2"></i>
-                                    <p>No users found</p>
-                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal" data-save-scroll>
-                                        <i class="fas fa-user-plus me-1"></i> Add User
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination info and links -->
-            <div class="pagination-wrapper">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="pagination-info" id="paginationInfo">
-                            @if($users->total() > 0)
-                                Showing {{ $users->firstItem() }} to {{ $users->lastItem() }} of {{ $users->total() }} users
-                            @else
-                                No users found
-                            @endif
-                        </div>
-                        <div class="dropdown per-page-dropdown">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="perPageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                {{ $users->perPage() }} per page
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="perPageDropdown">
-                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 10]) }}">10 per page</a></li>
-                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 25]) }}">25 per page</a></li>
-                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 50]) }}">50 per page</a></li>
-                                <li><a class="dropdown-item" href="{{ request()->fullUrlWithQuery(['per_page' => 100]) }}">100 per page</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="pagination-container">
-                        {{ $users->links('pagination::bootstrap-5') }}
-                    </div>
-                </div>
-            </div>
+        <div class="card-body p-0" id="usersTableContainer">
+            @include('admin.partials.user-management-table', ['users' => $users])
         </div>
     </div>
 </div>
@@ -826,12 +706,12 @@
         });
     });
 
-    // Client-side filtering without page refresh
+    // Server-side filtering with AJAX
     const searchInput = document.getElementById('searchInput');
     const roleFilter = document.getElementById('roleFilter');
     const statusFilter = document.getElementById('statusFilter');
     const clusterFilter = document.getElementById('clusterFilter');
-    const userRows = document.querySelectorAll('table.modern-table tbody tr');
+    const usersTableContainer = document.getElementById('usersTableContainer');
 
     // Add debounce function to prevent too many filter operations
     function debounce(func, wait) {
@@ -846,100 +726,115 @@
         };
     }
 
-    // Function to filter the table rows
+    // Function to perform AJAX filtering
     const filterTable = debounce(() => {
-        const searchText = searchInput.value.toLowerCase();
-        const roleValue = roleFilter.value.toLowerCase();
-        const statusValue = statusFilter.value.toLowerCase();
+        const searchText = searchInput.value;
+        const roleValue = roleFilter.value;
+        const statusValue = statusFilter.value;
         const clusterValue = clusterFilter.value;
 
-        userRows.forEach(row => {
-            const rowText = row.textContent.toLowerCase();
-            const roleCell = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-            const statusCell = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
-            const clusterCell = row.querySelector('td:nth-child(3)');
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchText) params.append('search', searchText);
+        if (roleValue) params.append('role', roleValue);
+        if (statusValue) params.append('status', statusValue);
+        if (clusterValue) params.append('cluster', clusterValue);
 
-            // Check if the row matches all filter criteria
-            const matchesSearch = searchText === '' || rowText.includes(searchText);
-            const matchesRole = roleValue === '' || roleCell.includes(roleValue);
-            const matchesStatus = statusValue === '' || statusCell.includes(statusValue);
+        // Preserve current per_page setting
+        const currentPerPage = new URLSearchParams(window.location.search).get('per_page') || 10;
+        params.append('per_page', currentPerPage);
 
-            // Special handling for cluster filter
-            let matchesCluster = true;
-            if (clusterValue !== '') {
-                // Check if the cluster cell contains a data attribute or specific text
-                const clusterText = clusterCell.textContent.toLowerCase();
+        // Show loading state
+        usersTableContainer.style.opacity = '0.5';
+        usersTableContainer.style.pointerEvents = 'none';
 
-                // Check for single cluster (barangay)
-                const singleClusterBadge = clusterCell.querySelector('[data-cluster-id]');
-                if (singleClusterBadge) {
-                    matchesCluster = singleClusterBadge.dataset.clusterId === clusterValue;
-                }
-                // Check for multiple clusters (facilitator)
-                else {
-                    const multiClusterBadge = clusterCell.querySelector('[data-cluster-ids]');
-                    if (multiClusterBadge) {
-                        try {
-                            const clusterIds = JSON.parse(multiClusterBadge.dataset.clusterIds);
-                            matchesCluster = clusterIds.includes(parseInt(clusterValue)) || clusterIds.includes(clusterValue);
-                        } catch (e) {
-                            console.error('Error parsing cluster IDs:', e);
-                        }
-                    }
-                    // Fallback to text matching
-                    else {
-                        const clusterOption = clusterFilter.querySelector(`option[value="${clusterValue}"]`);
-                        const clusterName = clusterOption ? clusterOption.textContent.toLowerCase() : '';
-                        matchesCluster = clusterName !== '' && clusterText.includes(clusterName);
-                    }
-                }
+        // Make AJAX request
+        fetch(`{{ route('admin.user-management') }}?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Update the table container with new content
+            usersTableContainer.innerHTML = html;
+
+            // Re-initialize tooltips if they exist
+            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
             }
 
-            // Show or hide the row based on all filters
-            if (matchesSearch && matchesRole && matchesStatus && matchesCluster) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+            // Re-attach per-page dropdown event listeners
+            attachPerPageListeners();
+
+            // Re-attach pagination link event listeners
+            attachPaginationListeners();
+
+            // Restore normal state
+            usersTableContainer.style.opacity = '1';
+            usersTableContainer.style.pointerEvents = 'auto';
+        })
+        .catch(error => {
+            console.error('Error filtering users:', error);
+
+            // Restore normal state
+            usersTableContainer.style.opacity = '1';
+            usersTableContainer.style.pointerEvents = 'auto';
+
+            // Show error message
+            alert('Error filtering users. Please try again.');
         });
-
-        // Update the empty state message if no rows are visible
-        updateEmptyState();
     }, 300);
 
-    // Function to update empty state visibility
-    function updateEmptyState() {
-        let visibleRows = 0;
-        userRows.forEach(row => {
-            if (row.style.display !== 'none' && !row.classList.contains('empty-filter-results')) {
-                visibleRows++;
-            }
+    // Function to attach per-page dropdown listeners
+    function attachPerPageListeners() {
+        const perPageLinks = document.querySelectorAll('.per-page-link');
+        perPageLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const perPage = this.dataset.perPage;
+
+                // Get current filters
+                const params = new URLSearchParams();
+                if (searchInput.value) params.append('search', searchInput.value);
+                if (roleFilter.value) params.append('role', roleFilter.value);
+                if (statusFilter.value) params.append('status', statusFilter.value);
+                if (clusterFilter.value) params.append('cluster', clusterFilter.value);
+                params.append('per_page', perPage);
+
+                // Update URL and reload
+                window.location.href = `{{ route('admin.user-management') }}?${params.toString()}`;
+            });
         });
+    }
 
-        // Get or create the empty state row
-        let emptyStateRow = document.querySelector('.empty-filter-results');
-        if (!emptyStateRow) {
-            emptyStateRow = document.createElement('tr');
-            emptyStateRow.className = 'empty-filter-results';
-            emptyStateRow.innerHTML = `
-                <td colspan="5" class="text-center py-4">
-                    <div class="empty-state">
-                        <i class="fas fa-filter text-muted mb-2"></i>
-                        <p>No users match your filter criteria</p>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearFiltersBtn">
-                            Clear Filters
-                        </button>
-                    </div>
-                </td>
-            `;
-            document.querySelector('table.modern-table tbody').appendChild(emptyStateRow);
+    // Function to attach pagination link listeners
+    function attachPaginationListeners() {
+        const paginationLinks = document.querySelectorAll('.pagination a');
+        paginationLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = new URL(this.href);
 
-            // Add event listener to the clear filters button
-            document.getElementById('clearFiltersBtn').addEventListener('click', clearFilters);
-        }
+                // Add current filters to pagination links
+                if (searchInput.value) url.searchParams.set('search', searchInput.value);
+                if (roleFilter.value) url.searchParams.set('role', roleFilter.value);
+                if (statusFilter.value) url.searchParams.set('status', statusFilter.value);
+                if (clusterFilter.value) url.searchParams.set('cluster', clusterFilter.value);
 
-        // Show or hide the empty state row
-        emptyStateRow.style.display = visibleRows === 0 ? '' : 'none';
+                // Navigate to the new URL
+                window.location.href = url.toString();
+            });
+        });
     }
 
     // Function to clear all filters
@@ -949,16 +844,8 @@
         if (statusFilter) statusFilter.value = '';
         if (clusterFilter) clusterFilter.value = '';
 
-        // Show all rows
-        userRows.forEach(row => {
-            row.style.display = '';
-        });
-
-        // Hide the empty state
-        const emptyStateRow = document.querySelector('.empty-filter-results');
-        if (emptyStateRow) {
-            emptyStateRow.style.display = 'none';
-        }
+        // Trigger filter update
+        filterTable();
     }
 
     // Add event listeners for dynamic filtering
@@ -977,6 +864,10 @@
     if (clusterFilter) {
         clusterFilter.addEventListener('change', filterTable);
     }
+
+    // Initialize per-page and pagination listeners on page load
+    attachPerPageListeners();
+    attachPaginationListeners();
 
     // User type selection handling
     const userTypeSelect = document.getElementById('userTypeSelect');

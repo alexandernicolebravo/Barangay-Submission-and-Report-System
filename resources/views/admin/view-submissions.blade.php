@@ -191,12 +191,58 @@
             const filterForm = document.getElementById('filterForm');
             const searchInput = document.querySelector('input[name="search"]');
             const filterSelects = document.querySelectorAll('select');
-            const tableBody = document.querySelector('.table tbody');
+            const tableContainer = document.querySelector('.table-responsive');
+            const paginationContainer = document.querySelector('.pagination-container');
+            const clusterSelect = document.querySelector('select[name="cluster_id"]');
+            const barangaySelect = document.querySelector('select[name="barangay_id"]');
+
+            // Store original barangay options
+            const originalBarangayOptions = Array.from(barangaySelect.options);
+
+            // Function to update barangay options based on cluster selection
+            const updateBarangayOptions = (clusterId) => {
+                // Clear current options except "All Barangays"
+                barangaySelect.innerHTML = '<option value="">All Barangays</option>';
+
+                if (clusterId) {
+                    // Fetch barangays for the selected cluster
+                    fetch(`/admin/get-barangays-by-cluster/${clusterId}`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        data.barangays.forEach(barangay => {
+                            const option = new Option(barangay.name, barangay.id);
+                            barangaySelect.add(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching barangays:', error);
+                        // Restore original options on error
+                        restoreOriginalBarangayOptions();
+                    });
+                } else {
+                    // Restore all original options
+                    restoreOriginalBarangayOptions();
+                }
+            };
+
+            // Function to restore original barangay options
+            const restoreOriginalBarangayOptions = () => {
+                barangaySelect.innerHTML = '';
+                originalBarangayOptions.forEach(option => {
+                    barangaySelect.add(option.cloneNode(true));
+                });
+            };
 
             // Function to handle AJAX requests
             const handleAjaxRequest = (params) => {
                 // Show loading state
-                tableBody.style.opacity = '0.5';
+                if (tableContainer) {
+                    tableContainer.style.opacity = '0.5';
+                }
 
                 fetch(`${filterForm.action}?${new URLSearchParams(params).toString()}`, {
                     headers: {
@@ -208,27 +254,33 @@
                     const tempContainer = document.createElement('div');
                     tempContainer.innerHTML = html;
 
-                    const newTableBody = tempContainer.querySelector('.table tbody');
-                    if (newTableBody) {
-                        const oldContent = tableBody.innerHTML;
-                        const newContent = newTableBody.innerHTML;
-
-                        // Only update if content is different
-                        if (oldContent !== newContent) {
-                            tableBody.innerHTML = newContent;
-
-                            // Re-initialize any interactive elements
-                            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-                                new bootstrap.Tooltip(el);
-                            });
-                        }
+                    // Update table content
+                    const newTableContainer = tempContainer.querySelector('.table-responsive');
+                    if (newTableContainer && tableContainer) {
+                        tableContainer.innerHTML = newTableContainer.innerHTML;
                     }
+
+                    // Update pagination
+                    const newPagination = tempContainer.querySelector('.pagination-container');
+                    if (newPagination && paginationContainer) {
+                        paginationContainer.innerHTML = newPagination.innerHTML;
+                    }
+
+                    // Re-initialize any interactive elements
+                    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                        new bootstrap.Tooltip(el);
+                    });
+
                     // Restore opacity
-                    tableBody.style.opacity = '1';
+                    if (tableContainer) {
+                        tableContainer.style.opacity = '1';
+                    }
                 })
                 .catch(error => {
-                    console.error('Search request failed:', error);
-                    tableBody.style.opacity = '1';
+                    console.error('Filter request failed:', error);
+                    if (tableContainer) {
+                        tableContainer.style.opacity = '1';
+                    }
                 });
             };
 
@@ -244,16 +296,48 @@
                 };
             };
 
+            // Add event listener for cluster selection
+            clusterSelect.addEventListener('change', function() {
+                const clusterId = this.value;
+
+                // Update barangay options
+                updateBarangayOptions(clusterId);
+
+                // Reset barangay selection
+                barangaySelect.value = '';
+
+                // Apply filter
+                handleAjaxRequest(getFilterValues());
+            });
+
             // Add event listener for search input
             searchInput.addEventListener('input', function() {
                 handleAjaxRequest(getFilterValues());
             });
 
-            // Add event listeners for all select elements
+            // Add event listeners for other select elements (excluding cluster)
             filterSelects.forEach(select => {
-                select.addEventListener('change', function() {
-                    handleAjaxRequest(getFilterValues());
-                });
+                if (select !== clusterSelect) {
+                    select.addEventListener('change', function() {
+                        handleAjaxRequest(getFilterValues());
+                    });
+                }
+            });
+
+            // Handle pagination clicks
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.pagination a')) {
+                    e.preventDefault();
+                    const url = e.target.closest('.pagination a').href;
+                    const urlParams = new URLSearchParams(url.split('?')[1]);
+                    const page = urlParams.get('page');
+
+                    if (page) {
+                        const filterParams = getFilterValues();
+                        filterParams.page = page;
+                        handleAjaxRequest(filterParams);
+                    }
+                }
             });
         });
     </script>
@@ -763,8 +847,8 @@
                     <!-- View Submission Modal -->
                     <div class="modal fade" id="viewSubmissionModal{{ $report->unique_id }}" tabindex="-1">
                         <div class="modal-dialog modal-dialog-centered modal-lg">
-                            <div class="modal-content border-0 shadow">
-                                <div class="modal-header bg-light py-2">
+                            <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+                                <div class="modal-header bg-light">
                                     @php
                                         $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
                                         $fileName = basename($report->file_path);
@@ -1099,7 +1183,7 @@
 <!-- Success Modal -->
 <div class="modal fade" id="successModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
             <div class="modal-body text-center p-4">
                 <div class="mb-4">
                     <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
@@ -1117,7 +1201,7 @@
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteConfirmationModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
             <div class="modal-body text-center p-4">
                 <div class="mb-4">
                     <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
@@ -1138,7 +1222,7 @@
 <!-- Remarks Update Success Modal -->
 <div class="modal fade" id="remarksUpdateSuccessModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
             <div class="modal-body text-center p-4">
                 <div class="mb-4">
                     <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
@@ -1183,6 +1267,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // File preview function
 function previewFile(url, fileName) {
+    console.log('previewFile called with:', { url, fileName });
+
     // Set the file name in the modal
     document.getElementById('previewFileName').textContent = fileName;
 
@@ -1245,11 +1331,11 @@ function previewFile(url, fileName) {
     fileIconElement.className = `fas ${iconClass} fa-lg text-${bgColorClass}`;
     fileTypeIcon.style.backgroundColor = `rgba(var(--${bgColorClass}-rgb), 0.1)`;
 
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
-    modal.show();
+    // Show the modal using jQuery (compatible with our modal setup)
+    $('#filePreviewModal').modal('show');
 
     // Fetch the file with proper headers
+    console.log('Fetching file from URL:', url);
     fetch(url, {
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
@@ -1257,19 +1343,24 @@ function previewFile(url, fileName) {
         }
     })
         .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
             if (!response.ok) {
-                throw new Error('File not found or access denied');
+                throw new Error(`HTTP ${response.status}: File not found or access denied`);
             }
 
             // Check if response is JSON (from AJAX request)
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 return response.json().then(data => {
+                    console.log('JSON response data:', data);
                     if (data.success) {
+                        console.log('Fetching file from URL:', data.file_url);
                         // Use the file URL from the JSON response
                         return fetch(data.file_url).then(fileResponse => {
+                            console.log('File response status:', fileResponse.status);
                             if (!fileResponse.ok) {
-                                throw new Error('File not found or access denied');
+                                throw new Error(`File fetch failed: ${fileResponse.status} - ${fileResponse.statusText}`);
                             }
                             return fileResponse.blob().then(blob => ({
                                 blob,
@@ -1356,12 +1447,19 @@ function previewFile(url, fileName) {
         })
         .catch(error => {
             console.error('Preview error:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                url: url,
+                fileName: fileName
+            });
             previewContainer.innerHTML = `
                 <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
                     <div class="mb-3 text-danger">
                         <i class="fas fa-exclamation-circle fa-4x mb-3"></i>
                         <h5 class="mb-3">Error Loading File</h5>
                         <p class="text-muted mb-4">${error.message}</p>
+                        <p class="text-muted small">URL: ${url}</p>
                     </div>
                     <a href="${downloadLink.href}" class="btn btn-primary">
                         <i class="fas fa-download me-2"></i> Try Downloading Instead
@@ -1376,25 +1474,22 @@ function previewFile(url, fileName) {
 
 // Function to show success modal
 function showSuccessModal(message) {
-    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
     document.getElementById('successMessage').textContent = message;
-    successModal.show();
+    $('#successModal').modal('show');
 }
 
 // Function to show remarks update success modal
 function showRemarksUpdateSuccessModal() {
-    const remarksUpdateSuccessModal = new bootstrap.Modal(document.getElementById('remarksUpdateSuccessModal'));
-    remarksUpdateSuccessModal.show();
+    $('#remarksUpdateSuccessModal').modal('show');
 }
 
 // Function to show delete confirmation modal
 function showDeleteConfirmationModal(reportTypeId) {
-    const deleteConfirmationModal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
     document.getElementById('confirmDeleteBtn').onclick = function() {
         // Handle delete action here
-        deleteConfirmationModal.hide();
+        $('#deleteConfirmationModal').modal('hide');
     };
-    deleteConfirmationModal.show();
+    $('#deleteConfirmationModal').modal('show');
 }
 
 
@@ -1403,7 +1498,7 @@ function showDeleteConfirmationModal(reportTypeId) {
 <!-- File Preview Modal -->
 <div class="modal fade" id="filePreviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
             <div class="modal-header bg-light">
                 <div class="d-flex align-items-center">
                     <div id="fileTypeIcon" class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
@@ -1439,7 +1534,7 @@ function showDeleteConfirmationModal(reportTypeId) {
                     <i class="fas fa-info-circle me-2"></i>
                     <span>If the document doesn't load correctly, please use the download button.</span>
                 </div>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

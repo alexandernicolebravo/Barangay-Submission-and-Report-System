@@ -899,7 +899,11 @@ class ReportController extends Controller
     public function downloadFile($id)
     {
         try {
+            Log::info('=== ADMIN FILE DOWNLOAD DEBUG ===');
             Log::info('Attempting to find report with ID: ' . $id);
+            Log::info('Request headers: ' . json_encode(request()->headers->all()));
+            Log::info('Request method: ' . request()->method());
+            Log::info('Is AJAX: ' . (request()->ajax() ? 'Yes' : 'No'));
 
             // Check if the user is an admin
             $isAdmin = Auth::user()->user_type === 'admin';
@@ -908,15 +912,18 @@ class ReportController extends Controller
 
             // Parse the unique identifier to get the table name and ID
             $parts = explode('_', $id);
+            Log::info('ID parts: ' . json_encode($parts));
 
             if (count($parts) < 2) {
                 // If the ID doesn't contain an underscore, it's an old-style ID
                 $reportId = $id;
                 $reportTable = null;
+                Log::info('Using old-style ID: ' . $reportId);
             } else {
                 // Extract the table name and ID from the unique identifier
                 $reportTable = $parts[0];
                 $reportId = $parts[1];
+                Log::info('Parsed table: ' . $reportTable . ', ID: ' . $reportId);
             }
 
             Log::info('Parsed report ID: ' . $reportId . ', Table: ' . ($reportTable ?? 'unknown'));

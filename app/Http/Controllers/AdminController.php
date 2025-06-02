@@ -1513,10 +1513,44 @@ class AdminController extends Controller
         // Get the number of users per page from the request or use default
         $perPage = $request->get('per_page', 10);
 
-        // Get users with their relationships for client-side filtering
+        // Start building the query
+        $query = User::with(['cluster', 'assignedClusters']);
+
+        // Apply search filter if provided
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply role filter if provided
+        if ($request->filled('role')) {
+            $query->where('user_type', $request->get('role'));
+        }
+
+        // Apply status filter if provided
+        if ($request->filled('status')) {
+            $isActive = $request->get('status') === 'active';
+            $query->where('is_active', $isActive);
+        }
+
+        // Apply cluster filter if provided
+        if ($request->filled('cluster')) {
+            $clusterId = $request->get('cluster');
+            $query->where(function($q) use ($clusterId) {
+                // For barangays, check direct cluster_id
+                $q->where('cluster_id', $clusterId)
+                  // For facilitators, check through the pivot table
+                  ->orWhereHas('assignedClusters', function($subQ) use ($clusterId) {
+                      $subQ->where('cluster_id', $clusterId);
+                  });
+            });
+        }
+
         // Sort users by user_type (admin, facilitator, barangay) and then by cluster_id for barangays
-        $users = User::with(['cluster', 'assignedClusters'])
-            ->orderByRaw("
+        $users = $query->orderByRaw("
                 CASE
                     WHEN user_type = 'admin' THEN 1
                     WHEN user_type = 'facilitator' THEN 2
@@ -1538,6 +1572,11 @@ class AdminController extends Controller
                 $user->assigned_clusters_names = $user->assignedClusters->pluck('name')->implode(', ');
             }
         });
+
+        // If this is an AJAX request, return only the table content
+        if ($request->ajax()) {
+            return view('admin.partials.user-management-table', compact('users'))->render();
+        }
 
         return view('admin.user-management', compact('users'));
     }
@@ -1868,7 +1907,7 @@ class AdminController extends Controller
 
             // Check if this is an AJAX request
             if ($request->ajax()) {
-                return view('admin.partials.submissions-table', compact('reports', 'selectedBarangay'))->render();
+                return view('admin.partials.submissions-table-container', compact('reports', 'selectedBarangay'))->render();
             }
 
             // Return the full view for non-AJAX requests
@@ -1881,5 +1920,71 @@ class AdminController extends Controller
                 'selectedBarangay' => null
             ])->with('error', 'An error occurred while loading submissions: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Get barangays by cluster for AJAX requests
+     */
+    public function getBarangaysByCluster($clusterId)
+    {
+        try {
+            $barangays = User::where('user_type', 'barangay')
+                ->where('cluster_id', $clusterId)
+                ->where('is_active', true)
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'barangays' => $barangays
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching barangays by cluster: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch barangays'
+            ], 500);
+        }
+    }
+
+    /**
+     * Show the admin profile page.
+     */
+    public function profile()
+    {
+        $user = Auth::user();
+        return view('admin.profile', compact('user'));
+    }
+
+    /**
+     * Update the admin profile.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'current_password' => 'nullable|string',
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        // Update basic info
+        $user->name = $request->name;
+        $user->email = $request->email;
+
+        // Update password if provided
+        if ($request->filled('password')) {
+            if (!$request->filled('current_password') || !Hash::check($request->current_password, $user->password)) {
+                return back()->withErrors(['current_password' => 'Current password is incorrect.']);
+            }
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->save();
+
+        return back()->with('success', 'Profile updated successfully.');
     }
 }

@@ -14,12 +14,14 @@ class ReportType extends Model
         'frequency',
         'deadline',
         'allowed_file_types',
-        'file_naming_format'
+        'file_naming_format',
+        'archived_at'
     ];
 
     protected $casts = [
         'allowed_file_types' => 'array',
-        'deadline' => 'date'
+        'deadline' => 'date',
+        'archived_at' => 'datetime'
     ];
 
     public static function frequencies()
@@ -71,5 +73,45 @@ class ReportType extends Model
         // For now, we'll just return true for all filenames
         // This effectively disables the file naming format validation
         return true;
+    }
+
+    /**
+     * Archive this report type
+     */
+    public function archive()
+    {
+        $this->update(['archived_at' => now()]);
+    }
+
+    /**
+     * Unarchive this report type
+     */
+    public function unarchive()
+    {
+        $this->update(['archived_at' => null]);
+    }
+
+    /**
+     * Check if this report type is archived
+     */
+    public function isArchived()
+    {
+        return !is_null($this->archived_at);
+    }
+
+    /**
+     * Scope to get only active (non-archived) report types
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    /**
+     * Scope to get only archived report types
+     */
+    public function scopeArchived($query)
+    {
+        return $query->whereNotNull('archived_at');
     }
 }

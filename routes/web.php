@@ -294,9 +294,10 @@ Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->gro
         });
 
         // Report Management
-        Route::get('/view-submissions', [ReportController::class, 'index'])->name('view.submissions');
+        Route::get('/view-submissions', [AdminController::class, 'viewSubmissions'])->name('view.submissions');
         Route::put('/reports/{id}', [ReportController::class, 'update'])->name('update.report');
         Route::get('/files/{id}', [ReportController::class, 'downloadFile'])->name('files.download');
+        Route::get('/get-barangays-by-cluster/{clusterId}', [AdminController::class, 'getBarangaysByCluster'])->name('get.barangays.by.cluster');
 
         // Report Types
         Route::get('/create-report', [ReportTypeController::class, 'index'])->name('create-report');
@@ -308,6 +309,10 @@ Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->gro
         // Admin Announcements Routes
         Route::resource('announcements', AnnouncementController::class);
         Route::put('/announcements/{announcement}/toggle-status', [AnnouncementController::class, 'toggleStatus'])->name('announcements.toggle-status');
+
+        // Profile Routes
+        Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
+        Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
     });
 
     // Barangay Routes

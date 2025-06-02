@@ -12,6 +12,17 @@ class ReportTypeController extends Controller
     {
         $query = ReportType::query();
 
+        // Check if we should show archived report types
+        $showArchived = $request->get('show_archived', false);
+
+        if ($showArchived) {
+            // Show only archived report types
+            $query->archived();
+        } else {
+            // Show only active (non-archived) report types
+            $query->active();
+        }
+
         // Apply search filter if provided
         if ($request->has('search')) {
             $search = $request->search;
@@ -28,7 +39,7 @@ class ReportTypeController extends Controller
                            ->paginate(10)
                            ->withQueryString();
 
-        return view('admin.create-report', compact('reportTypes'));
+        return view('admin.create-report', compact('reportTypes', 'showArchived'));
     }
 
     public function edit($id)
@@ -175,24 +186,38 @@ class ReportTypeController extends Controller
     public function destroy($id)
     {
         try {
-            Log::info('Deleting report type', ['id' => $id]);
+            Log::info('Archiving report type', ['id' => $id]);
 
             $reportType = ReportType::findOrFail($id);
-            $reportType->delete();
 
-            Log::info('Report type deleted successfully', ['id' => $id]);
+            // Check if already archived
+            if ($reportType->isArchived()) {
+                // If already archived, unarchive it
+                $reportType->unarchive();
+                $action = 'unarchived';
+                $message = 'Report type restored successfully';
+            } else {
+                // If not archived, archive it
+                $reportType->archive();
+                $action = 'archived';
+                $message = 'Report type archived successfully';
+            }
+
+            Log::info("Report type {$action} successfully", ['id' => $id]);
 
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Report type deleted successfully'
+                    'message' => $message,
+                    'action' => $action,
+                    'archived' => $reportType->isArchived()
                 ]);
             }
 
             return redirect()->route('admin.create-report')
-                ->with('success', 'Report type deleted successfully.');
+                ->with('success', $message);
         } catch (\Exception $e) {
-            Log::error('Error deleting report type', [
+            Log::error('Error archiving/unarchiving report type', [
                 'id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -201,12 +226,12 @@ class ReportTypeController extends Controller
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error deleting report type: ' . $e->getMessage()
+                    'message' => 'Error processing report type: ' . $e->getMessage()
                 ], 500);
             }
 
             return redirect()->route('admin.create-report')
-                ->with('error', 'Error deleting report type. Please try again.');
+                ->with('error', 'Error processing report type. Please try again.');
         }
     }
 
