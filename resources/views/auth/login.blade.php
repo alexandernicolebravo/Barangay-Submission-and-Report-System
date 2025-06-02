@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <style>
         :root {
@@ -59,20 +63,32 @@
             display: flex;
             align-items: center;
             text-decoration: none;
+            width: 100%;
+            /* justify-content: center; Removed to allow left-align for logo */
         }
         
         .logo-img {
-            width: 60px;
-            height: 60px;
+            width: 200px;
+            height: 200px;
+            /* max-height: 100%; */ /* Removed to allow fixed height and overflow */
             object-fit: contain;
             filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.1));
+            /* margin-right will be handled by text container */
+        }
+        
+        .logo-text-container {
+            flex-grow: 1;
+            text-align: center;
+            padding-left: 20px;
+            padding-bottom: 20px;
+    
         }
         
         .logo-text {
-            margin-left: 15px;
-            color: #0f2754;
-            font-size: 16px;
+            color: #FFFFFF;
+            font-size: 22px;
             font-weight: 600;
+            font-family: 'Inter', sans-serif;
             text-shadow: none;
             white-space: nowrap;
         }
@@ -93,6 +109,7 @@
             border-radius: 20px;
             background-color: #ffffff;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            animation: slideUpFadeIn 0.7s ease-out forwards; /* Added animation */
         }
         
         .login-title {
@@ -140,14 +157,14 @@
             font-weight: 600;
             background-color: var(--primary);
             border: none;
-            transition: all 0.3s ease;
+            transition: all 0.3s ease-in-out; /* Smoother transition */
             margin-top: 10px;
         }
         
         .login-btn:hover {
             background-color: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 51, 102, 0.2);
+            transform: translateY(-3px) scale(1.03); /* More lift and slight scale */
+            box-shadow: 0 8px 20px rgba(0, 51, 102, 0.25); /* More pronounced shadow */
         }
         
         .carousel-item {
@@ -155,7 +172,9 @@
         }
         
         .announcement-content {
-            padding: 40px;
+            padding: 30px;
+            max-width: 90%;
+            margin: 0 auto;
         }
         
         .announcement-content-overlay {
@@ -194,15 +213,32 @@
             background: transparent;
         }
         
+        /* Category-specific badge colors */
         .announcement-badge {
             display: inline-block;
             padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
             backdrop-filter: blur(4px);
             border-radius: 20px;
             font-size: 14px;
             font-weight: 500;
             margin-bottom: 20px;
+        }
+        
+        .badge-announcement {
+            background: #0f2754; /* Dark blue for general announcements */
+        }
+        
+        .badge-recognition {
+            background: #9b1d1f; /* Red for recognition */
+        }
+        
+        .badge-upcoming_event {
+            background: #ec9c27; /* Orange for upcoming events */
+        }
+        
+        .badge-important_update {
+            background: #570001; /* Dark red for important updates */
         }
         
         .footer-text {
@@ -244,13 +280,16 @@
         }
         
         .announcement-header {
-            background-color: #f6f6f7;
-            padding: 15px 40px;
+            background-color: #0f2754;
+            padding: 8px 40px;
+            padding-top: 25px;
             box-sizing: border-box;
             width: 100%;
             flex-shrink: 0;
             display: flex;
             align-items: center;
+            height: 100px; /* Added fixed height for the header bar */
+            overflow: visible; /* Ensure overflowing content is visible */
         }
         
         .announcement-body {
@@ -268,20 +307,37 @@
             .login-form {
                 padding: 30px;
                 box-shadow: none;
+                /* animation: none; /* Optionally disable animation on smaller screens */
+            }
+        }
+
+        @keyframes slideUpFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
     </style>
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/favicondilg.ico') }}?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32dilg.png') }}?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16dilg.png') }}?v=2">
 </head>
 <body>
     <div class="container-fluid p-0">
         <div class="row g-0 login-container">
             <!-- Left side: Announcements Carousel -->
-            <div class="col-md-7 announcement-side">
+            <div class="col-md-8 announcement-side">
                 <div class="announcement-header">
-                    <a href="/" class="logo-container">
-                        <img src="{{ asset('images/dilgsmile-removebg-preview.png') }}" alt="DILG Logo" class="logo-img">
+                    <div class="logo-container">
+                        <img src="{{ asset('images/Assets for Alex.png') }}" alt="DILG Logo" class="logo-img">
+                        <div class="logo-text-container">
                         <div class="logo-text">Department of Interior and Local Government - Bacolod City</div>
-                    </a>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="announcement-body">
@@ -299,7 +355,7 @@
                     @else
                         <div class="d-flex align-items-center justify-content-center h-100">
                             <div class="announcement-content text-center">
-                                <div class="announcement-badge">
+                                <div class="announcement-badge badge-announcement">
                                     <i class="fas fa-star me-2"></i> Official Government Platform
                                 </div>
                                 <h1 class="announcement-title">Department of the Interior and Local Government<br>Bacolod City</h1>
@@ -309,16 +365,45 @@
                                     facilitates communication between government offices.
                                 </p>
                                 <div class="mt-4">
-                                    <img src="{{ asset('images/dilgsmile-removebg-preview.png') }}" alt="DILG Logo" style="width: 120px; height: auto; opacity: 0.9;">
+                                    <img src="{{ asset('images/Assets for Alex.png') }}" alt="DILG Logo" style="width: 220px; height: auto; opacity: 0.9;">
                                 </div>
                             </div>
                         </div>
                     @endif
                 </div>
+                    <!-- Carousel Footer -->
+<div class="footer" style="background: #003366; color: #fff; font-size: 15px; padding: 10px 20px;">
+    <div class="d-flex justify-content-between align-items-center w-100 flex-wrap">
+        <div class="d-flex flex-column flex-md-row justify-content-center align-items-center gap-2 mb-2 mb-md-0">
+            <span>
+                Contact Us:
+            </span>
+            <span>
+                <i class="fab fa-facebook me-1"></i>
+                <a href="https://www.facebook.com/DILGBCD" target="_blank" rel="noopener noreferrer" style="color: #fff; text-decoration: underline;">@DILGBCD</a>
+            </span>
+            <span class="mx-2 d-none d-md-inline">|</span>
+            <span>
+                <i class="fas fa-envelope me-1"></i>
+                 dilgr6.bacolodcity@gmail.com
+            </span>
+            <span class="mx-2 d-none d-md-inline">|</span>
+            <span> <i class="fas fa-phone me-1"></i>
+                (034) 724-2363
+            </span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <img src="{{ asset('images/footerbook.png') }}" alt="Footer Book Logo" style="height: 40px; width: auto;">
+            <img src="{{ asset('images/footerbago.png') }}" alt="Bago City Logo" style="height: 40px; width: auto;">
+        </div>
+    </div>
+</div>
             </div>
+
+            
             
             <!-- Right side: Login form -->
-            <div class="col-md-5 login-side">
+            <div class="col-md-4 login-side">
                 <div class="login-form-container">
                     <div class="login-form">
                         <h2 class="login-title">Sign In</h2>
