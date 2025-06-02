@@ -13,6 +13,7 @@ class ReportType extends Model
         'name',
         'frequency',
         'deadline',
+        'instructions',
         'allowed_file_types',
         'file_naming_format',
         'archived_at'

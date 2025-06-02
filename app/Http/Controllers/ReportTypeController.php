@@ -66,6 +66,7 @@ class ReportTypeController extends Controller
                 'name' => 'required|string|max:255',
                 'frequency' => 'required|string|in:' . implode(',', array_keys(ReportType::frequencies())),
                 'deadline' => 'required|date',
+                'instructions' => 'nullable|string',
                 'allowed_file_types' => 'nullable|array',
                 'allowed_file_types.*' => 'string|in:' . implode(',', array_keys(ReportType::availableFileTypes())),
                 'file_naming_format' => 'nullable|string|max:255'
@@ -119,6 +120,7 @@ class ReportTypeController extends Controller
                 'name' => 'required|string|max:255',
                 'frequency' => 'required|string|in:' . implode(',', array_keys(ReportType::frequencies())),
                 'deadline' => 'required|date',
+                'instructions' => 'nullable|string',
                 'allowed_file_types' => 'nullable|array',
                 'allowed_file_types.*' => 'string|in:' . implode(',', array_keys(ReportType::availableFileTypes())),
                 'file_naming_format' => 'nullable|string|max:255'

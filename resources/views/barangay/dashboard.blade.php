@@ -375,6 +375,10 @@
     background-color: #f8f9fa;
 }
 
+.drop-zone.compact {
+    padding: 1rem;
+}
+
 .drop-zone:hover {
     border-color: #0d6efd;
     background-color: #f1f3f5;
@@ -773,14 +777,14 @@
 <div class="modal fade" id="submitReportModal" tabindex="-1" aria-labelledby="submitReportModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="submitReportModalLabel">
+            <div class="modal-header py-2">
+                <h6 class="modal-title" id="submitReportModalLabel">
                     <i class="fas fa-file-alt me-2"></i>
                     Submit New Report
-                </h5>
+                </h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body py-3">
                 <form id="submitReportForm" method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" data-no-ajax="true" novalidate>
                     @csrf
                     @if(session('error'))
@@ -795,13 +799,13 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     @endif
-                    <div class="row mb-4">
+                    <div class="row mb-3">
                         <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label for="frequency_filter" class="form-label">
+                            <div class="form-group mb-2">
+                                <label for="frequency_filter" class="form-label small">
                                     Filter by Frequency
                                 </label>
-                                <select id="frequency_filter" class="form-select">
+                                <select id="frequency_filter" class="form-select form-select-sm">
                                     <option value="">All Frequencies</option>
                                     <option value="weekly">Weekly</option>
                                     <option value="monthly">Monthly</option>
@@ -811,7 +815,7 @@
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="report_type" class="form-label">
+                                <label for="report_type" class="form-label small">
                                     Report Type
                                 </label>
                                 <select id="report_type" class="form-select @error('report_type_id') is-invalid @enderror" name="report_type_id" required>
@@ -819,7 +823,8 @@
                                     @foreach($reportTypes as $reportType)
                                         <option value="{{ $reportType->id }}"
                                             data-frequency="{{ $reportType->frequency }}"
-                                            data-allowed-types="{{ json_encode($reportType->allowed_file_types ?? ['pdf']) }}">
+                                            data-allowed-types="{{ json_encode($reportType->allowed_file_types ?? ['pdf']) }}"
+                                            data-instructions="{{ $reportType->instructions ?? '' }}">
                                             {{ $reportType->name }}
                                         </option>
                                     @endforeach
@@ -857,22 +862,43 @@
                                 @enderror
                             </div>
                         </div>
+                    </div>
 
+                    <!-- Instructions Section -->
+                    <div id="instructions-section" class="row mb-2" style="display: none;">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white py-2">
+                                    <h6 class="mb-0 small">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Submission Instructions
+                                    </h6>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div id="instructions-content" class="text-muted small">
+                                        <!-- Instructions will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="file" class="form-label">
+                                <label for="file" class="form-label small">
                                     Upload File
                                 </label>
-                                <div class="mb-2">
-                                    <div class="alert alert-info py-2 mb-2" id="allowedFormatsAlert">
-                                        <i class="fas fa-info-circle me-2"></i>
+                                <div class="mb-1">
+                                    <div class="alert alert-info py-1 mb-1 small" id="allowedFormatsAlert">
+                                        <i class="fas fa-info-circle me-1"></i>
                                         <span id="allowedFormatsText">Please select a report type to see accepted file formats</span>
                                     </div>
                                 </div>
-                                <div class="drop-zone" id="dropZone">
+                                <div class="drop-zone compact" id="dropZone">
                                     <div class="drop-zone__prompt">
-                                        <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-primary"></i>
-                                        <p class="mb-1">Drag and drop your file here or click to browse</p>
+                                        <i class="fas fa-cloud-upload-alt fa-lg mb-1 text-primary"></i>
+                                        <p class="mb-0 small">Drag and drop your file here or click to browse</p>
                                         <small class="text-muted" id="dropZoneFormatsText">Select a report type first</small>
                                     </div>
                                     <input type="file" name="file" id="file" class="drop-zone__input" accept=".pdf,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar" required>
@@ -888,60 +914,60 @@
 
                     <!-- Weekly Report Fields -->
                     <div id="weekly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
+                        <div class="card bg-light mb-2">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-2 small">
                                     <i class="fas fa-calendar-alt me-2"></i>
                                     Report Period
                                 </h6>
                                 <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Month</label>
-                                        <select class="form-select" name="month" required>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small">Month</label>
+                                        <select class="form-select form-select-sm" name="month" required>
                                             @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
                                                 <option value="{{ $month }}">{{ $month }}</option>
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Week Number</label>
-                                        <input type="number" class="form-control" name="week_number" min="1" max="52" required>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small">Week Number</label>
+                                        <input type="number" class="form-control form-control-sm" name="week_number" min="1" max="52" required>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
+                        <div class="card bg-light mb-2">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-2 small">
                                     <i class="fas fa-chart-bar me-2"></i>
                                     Report Details
                                 </h6>
                                 <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Clean-up Sites</label>
-                                        <div class="input-group">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small">Number of Clean-up Sites</label>
+                                        <div class="input-group input-group-sm">
                                             <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
                                             <span class="input-group-text">sites</span>
                                         </div>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Participants</label>
-                                        <div class="input-group">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small">Number of Participants</label>
+                                        <div class="input-group input-group-sm">
                                             <input type="number" class="form-control" name="num_of_participants" min="0" required>
                                             <span class="input-group-text">people</span>
                                         </div>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Barangays</label>
-                                        <div class="input-group">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small">Number of Barangays</label>
+                                        <div class="input-group input-group-sm">
                                             <input type="number" class="form-control" name="num_of_barangays" min="0" required>
                                             <span class="input-group-text">barangays</span>
                                         </div>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Total Volume</label>
-                                        <div class="input-group">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small">Total Volume</label>
+                                        <div class="input-group input-group-sm">
                                             <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
                                             <span class="input-group-text">m³</span>
                                         </div>
@@ -953,15 +979,15 @@
 
                     <!-- Monthly Report Fields -->
                     <div id="monthly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
+                        <div class="card bg-light mb-2">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-2 small">
                                     <i class="fas fa-calendar-alt me-2"></i>
                                     Report Period
                                 </h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Month</label>
-                                    <select class="form-select" name="month" required>
+                                <div class="mb-2">
+                                    <label class="form-label small">Month</label>
+                                    <select class="form-select form-select-sm" name="month" required>
                                         @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
                                             <option value="{{ $month }}">{{ $month }}</option>
                                         @endforeach
@@ -973,15 +999,15 @@
 
                     <!-- Quarterly Report Fields -->
                     <div id="quarterly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
+                        <div class="card bg-light mb-2">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-2 small">
                                     <i class="fas fa-calendar-alt me-2"></i>
                                     Report Period
                                 </h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Quarter Number</label>
-                                    <select class="form-select" name="quarter_number" required>
+                                <div class="mb-2">
+                                    <label class="form-label small">Quarter Number</label>
+                                    <select class="form-select form-select-sm" name="quarter_number" required>
                                         <option value="1">First Quarter (Jan-Mar)</option>
                                         <option value="2">Second Quarter (Apr-Jun)</option>
                                         <option value="3">Third Quarter (Jul-Sep)</option>
@@ -994,15 +1020,15 @@
 
                     <!-- Semestral Report Fields -->
                     <div id="semestral-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-4">
-                            <div class="card-body">
-                                <h6 class="card-title mb-4">
+                        <div class="card bg-light mb-2">
+                            <div class="card-body py-2">
+                                <h6 class="card-title mb-2 small">
                                     <i class="fas fa-calendar-alt me-2"></i>
                                     Report Period
                                 </h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Semester Number</label>
-                                    <select class="form-select" name="sem_number" required>
+                                <div class="mb-2">
+                                    <label class="form-label small">Semester Number</label>
+                                    <select class="form-select form-select-sm" name="sem_number" required>
                                         <option value="1">First Semester (Jan-Jun)</option>
                                         <option value="2">Second Semester (Jul-Dec)</option>
                                     </select>
@@ -1157,6 +1183,7 @@ document.addEventListener('DOMContentLoaded', function() {
     reportTypeSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         const frequency = selectedOption.dataset.frequency;
+        const instructions = selectedOption.dataset.instructions;
 
         // Hide all fields first
         hideAllFields();
@@ -1176,6 +1203,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 semestralFields.style.display = 'block';
                 break;
         }
+
+        // Update instructions display
+        updateInstructionsDisplay(instructions);
 
         // Update allowed formats display
         updateAllowedFormatsDisplay();
@@ -1228,6 +1258,19 @@ document.addEventListener('DOMContentLoaded', function() {
             allowedFormatsAlert.classList.add('alert-warning');
             allowedFormatsText.innerHTML = 'Please select a report type to see accepted file formats';
             dropZoneFormatsText.textContent = 'Select a report type first';
+        }
+    }
+
+    // Function to update instructions display
+    function updateInstructionsDisplay(instructions) {
+        const instructionsSection = document.getElementById('instructions-section');
+        const instructionsContent = document.getElementById('instructions-content');
+
+        if (instructions && instructions.trim() !== '') {
+            instructionsContent.innerHTML = instructions.replace(/\n/g, '<br>');
+            instructionsSection.style.display = 'block';
+        } else {
+            instructionsSection.style.display = 'none';
         }
     }
 

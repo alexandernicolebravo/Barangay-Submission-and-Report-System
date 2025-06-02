@@ -113,7 +113,8 @@
                                         @foreach($reportTypes as $reportType)
                                             <option value="{{ $reportType->id }}"
                                                 data-frequency="{{ $reportType->frequency }}"
-                                                data-allowed-types="{{ json_encode($reportType->allowed_file_types ?? ['pdf']) }}">
+                                                data-allowed-types="{{ json_encode($reportType->allowed_file_types ?? ['pdf']) }}"
+                                                data-instructions="{{ $reportType->instructions ?? '' }}">
                                                 {{ $reportType->name }}
                                             </option>
                                         @endforeach
@@ -152,7 +153,28 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
+                        <!-- Instructions Section -->
+                        <div id="instructions-section" class="row mb-4" style="display: none;">
+                            <div class="col-12">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Submission Instructions
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="instructions-content" class="text-muted">
+                                            <!-- Instructions will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="file" class="form-label fw-bold">
@@ -704,14 +726,35 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle report type change
     reportTypeSelect.addEventListener('change', function() {
         hideAllFields();
-        const frequency = this.options[this.selectedIndex].dataset.frequency;
+        const selectedOption = this.options[this.selectedIndex];
+        const frequency = selectedOption.dataset.frequency;
+        const instructions = selectedOption.dataset.instructions;
+
+
+
         if (frequency) {
             document.getElementById(`${frequency}-fields`).style.display = 'block';
         }
 
+        // Update instructions display
+        updateInstructionsDisplay(instructions);
+
         // Update allowed formats display
         updateAllowedFormatsDisplay();
     });
+
+    // Function to update instructions display
+    function updateInstructionsDisplay(instructions) {
+        const instructionsSection = document.getElementById('instructions-section');
+        const instructionsContent = document.getElementById('instructions-content');
+
+        if (instructions && instructions.trim() !== '') {
+            instructionsContent.innerHTML = instructions.replace(/\n/g, '<br>');
+            instructionsSection.style.display = 'block';
+        } else {
+            instructionsSection.style.display = 'none';
+        }
+    }
 
     // Function to update the allowed formats display
     function updateAllowedFormatsDisplay() {

@@ -386,6 +386,14 @@
                                             @enderror
                                         </div>
                                         <div class="mb-3">
+                                            <label class="form-label">Instructions</label>
+                                            <textarea class="form-control @error('instructions') is-invalid @enderror" name="instructions" rows="4" placeholder="Enter submission instructions for barangays...">{{ old('instructions', $reportType->instructions) }}</textarea>
+                                            <div class="form-text">These instructions will be displayed to barangays when they submit this report type.</div>
+                                            @error('instructions')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                        <div class="mb-3">
                                             <label class="form-label">Allowed File Types</label>
                                             <div class="row">
                                                 @foreach(App\Models\ReportType::availableFileTypes() as $key => $value)
@@ -524,6 +532,14 @@
                         <label class="form-label">Deadline</label>
                         <input type="date" class="form-control @error('deadline') is-invalid @enderror" name="deadline" value="{{ old('deadline') }}" required>
                         @error('deadline')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Instructions</label>
+                        <textarea class="form-control @error('instructions') is-invalid @enderror" name="instructions" rows="4" placeholder="Enter submission instructions for barangays...">{{ old('instructions') }}</textarea>
+                        <div class="form-text">These instructions will be displayed to barangays when they submit this report type.</div>
+                        @error('instructions')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
