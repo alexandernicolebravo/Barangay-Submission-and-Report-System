@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Report;
 use App\Models\{WeeklyReport, MonthlyReport, QuarterlyReport, SemestralReport, AnnualReport};
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\IssuanceController;
 use Illuminate\Support\Facades\App;
 
 // Public Routes
@@ -310,6 +311,18 @@ Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->gro
         Route::resource('announcements', AnnouncementController::class);
         Route::put('/announcements/{announcement}/toggle-status', [AnnouncementController::class, 'toggleStatus'])->name('announcements.toggle-status');
 
+        // Issuance routes
+        Route::prefix('issuances')->name('issuances.')->group(function () {
+            Route::get('/', [IssuanceController::class, 'index'])->name('index');
+            Route::get('/create', [IssuanceController::class, 'create'])->name('create');
+            Route::post('/', [IssuanceController::class, 'store'])->name('store');
+            Route::get('/{issuance}', [IssuanceController::class, 'show'])->name('show');
+            Route::get('/{issuance}/edit', [IssuanceController::class, 'edit'])->name('edit');
+            Route::put('/{issuance}', [IssuanceController::class, 'update'])->name('update');
+            Route::delete('/{issuance}', [IssuanceController::class, 'destroy'])->name('destroy');
+            Route::get('/{issuance}/download', [IssuanceController::class, 'download'])->name('download');
+        });
+
         // Profile Routes
         Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
         Route::put('/profile', [AdminController::class, 'updateProfile'])->name('profile.update');
@@ -342,6 +355,13 @@ Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->gro
         Route::get('/files/{id}', [ReportController::class, 'downloadFile'])->name('files.download');
         Route::get('/direct-files/{id}', [BarangayController::class, 'directDownloadFile'])->name('direct.files.download');
         Route::delete('/files/{id}', [BarangayFileController::class, 'destroy'])->name('files.destroy');
+
+        // Issuance routes for barangay
+        Route::prefix('issuances')->name('issuances.')->group(function () {
+            Route::get('/', [IssuanceController::class, 'barangayIndex'])->name('index');
+            Route::get('/{issuance}', [IssuanceController::class, 'barangayShow'])->name('show');
+            Route::get('/{issuance}/download', [IssuanceController::class, 'download'])->name('download');
+        });
     });
 
     // Facilitator Routes

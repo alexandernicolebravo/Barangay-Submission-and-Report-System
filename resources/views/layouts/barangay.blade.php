@@ -416,6 +416,10 @@
                             <i class="fas fa-exclamation-circle"></i>
                             Overdue Reports
                         </a>
+                        <a href="{{ route('barangay.issuances.index') }}" class="nav-link {{ request()->routeIs('barangay.issuances.*') ? 'active' : '' }}">
+                            <i class="fas fa-file-alt"></i>
+                            Issuances
+                        </a>
                         <form action="{{ route('logout') }}" method="POST" class="mt-4">
                             @csrf
                             <button type="submit" class="nav-link text-danger w-100 text-start border-0 bg-transparent">
