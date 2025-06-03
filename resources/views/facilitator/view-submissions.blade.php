@@ -3,329 +3,415 @@
 @section('title', 'View Submissions')
 
 @push('scripts')
-<script>
-    // File preview function
-    function previewFile(url, fileName) {
-        // Set the file name in the modal
-        document.getElementById('previewFileName').textContent = fileName;
+    <script>
+        // File preview function
+        function previewFile(url, fileName) {
+            // Set the file name in the modal
+            document.getElementById('previewFileName').textContent = fileName;
 
-        // Set the download link
-        const downloadLink = document.getElementById('downloadLink');
-        downloadLink.href = url + '?download=true';
+            // Set the download link
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = url + '?download=true';
 
-        // Show loading spinner
-        const previewContainer = document.getElementById('previewContainer');
-        previewContainer.innerHTML = `
-            <div class="text-center">
-                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Loading...</span>
+            // Show loading spinner
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading document preview...</p>
                 </div>
-                <p class="text-muted">Loading document preview...</p>
-            </div>
-        `;
+            `;
 
-        // Get file extension and set appropriate icon
-        const extension = fileName.split('.').pop().toLowerCase();
-        const fileTypeIcon = document.getElementById('fileTypeIcon');
-        const fileIconElement = fileTypeIcon.querySelector('i');
+            // Get file extension and set appropriate icon
+            const extension = fileName.split('.').pop().toLowerCase();
+            const fileTypeIcon = document.getElementById('fileTypeIcon');
+            const fileIconElement = fileTypeIcon.querySelector('i');
 
-        // Set icon and color based on file type
-        let iconClass = 'fa-file';
-        let bgColorClass = 'primary';
+            // Set icon and color based on file type
+            let iconClass = 'fa-file';
+            let bgColorClass = 'primary';
 
-        switch(extension) {
-            case 'pdf':
-                iconClass = 'fa-file-pdf';
-                bgColorClass = 'danger';
-                break;
-            case 'docx':
-                iconClass = 'fa-file-word';
-                bgColorClass = 'primary';
-                break;
-            case 'xls':
-            case 'xlsx':
-                iconClass = 'fa-file-excel';
-                bgColorClass = 'success';
-                break;
-            case 'jpg':
-            case 'jpeg':
-            case 'png':
-            case 'gif':
-                iconClass = 'fa-file-image';
-                bgColorClass = 'info';
-                break;
-            case 'zip':
-            case 'rar':
-                iconClass = 'fa-file-archive';
-                bgColorClass = 'secondary';
-                break;
-            default:
-                iconClass = 'fa-file';
-                bgColorClass = 'primary';
+            switch(extension) {
+                case 'pdf':
+                    iconClass = 'fa-file-pdf';
+                    bgColorClass = 'danger';
+                    break;
+                case 'docx':
+                    iconClass = 'fa-file-word';
+                    bgColorClass = 'primary';
+                    break;
+                case 'xls':
+                case 'xlsx':
+                    iconClass = 'fa-file-excel';
+                    bgColorClass = 'success';
+                    break;
+                case 'jpg':
+                case 'jpeg':
+                case 'png':
+                case 'gif':
+                    iconClass = 'fa-file-image';
+                    bgColorClass = 'info';
+                    break;
+                case 'zip':
+                case 'rar':
+                    iconClass = 'fa-file-archive';
+                    bgColorClass = 'secondary';
+                    break;
+                default:
+                    iconClass = 'fa-file';
+                    bgColorClass = 'primary';
+            }
+
+            // Update icon class and background color
+            fileIconElement.className = `fas ${iconClass} fa-lg text-${bgColorClass}`;
+            fileTypeIcon.style.backgroundColor = `rgba(var(--${bgColorClass}-rgb), 0.1)`;
+
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
+            modal.show();
+
+            // Fetch the file with proper headers
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('File not found or access denied');
+                    }
+
+                    // Check if response is JSON (from AJAX request)
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => {
+                            if (data.success) {
+                                // Use the file URL from the JSON response
+                                return fetch(data.file_url).then(fileResponse => {
+                                    if (!fileResponse.ok) {
+                                        throw new Error('File not found or access denied');
+                                    }
+                                    return fileResponse.blob().then(blob => ({
+                                        blob,
+                                        contentType: data.mime_type || fileResponse.headers.get('content-type'),
+                                        fileName: data.file_name
+                                    }));
+                                });
+                            } else {
+                                throw new Error(data.error || 'Failed to load file');
+                            }
+                        });
+                    } else {
+                        // Direct file response
+                        return response.blob().then(blob => ({ blob, contentType }));
+                    }
+                })
+                .then(({ blob, contentType }) => {
+                    const fileUrl = URL.createObjectURL(blob);
+
+                    // Create preview based on content type and extension
+                    if (contentType === 'application/pdf' || extension === 'pdf') {
+                        // PDF preview
+                        previewContainer.innerHTML = `
+                            <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
+                                <iframe src="${fileUrl}"
+                                        style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
+                                        title="${fileName}">
+                                </iframe>
+                            </div>`;
+                    } else if (contentType && contentType.startsWith('image/')) {
+                        // Image preview
+                        previewContainer.innerHTML = `
+                            <div class="bg-white rounded shadow-sm p-3" style="max-width: 90%; max-height: 65vh;">
+                                <img src="${fileUrl}"
+                                     alt="${fileName}"
+                                     style="max-width: 100%; max-height: 60vh; object-fit: contain;"
+                                     class="rounded">
+                                <div class="p-3 border-top text-muted small text-center">
+                                    <i class="fas fa-image me-1"></i> Image: ${fileName}
+                                </div>
+                            </div>`;
+                    } else if (contentType && (contentType.startsWith('text/') || ['txt', 'csv', 'html'].includes(extension))) {
+                        // Text preview
+                        fetch(fileUrl)
+                            .then(response => response.text())
+                            .then(text => {
+                                previewContainer.innerHTML = `
+                                    <div class="bg-white rounded shadow-sm" style="width: 95%; max-height: 65vh; overflow-y: auto;">
+                                        <pre class="text-start p-4 mb-0" style="white-space: pre-wrap;">${text}</pre>
+                                        <div class="p-3 border-top text-muted small">
+                                            <i class="fas fa-info-circle me-1"></i> Text document: ${fileName}
+                                        </div>
+                                    </div>`;
+                            });
+                    } else if (['docx', 'xls', 'xlsx'].includes(extension)) {
+                        // Office documents - use Google Docs Viewer
+                        const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + url)}&embedded=true`;
+                        previewContainer.innerHTML = `
+                            <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
+                                <iframe src="${googleDocsUrl}"
+                                        style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
+                                        title="${fileName}">
+                                </iframe>
+                                <div class="p-3 border-top text-muted small">
+                                    <i class="fas fa-info-circle me-1"></i> Office document preview powered by Google Docs
+                                </div>
+                            </div>`;
+                    } else {
+                        // Unsupported file type
+                        previewContainer.innerHTML = `
+                            <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
+                                <div class="mb-3">
+                                    <i class="fas ${iconClass} fa-4x text-${bgColorClass} mb-3"></i>
+                                    <h5 class="mb-3">Preview Not Available</h5>
+                                    <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
+                                </div>
+                                <a href="${downloadLink.href}" class="btn btn-primary">
+                                    <i class="fas fa-download me-2"></i> Download to View
+                                </a>
+                                <div class="mt-4 text-start text-muted small">
+                                    <div><strong>File name:</strong> ${fileName}</div>
+                                    <div><strong>File type:</strong> ${contentType || 'Unknown'}</div>
+                                    <div><strong>Extension:</strong> ${extension}</div>
+                                </div>
+                            </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Preview error:', error);
+                    previewContainer.innerHTML = `
+                        <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
+                            <div class="mb-3 text-danger">
+                                <i class="fas fa-exclamation-circle fa-4x mb-3"></i>
+                                <h5 class="mb-3">Error Loading File</h5>
+                                <p class="text-muted mb-4">${error.message}</p>
+                            </div>
+                            <a href="${downloadLink.href}" class="btn btn-primary">
+                                <i class="fas fa-download me-2"></i> Try Downloading Instead
+                            </a>
+                            <div class="mt-4 text-start text-muted small">
+                                <div><strong>File name:</strong> ${fileName}</div>
+                                <div><strong>Extension:</strong> ${extension}</div>
+                            </div>
+                        </div>`;
+                });
         }
 
-        // Update icon class and background color
-        fileIconElement.className = `fas ${iconClass} fa-lg text-${bgColorClass}`;
-        fileTypeIcon.style.backgroundColor = `rgba(var(--${bgColorClass}-rgb), 0.1)`;
-
-        // Show the modal
-        const modal = new bootstrap.Modal(document.getElementById('filePreviewModal'));
-        modal.show();
-
-        // Fetch the file
-        fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('File not found or access denied');
-                }
-                const contentType = response.headers.get('content-type');
-                return response.blob().then(blob => ({ blob, contentType }));
-            })
-            .then(({ blob, contentType }) => {
-                const fileUrl = URL.createObjectURL(blob);
-
-                // Create preview based on content type and extension
-                if (contentType === 'application/pdf' || extension === 'pdf') {
-                    // PDF preview
-                    previewContainer.innerHTML = `
-                        <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
-                            <iframe src="${fileUrl}"
-                                    style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
-                                    title="${fileName}">
-                            </iframe>
-                        </div>`;
-                } else if (contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-                    // Image preview
-                    previewContainer.innerHTML = `
-                        <div class="bg-white rounded shadow-sm p-3 text-center">
-                            <img src="${fileUrl}" class="img-fluid rounded shadow-sm" style="max-height: 65vh;" alt="${fileName}">
-                            <div class="mt-3">
-                                <div class="text-muted small">${fileName}</div>
-                            </div>
-                        </div>`;
-                } else if (['docx'].includes(extension) ||
-                           contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                    // Word document
-                    previewContainer.innerHTML = `
-                        <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
-                            <div class="mb-3">
-                                <i class="fas fa-file-word fa-4x text-primary mb-3"></i>
-                                <h5 class="mb-3">Word Document</h5>
-                                <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
-                            </div>
-                            <a href="${downloadLink.href}" class="btn btn-primary">
-                                <i class="fas fa-download me-2"></i> Download to View
-                            </a>
-                            <div class="mt-4 text-start text-muted small">
-                                <div><strong>File name:</strong> ${fileName}</div>
-                                <div><strong>File type:</strong> ${contentType || 'Word Document'}</div>
-                                <div><strong>Extension:</strong> ${extension}</div>
-                            </div>
-                        </div>`;
-                } else if (['xls', 'xlsx'].includes(extension) ||
-                           contentType === 'application/vnd.ms-excel' ||
-                           contentType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-                    // Excel spreadsheet
-                    previewContainer.innerHTML = `
-                        <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
-                            <div class="mb-3">
-                                <i class="fas fa-file-excel fa-4x text-success mb-3"></i>
-                                <h5 class="mb-3">Excel Spreadsheet</h5>
-                                <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
-                            </div>
-                            <a href="${downloadLink.href}" class="btn btn-success">
-                                <i class="fas fa-download me-2"></i> Download to View
-                            </a>
-                            <div class="mt-4 text-start text-muted small">
-                                <div><strong>File name:</strong> ${fileName}</div>
-                                <div><strong>File type:</strong> ${contentType || 'Excel Spreadsheet'}</div>
-                                <div><strong>Extension:</strong> ${extension}</div>
-                            </div>
-                        </div>`;
-                } else {
-                    // Other file types
-                    previewContainer.innerHTML = `
-                        <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
-                            <div class="mb-3">
-                                <i class="fas ${iconClass} fa-4x text-${bgColorClass} mb-3"></i>
-                                <h5 class="mb-3">Preview Not Available</h5>
-                                <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
-                            </div>
-                            <a href="${downloadLink.href}" class="btn btn-primary">
-                                <i class="fas fa-download me-2"></i> Download to View
-                            </a>
-                            <div class="mt-4 text-start text-muted small">
-                                <div><strong>File name:</strong> ${fileName}</div>
-                                <div><strong>File type:</strong> ${contentType || 'Unknown'}</div>
-                                <div><strong>Extension:</strong> ${extension}</div>
-                            </div>
-                        </div>`;
-                }
-            })
-            .catch(error => {
-                console.error('Preview error:', error);
-                previewContainer.innerHTML = `
-                    <div class="bg-white rounded shadow-sm p-4 text-center" style="max-width: 500px;">
-                        <div class="mb-3 text-danger">
-                            <i class="fas fa-exclamation-circle fa-4x mb-3"></i>
-                            <h5 class="mb-3">Error Loading File</h5>
-                            <p class="text-muted mb-4">${error.message}</p>
-                        </div>
-                        <a href="${downloadLink.href}" class="btn btn-primary">
-                            <i class="fas fa-download me-2"></i> Try Downloading Instead
-                        </a>
-                        <div class="mt-4 text-start text-muted small">
-                            <div><strong>File name:</strong> ${fileName}</div>
-                            <div><strong>Extension:</strong> ${extension}</div>
-                        </div>
-                    </div>`;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
             });
-    }
-</script>
+
+            // Get all filter elements
+            const filterForm = document.getElementById('filterForm');
+            const searchInput = document.querySelector('input[name="search"]');
+            const filterSelects = document.querySelectorAll('select');
+            const tableContainer = document.querySelector('.table-responsive');
+            const paginationContainer = document.querySelector('.pagination-container');
+
+            // Function to handle AJAX requests
+            const handleAjaxRequest = (params) => {
+                // Show loading state
+                if (tableContainer) {
+                    tableContainer.style.opacity = '0.5';
+                }
+
+                fetch(`${filterForm.action}?${new URLSearchParams(params).toString()}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    const tempContainer = document.createElement('div');
+                    tempContainer.innerHTML = html;
+
+                    // Update table content
+                    const newTableContainer = tempContainer.querySelector('.table-responsive');
+                    if (newTableContainer && tableContainer) {
+                        tableContainer.innerHTML = newTableContainer.innerHTML;
+                    }
+
+                    // Update pagination
+                    const newPagination = tempContainer.querySelector('.pagination-container');
+                    if (newPagination && paginationContainer) {
+                        paginationContainer.innerHTML = newPagination.innerHTML;
+                    }
+
+                    // Re-initialize any interactive elements
+                    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                        new bootstrap.Tooltip(el);
+                    });
+
+                    // Restore opacity
+                    if (tableContainer) {
+                        tableContainer.style.opacity = '1';
+                    }
+                })
+                .catch(error => {
+                    console.error('Filter request failed:', error);
+                    if (tableContainer) {
+                        tableContainer.style.opacity = '1';
+                    }
+                });
+            };
+
+            // Function to get all filter values
+            const getFilterValues = () => {
+                return {
+                    search: searchInput.value.trim(),
+                    barangay_id: document.querySelector('select[name="barangay_id"]').value,
+                    type: document.querySelector('select[name="type"]').value,
+                    timeliness: document.querySelector('select[name="timeliness"]').value,
+                    ajax: true
+                };
+            };
+
+            // Add event listener for search input
+            searchInput.addEventListener('input', function() {
+                handleAjaxRequest(getFilterValues());
+            });
+
+            // Add event listeners for select elements
+            filterSelects.forEach(select => {
+                select.addEventListener('change', function() {
+                    handleAjaxRequest(getFilterValues());
+                });
+            });
+
+            // Handle pagination clicks
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.pagination a')) {
+                    e.preventDefault();
+                    const url = e.target.closest('.pagination a').href;
+                    const urlParams = new URLSearchParams(url.split('?')[1]);
+                    const page = urlParams.get('page');
+
+                    if (page) {
+                        const filterParams = getFilterValues();
+                        filterParams.page = page;
+                        handleAjaxRequest(filterParams);
+                    }
+                }
+            });
+        });
+    </script>
 @endpush
 
 @push('styles')
-<style>
-/* Define CSS variables for status colors */
-:root {
-    --success-rgb: 25, 135, 84;
-    --danger-rgb: 220, 53, 69;
-    --warning-rgb: 255, 193, 7;
-    --primary-rgb: 13, 110, 253;
-    --secondary-rgb: 108, 117, 125;
-    --info-rgb: 13, 202, 240;
-}
+    <style>
+    /* Define CSS variables for status colors */
+    :root {
+        --success-rgb: 25, 135, 84;
+        --danger-rgb: 220, 53, 69;
+        --warning-rgb: 255, 193, 7;
+        --primary-rgb: 13, 110, 253;
+        --secondary-rgb: 108, 117, 125;
+        --info-rgb: 13, 202, 240;
+    }
 
-.table th {
-    background: var(--light);
-    font-weight: 600;
-}
+    .table th {
+        background: var(--light);
+        font-weight: 600;
+    }
 
-.badge {
-    padding: 0.5em 0.75em;
-    font-weight: 500;
-}
+    .badge {
+        padding: 0.5em 0.75em;
+        font-weight: 500;
+    }
 
-.search-box {
-    border-radius: 0.375rem;
-}
+    .search-box {
+        border-radius: 0.375rem;
+    }
 
-.search-box:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
-}
+    .search-box:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+    }
 
-/* Pagination Styles */
-.pagination {
-    margin: 0;
-    padding: 1rem 0;
-}
+    .status-badge {
+        padding: 0.5em 0.75em;
+        font-weight: 500;
+        border-radius: 0.375rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8125rem;
+        line-height: 1;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+    }
 
-.pagination .page-item .page-link {
-    color: var(--primary);
-    border: 1px solid var(--border-color);
-    padding: 0.5rem 1rem;
-    margin: 0 0.2rem;
-    border-radius: 0.375rem;
-}
+    .status-badge.submitted {
+        background-color: rgba(var(--success-rgb), 0.1);
+        color: var(--success);
+        border: 1px solid rgba(var(--success-rgb), 0.2);
+    }
 
-.pagination .page-item.active .page-link {
-    background-color: var(--primary);
-    border-color: var(--primary);
-    color: white;
-}
+    .status-badge.pending {
+        background-color: rgba(var(--warning-rgb), 0.1);
+        color: var(--warning);
+        border: 1px solid rgba(var(--warning-rgb), 0.2);
+    }
 
-.pagination .page-item.disabled .page-link {
-    color: var(--gray-500);
-    border-color: var(--border-color);
-}
+    .status-badge.approved {
+        background-color: rgba(var(--primary-rgb), 0.1);
+        color: var(--primary);
+        border: 1px solid rgba(var(--primary-rgb), 0.2);
+    }
 
-.pagination .page-item .page-link:hover {
-    background-color: var(--primary-light);
-    border-color: var(--primary);
-    color: var(--primary);
-}
+    .status-badge.rejected {
+        background-color: rgba(var(--secondary-rgb), 0.1);
+        color: var(--secondary);
+        border: 1px solid rgba(var(--secondary-rgb), 0.2);
+    }
 
-.pagination .page-item.active .page-link:hover {
-    background-color: var(--primary);
-    color: white;
-}
+    /* Pagination Styles */
+    .pagination {
+        margin: 0;
+        padding: 1rem 0;
+    }
 
-.pagination-info {
-    color: var(--gray-600);
-    font-size: 0.875rem;
-}
+    .pagination .page-item .page-link {
+        color: var(--primary);
+        border: 1px solid var(--border-color);
+        padding: 0.5rem 1rem;
+        margin: 0 0.2rem;
+        border-radius: 0.375rem;
+    }
 
-.status-badge {
-    padding: 0.5em 0.75em;
-    font-weight: 500;
-    border-radius: 0.375rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.8125rem;
-    line-height: 1;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
 
-.status-badge::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-}
+    .pagination .page-item.disabled .page-link {
+        color: var(--gray-500);
+        border-color: var(--border-color);
+    }
 
-.status-badge:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+    .pagination .page-item .page-link:hover {
+        background-color: var(--primary-light);
+        border-color: var(--primary);
+        color: var(--primary);
+    }
 
-.status-badge:hover::before {
-    transform: translateX(100%);
-}
+    .pagination .page-item.active .page-link:hover {
+        background-color: var(--primary);
+        color: white;
+    }
 
-.status-badge i {
-    font-size: 0.875rem;
-}
-
-.status-badge.submitted {
-    background-color: var(--success-light);
-    color: var(--success);
-    border: 1px solid rgba(var(--success-rgb), 0.2);
-}
-
-.status-badge.no-submission {
-    background-color: var(--danger-light);
-    color: var(--danger);
-    border: 1px solid rgba(var(--danger-rgb), 0.2);
-}
-
-.status-badge.pending {
-    background-color: var(--warning-light);
-    color: var(--warning);
-    border: 1px solid rgba(var(--warning-rgb), 0.2);
-}
-
-.status-badge.approved {
-    background-color: var(--primary-light);
-    color: var(--primary);
-    border: 1px solid rgba(var(--primary-rgb), 0.2);
-}
-
-.status-badge.rejected {
-    background-color: var(--secondary-light);
-    color: var(--secondary);
-    border: 1px solid rgba(var(--secondary-rgb), 0.2);
-}
-</style>
+    .pagination-info {
+        color: var(--gray-600);
+        font-size: 0.875rem;
+    }
+    </style>
 @endpush
 
 @section('content')
@@ -339,19 +425,19 @@
 </div>
 
 @if(session('success'))
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-    <i class="fas fa-check-circle me-2"></i>
-    {{ session('success') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 @endif
 
 @if(session('error'))
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <i class="fas fa-exclamation-circle me-2"></i>
-    {{ session('error') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 @endif
 
 <div class="card">
@@ -384,15 +470,17 @@
                 </select>
             </div>
 
+            <!-- Report Type Filter -->
             <div class="input-group" style="width: 200px;">
                 <span class="input-group-text">
-                    <i class="fas fa-filter"></i>
+                    <i class="fas fa-file-alt"></i>
                 </span>
                 <select class="form-select" name="type">
                     <option value="">All Types</option>
                     <option value="weekly" {{ request('type') == 'weekly' ? 'selected' : '' }}>Weekly</option>
                     <option value="monthly" {{ request('type') == 'monthly' ? 'selected' : '' }}>Monthly</option>
                     <option value="quarterly" {{ request('type') == 'quarterly' ? 'selected' : '' }}>Quarterly</option>
+                    <option value="semestral" {{ request('type') == 'semestral' ? 'selected' : '' }}>Semestral</option>
                     <option value="annual" {{ request('type') == 'annual' ? 'selected' : '' }}>Annual</option>
                 </select>
             </div>
@@ -408,7 +496,6 @@
                     <option value="ontime" {{ request('timeliness') == 'ontime' ? 'selected' : '' }}>On Time</option>
                 </select>
             </div>
-
             @if(request()->hasAny(['search', 'barangay_id', 'type', 'timeliness']))
                 <a href="{{ route('facilitator.view-submissions') }}" class="btn btn-light">
                     <i class="fas fa-times"></i>
@@ -443,38 +530,23 @@
                                 <div class="me-2" style="width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
                                     @php
                                         $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
+                                        $icon = match($extension) {
+                                            'pdf' => 'fa-file-pdf',
+                                            'doc', 'docx' => 'fa-file-word',
+                                            'xls', 'xlsx' => 'fa-file-excel',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
+                                            'txt' => 'fa-file-alt',
+                                            default => 'fa-file'
+                                        };
 
-                                        // Set icon and color based on file type
-                                        $icon = 'fa-file';
-                                        $colorClass = 'primary';
-
-                                        switch($extension) {
-                                            case 'pdf':
-                                                $icon = 'fa-file-pdf';
-                                                $colorClass = 'danger';
-                                                break;
-                                            case 'docx':
-                                                $icon = 'fa-file-word';
-                                                $colorClass = 'primary';
-                                                break;
-                                            case 'xls':
-                                            case 'xlsx':
-                                                $icon = 'fa-file-excel';
-                                                $colorClass = 'success';
-                                                break;
-                                            case 'jpg':
-                                            case 'jpeg':
-                                            case 'png':
-                                            case 'gif':
-                                                $icon = 'fa-file-image';
-                                                $colorClass = 'info';
-                                                break;
-                                            case 'zip':
-                                            case 'rar':
-                                                $icon = 'fa-file-archive';
-                                                $colorClass = 'secondary';
-                                                break;
-                                        }
+                                        $colorClass = match($extension) {
+                                            'pdf' => 'danger',
+                                            'doc', 'docx' => 'primary',
+                                            'xls', 'xlsx' => 'success',
+                                            'jpg', 'jpeg', 'png', 'gif' => 'info',
+                                            'txt' => 'secondary',
+                                            default => 'primary'
+                                        };
 
                                         $isLate = \Carbon\Carbon::parse($report->updated_at)->isAfter($report->reportType->deadline);
                                     @endphp
@@ -506,131 +578,18 @@
                             </span>
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" onclick="previewFile('{{ route('facilitator.files.download', $report->id) }}', '{{ basename($report->file_path) }}')">
+                            <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $report->unique_id }}">
                                 <i class="fas fa-eye me-1"></i>
                                 View
                             </button>
                         </td>
                     </tr>
-
-                    <!-- View Submission Modal -->
-                    <div class="modal fade" id="viewSubmissionModal{{ $report->unique_id }}" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered modal-lg">
-                            <div class="modal-content border-0 shadow">
-                                <div class="modal-header bg-light py-2">
-                                    @php
-                                        $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
-                                        $fileName = basename($report->file_path);
-                                        // Set icon and color based on file type
-                                        $iconClass = 'fa-file';
-                                        $colorClass = 'primary';
-
-                                        switch($extension) {
-                                            case 'pdf':
-                                                $iconClass = 'fa-file-pdf';
-                                                $colorClass = 'danger';
-                                                break;
-                                            case 'doc':
-                                            case 'docx':
-                                                $iconClass = 'fa-file-word';
-                                                $colorClass = 'primary';
-                                                break;
-                                            case 'xls':
-                                            case 'xlsx':
-                                                $iconClass = 'fa-file-excel';
-                                                $colorClass = 'success';
-                                                break;
-                                            case 'jpg':
-                                            case 'jpeg':
-                                            case 'png':
-                                            case 'gif':
-                                                $iconClass = 'fa-file-image';
-                                                $colorClass = 'info';
-                                                break;
-                                            case 'zip':
-                                            case 'rar':
-                                                $iconClass = 'fa-file-archive';
-                                                $colorClass = 'secondary';
-                                                break;
-                                        }
-                                    @endphp
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--{{ $colorClass }}-rgb), 0.1); color: var(--{{ $colorClass }});">
-                                            <i class="fas {{ $iconClass }}"></i>
-                                        </div>
-                                        <div>
-                                            <h5 class="modal-title mb-0 fw-bold">{{ $fileName }}</h5>
-                                            <div class="text-muted small">{{ $report->reportType->name }} - {{ $report->user->name }}</div>
-                                        </div>
-                                    </div>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body p-0">
-                                    <div class="p-3 border-bottom">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1); color: var(--primary);">
-                                                        <i class="fas fa-calendar-alt"></i>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-muted small">Submitted</div>
-                                                        <div class="fw-medium">{{ \Carbon\Carbon::parse($report->created_at)->format('M d, Y') }}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--{{ $isLate ? 'danger' : 'success' }}-rgb), 0.1); color: var(--{{ $isLate ? 'danger' : 'success' }});">
-                                                        <i class="fas {{ $isLate ? 'fa-clock' : 'fa-check-circle' }}"></i>
-                                                    </div>
-                                                    <div>
-                                                        <div class="text-muted small">Status</div>
-                                                        <div class="fw-medium">{{ $isLate ? 'Late Submission' : 'On Time' }}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="p-3 border-bottom">
-                                        <h6 class="fw-bold mb-3">Remarks</h6>
-                                        @if($report->remarks)
-                                            <div class="p-3 rounded" style="background-color: rgba(var(--info-rgb), 0.1);">
-                                                <i class="fas fa-quote-left text-muted me-2"></i>
-                                                {{ $report->remarks }}
-                                            </div>
-                                        @else
-                                            <div class="text-center py-3 text-muted">
-                                                <i class="fas fa-comment-slash mb-2" style="font-size: 1.5rem;"></i>
-                                                <p class="mb-0">No remarks added yet</p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                    <div id="previewContainer" class="text-center p-3">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer py-2">
-                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-                                    <a href="{{ route('facilitator.files.download', $report->id) }}" id="downloadLink" class="btn btn-primary">
-                                        <i class="fas fa-download me-1"></i>
-                                        Download
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     @empty
                     <tr>
                         <td colspan="5" class="text-center py-4">
-                            <div class="d-flex flex-column align-items-center">
-                                <i class="fas fa-inbox fa-3x mb-3" style="color: var(--gray-400);"></i>
-                                <p class="mb-0" style="color: var(--gray-600);">No submissions found</p>
-                                @if(isset($selectedBarangay))
-                                <p class="text-muted mt-2">No reports have been submitted by {{ $selectedBarangay->name }}</p>
-                                @endif
+                            <div class="text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p class="mb-0">No submissions found</p>
                             </div>
                         </td>
                     </tr>
@@ -639,422 +598,330 @@
             </table>
         </div>
 
-        @if($reports instanceof \Illuminate\Pagination\LengthAwarePaginator && $reports->total() > 0)
-        <div class="d-flex justify-content-between align-items-center mt-4">
-            <div class="pagination-info">
-                Showing {{ $reports->firstItem() }} to {{ $reports->lastItem() }} of {{ $reports->total() }} entries
+        @if($reports->hasPages())
+        <div class="pagination-container">
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="pagination-info">
+                    Showing {{ $reports->firstItem() ?? 0 }} to {{ $reports->lastItem() ?? 0 }} of {{ $reports->total() }} entries
+                </div>
+                <div>
+                    {{ $reports->appends(request()->query())->links('pagination::bootstrap-5') }}
+                </div>
             </div>
-            {{ $reports->links() }}
         </div>
         @endif
     </div>
 </div>
 
-<!-- View Report Modal -->
-<div class="modal fade" id="viewReportModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-file-alt me-2 text-primary"></i>
-                    View Report Details
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="fas fa-building text-primary me-2"></i>
-                                    <span class="fw-bold">Barangay:</span>
-                                    <span id="viewBarangay" class="ms-2"></span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="fas fa-file-alt text-primary me-2"></i>
-                                    <span class="fw-bold">Report Type:</span>
-                                    <span id="viewReportType" class="ms-2"></span>
-                                </div>
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-clock text-primary me-2"></i>
-                                    <span class="fw-bold">Frequency:</span>
-                                    <span id="viewFrequency" class="ms-2"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="fas fa-calendar-alt text-primary me-2"></i>
-                                    <span class="fw-bold">Submitted:</span>
-                                    <span id="viewSubmitted" class="ms-2"></span>
-                                </div>
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-info-circle text-primary me-2"></i>
-                                    <span class="fw-bold">Status:</span>
-                                    <span id="viewStatus" class="ms-2"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<!-- Individual Modals for Each Report -->
+@foreach($reports as $report)
+<!-- View Submission Modal -->
+<div class="modal fade" id="viewSubmissionModal{{ $report->unique_id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
+            <div class="modal-header bg-light">
+                @php
+                    $extension = strtolower(pathinfo($report->file_path, PATHINFO_EXTENSION));
+                    $fileName = basename($report->file_path);
+                    $iconClass = match($extension) {
+                        'pdf' => 'fa-file-pdf',
+                        'doc', 'docx' => 'fa-file-word',
+                        'xls', 'xlsx' => 'fa-file-excel',
+                        'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
+                        'txt' => 'fa-file-alt',
+                        default => 'fa-file'
+                    };
 
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h6 class="mb-0">
-                            <i class="fas fa-info-circle me-2 text-primary"></i>
-                            Report Details
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="reportDetails"></div>
-                    </div>
-                </div>
+                    $colorClass = match($extension) {
+                        'pdf' => 'danger',
+                        'doc', 'docx' => 'primary',
+                        'xls', 'xlsx' => 'success',
+                        'jpg', 'jpeg', 'png', 'gif' => 'info',
+                        'txt' => 'secondary',
+                        default => 'primary'
+                    };
 
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h6 class="mb-0">
-                            <i class="fas fa-paperclip me-2 text-primary"></i>
-                            Attached Files
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="attachedFiles"></div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="mb-0">
-                            <i class="fas fa-comment me-2 text-primary"></i>
-                            Remarks
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="viewRemarks"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> Close
-                </button>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRemarksModal" id="openRemarksFromView">
-                    <i class="fas fa-comment me-1"></i> Add Remarks
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Remarks Modal -->
-<div class="modal fade" id="addRemarksModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="addRemarksForm" method="POST">
-                @csrf
-                @method('PUT')
-                <input type="hidden" name="type" id="remarkReportType">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-comment me-2 text-primary"></i>
-                        Add Remarks
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-building text-primary me-2"></i>
-                                <span class="fw-bold">Barangay:</span>
-                                <span id="remarkBarangay" class="ms-2"></span>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-file-alt text-primary me-2"></i>
-                                <span class="fw-bold">Report Type:</span>
-                                <span id="remarkReportName" class="ms-2"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Remarks</label>
-                        <textarea class="form-control" name="remarks" id="remarkText" rows="5" placeholder="Enter your remarks here..." required></textarea>
-                        <div class="form-text">
-                            <i class="fas fa-info-circle me-1"></i>
-                            These remarks will be visible to the barangay.
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Cancel
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i> Save Remarks
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Check for success message in URL and show modal
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('remarks_updated') && urlParams.get('remarks_updated') === 'true') {
-        showRemarksUpdateSuccessModal();
-
-        // Clean URL without refreshing the page
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, newUrl);
-    }
-
-    // Get all filter elements
-    const filterForm = document.getElementById('filterForm');
-    const searchInput = document.querySelector('input[name="search"]');
-    const filterSelects = document.querySelectorAll('select');
-    const tableBody = document.querySelector('.table tbody');
-
-    // Function to handle AJAX requests
-    const handleAjaxRequest = (params) => {
-        // Show loading state
-        tableBody.style.opacity = '0.5';
-
-        fetch(`${filterForm.action}?${new URLSearchParams(params).toString()}`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.text())
-        .then(html => {
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = html;
-
-            // Replace the table body with the new content
-            tableBody.innerHTML = tempContainer.querySelector('tbody').innerHTML;
-
-            // Restore opacity
-            tableBody.style.opacity = '1';
-        })
-        .catch(error => {
-            console.error('Search request failed:', error);
-            tableBody.style.opacity = '1';
-        });
-    };
-
-    // Function to get all filter values
-    const getFilterValues = () => {
-        return {
-            search: searchInput.value.trim(),
-            barangay_id: document.querySelector('select[name="barangay_id"]').value,
-            type: document.querySelector('select[name="type"]').value,
-            timeliness: document.querySelector('select[name="timeliness"]').value,
-            ajax: true
-        };
-    };
-
-    // Add event listener for search input
-    searchInput.addEventListener('input', function() {
-        handleAjaxRequest(getFilterValues());
-    });
-
-    // Add event listeners for all select elements
-    filterSelects.forEach(select => {
-        select.addEventListener('change', function() {
-            handleAjaxRequest(getFilterValues());
-        });
-    });
-});
-
-function previewFile(url, fileName) {
-    // Set the file name in the modal
-    document.getElementById('previewFileName').textContent = fileName;
-
-    // Set the download link
-    const downloadLink = document.getElementById('downloadLink');
-    downloadLink.href = url + '?download=true';
-
-    // Show loading spinner
-    const previewContainer = document.getElementById('previewContainer');
-    previewContainer.innerHTML = `
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    `;
-
-    // Get file extension
-    const extension = fileName.split('.').pop().toLowerCase();
-
-    // Fetch the file to determine content type
-    fetch(url)
-        .then(response => {
-            const contentType = response.headers.get('content-type');
-            const fileUrl = response.url;
-
-            // Create preview based on content type and extension
-            if (contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-                // Image preview
-                previewContainer.innerHTML = `
-                    <div class="text-center">
-                        <img src="${fileUrl}" class="img-fluid" alt="${fileName}" style="max-height: 70vh;">
-                    </div>`;
-            } else if (contentType === 'application/pdf' || extension === 'pdf') {
-                // PDF preview
-                previewContainer.innerHTML = `
-                    <div style="height: 70vh;">
-                        <iframe src="${fileUrl}"
-                                style="width: 100%; height: 100%; border: none;"
-                                title="${fileName}">
-                        </iframe>
-                    </div>`;
-            } else if (contentType.startsWith('text/') || ['txt', 'csv', 'html'].includes(extension)) {
-                // Text preview
-                fetch(fileUrl)
-                    .then(response => response.text())
-                    .then(text => {
-                        previewContainer.innerHTML = `
-                            <div style="height: 70vh; overflow: auto;">
-                                <pre style="white-space: pre-wrap; word-break: break-word; padding: 1rem;">${text}</pre>
-                            </div>`;
-                    });
-            } else if (['doc', 'docx', 'xls', 'xlsx'].includes(extension)) {
-                // Office documents - use Google Docs Viewer
-                const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + url)}&embedded=true`;
-                previewContainer.innerHTML = `
-                    <div style="height: 70vh;">
-                        <iframe src="${googleDocsUrl}"
-                                style="width: 100%; height: 100%; border: none;"
-                                title="${fileName}">
-                        </iframe>
-                    </div>`;
-            } else {
-                // Unsupported file type
-                previewContainer.innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        This file type cannot be previewed. Please download to view.
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                File type: ${contentType}<br>
-                                Extension: ${extension}
-                            </small>
-                        </div>
-                    </div>`;
-            }
-        })
-        .catch(error => {
-            console.error('Preview error:', error);
-            previewContainer.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    ${error.message}
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            File: ${fileName}<br>
-                            Extension: ${extension}
-                        </small>
-                    </div>
-                </div>`;
-        });
-}
-
-// Function to show success modal
-function showSuccessModal(message) {
-    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-    document.getElementById('successMessage').textContent = message;
-    successModal.show();
-}
-
-// Function to show remarks update success modal
-function showRemarksUpdateSuccessModal() {
-    const remarksUpdateSuccessModal = new bootstrap.Modal(document.getElementById('remarksUpdateSuccessModal'));
-    remarksUpdateSuccessModal.show();
-}
-
-// Function to show delete confirmation modal
-function showDeleteConfirmationModal(reportTypeId) {
-    const deleteConfirmationModal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
-    document.getElementById('confirmDeleteBtn').onclick = function() {
-        // Handle delete action here
-        deleteConfirmationModal.hide();
-    };
-    deleteConfirmationModal.show();
-}
-</script>
-@endpush
-
-<!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-body p-4 text-center">
-                <div class="mb-3">
-                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h5 class="mb-3" id="successMessage">Operation completed successfully!</h5>
-                <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">OK</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Remarks Update Success Modal -->
-<div class="modal fade" id="remarksUpdateSuccessModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-body p-4 text-center">
-                <div class="mb-3">
-                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h5 class="mb-2">Remarks Updated Successfully!</h5>
-                <p class="text-muted mb-3">The remarks have been saved and the barangay has been notified.</p>
-                <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal">OK</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- File Preview Modal -->
-<div class="modal fade" id="filePreviewModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-light py-2">
+                    $statusIcon = match($report->status) {
+                        'submitted' => 'fa-check-circle',
+                        'no submission' => 'fa-times-circle',
+                        'pending' => 'fa-clock',
+                        'approved' => 'fa-thumbs-up',
+                        'rejected' => 'fa-thumbs-down',
+                        default => 'fa-info-circle'
+                    };
+                    $statusClass = str_replace(' ', '-', $report->status);
+                    $isLate = \Carbon\Carbon::parse($report->updated_at)->isAfter($report->reportType->deadline);
+                @endphp
                 <div class="d-flex align-items-center">
-                    <div class="me-2 p-2 rounded-circle" id="fileIconContainer">
-                        <i class="fas fa-file-alt" id="fileIcon"></i>
+                    <div class="me-2 p-2 rounded-circle" style="background-color: rgba(var(--{{ $colorClass }}-rgb), 0.1);">
+                        <i class="fas {{ $iconClass }} text-{{ $colorClass }}"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title mb-0 fw-bold">
-                            <span id="previewFileName"></span>
-                        </h5>
-                        <div class="text-muted small">File Preview</div>
+                        <h5 class="modal-title mb-0 fw-bold">{{ $report->reportType->name }}</h5>
+                        <div class="text-muted small">{{ ucfirst(str_replace('Report', '', class_basename($report->model_type))) }} Report</div>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-0">
-                <div id="previewContainer" class="text-center p-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+            <div class="modal-body p-3">
+                <div class="row g-3">
+                    <!-- File Information Section -->
+                    <div class="col-12">
+                        <div class="card border-0 bg-light-subtle mb-3">
+                            <div class="card-body p-3">
+                                <h6 class="card-title mb-2">
+                                    <i class="fas fa-file-alt me-2 text-primary"></i>
+                                    Submitted File
+                                </h6>
+                                <div class="d-flex align-items-center p-3 bg-white rounded border">
+                                    <div class="me-3 p-2 rounded" style="background-color: rgba(var(--{{ $colorClass }}-rgb), 0.1);">
+                                        <i class="fas {{ $iconClass }} fa-lg text-{{ $colorClass }}"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="mb-0 fw-medium">{{ $fileName }}</p>
+                                        <small class="text-muted">Last updated on {{ \Carbon\Carbon::parse($report->updated_at)->format('M d, Y h:i A') }}</small>
+                                        <span class="badge bg-{{ $isLate ? 'danger' : 'success' }} ms-2">
+                                            {{ $isLate ? 'Late' : 'On Time' }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                            onclick="previewFile('{{ route('facilitator.files.download', ['id' => $report->id]) }}', '{{ $fileName }}')">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </button>
+                                        <a href="{{ route('facilitator.files.download', ['id' => $report->id, 'download' => true]) }}"
+                                           class="btn btn-sm btn-outline-secondary ms-1">
+                                            <i class="fas fa-download me-1"></i> Download
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submission Details -->
+                    <div class="col-md-6">
+                        <div class="card bg-light h-100">
+                            <div class="card-body p-3">
+                                <h6 class="card-title mb-2">
+                                    <i class="fas fa-info-circle me-2 text-primary"></i>
+                                    Submission Details
+                                </h6>
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item bg-transparent px-0 py-2 border-0 border-bottom">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Submitted By:</span>
+                                            <span class="fw-medium">{{ $report->user->name }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="list-group-item bg-transparent px-0 py-2 border-0 border-bottom">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Status:</span>
+                                            <span class="status-badge {{ $statusClass }}">
+                                                <i class="fas {{ $statusIcon }}"></i>
+                                                {{ ucfirst($report->status) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="list-group-item bg-transparent px-0 py-2 border-0 border-bottom">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Last Updated:</span>
+                                            <span>{{ \Carbon\Carbon::parse($report->updated_at)->format('M d, Y h:i A') }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="list-group-item bg-transparent px-0 py-2 border-0">
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Deadline:</span>
+                                            <span>{{ \Carbon\Carbon::parse($report->reportType->deadline)->format('M d, Y h:i A') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Remarks Section -->
+                    <div class="col-md-6">
+                        <div class="card bg-light h-100">
+                            <div class="card-body p-3">
+                                <form action="{{ route('facilitator.reports.add-remarks', $report->id) }}" method="POST">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="type" value="{{ strtolower(str_replace('Report', '', class_basename($report->model_type))) }}">
+
+                                    <h6 class="card-title mb-2 d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <i class="fas fa-comment-alt me-2 text-primary"></i>
+                                            Remarks
+                                        </span>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="enableUpdate{{ $report->unique_id }}"
+                                                   name="can_update"
+                                                   value="1"
+                                                   {{ $report->can_update ? 'checked' : '' }}>
+                                            <label class="form-check-label small" for="enableUpdate{{ $report->unique_id }}">
+                                                Allow Barangay to Update
+                                            </label>
+                                        </div>
+                                    </h6>
+
+                                    <textarea class="form-control form-control-sm bg-white border"
+                                            id="remarks{{ $report->unique_id }}"
+                                            name="remarks"
+                                            rows="5"
+                                            placeholder="Enter your remarks or feedback here...">{{ $report->remarks }}</textarea>
+
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <button type="submit" id="saveRemarks{{ $report->unique_id }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-save me-1"></i>
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report-Specific Details -->
+                    <div class="col-12 mt-3">
+                        <div class="card bg-light">
+                            <div class="card-body p-3">
+                                <h6 class="card-title mb-2">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                    Report Details
+                                </h6>
+
+                                @php
+                                    $reportType = strtolower(str_replace('Report', '', class_basename($report->model_type)));
+                                @endphp
+
+                                @if($reportType == 'weekly')
+                                <div class="row g-2 mt-2">
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Month</div>
+                                            <div class="fw-medium">{{ $report->month }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Week Number</div>
+                                            <div class="fw-medium">{{ $report->week_number }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Clean-up Sites</div>
+                                            <div class="fw-medium">{{ $report->num_of_clean_up_sites }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Participants</div>
+                                            <div class="fw-medium">{{ $report->num_of_participants }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Barangays</div>
+                                            <div class="fw-medium">{{ $report->num_of_barangays }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Total Volume (m³)</div>
+                                            <div class="fw-medium">{{ $report->total_volume }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @elseif($reportType == 'monthly')
+                                <div class="row g-2 mt-2">
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Month</div>
+                                            <div class="fw-medium">{{ $report->month }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Year</div>
+                                            <div class="fw-medium">{{ $report->year ?? date('Y') }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @elseif($reportType == 'quarterly')
+                                <div class="row g-2 mt-2">
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Quarter</div>
+                                            <div class="fw-medium">
+                                                @switch($report->quarter_number)
+                                                    @case(1)
+                                                        Q1 (Jan-Mar)
+                                                        @break
+                                                    @case(2)
+                                                        Q2 (Apr-Jun)
+                                                        @break
+                                                    @case(3)
+                                                        Q3 (Jul-Sep)
+                                                        @break
+                                                    @case(4)
+                                                        Q4 (Oct-Dec)
+                                                        @break
+                                                    @default
+                                                        Quarter {{ $report->quarter_number }}
+                                                @endswitch
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Year</div>
+                                            <div class="fw-medium">{{ $report->year }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @elseif($reportType == 'semestral')
+                                <div class="row g-2 mt-2">
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Semester</div>
+                                            <div class="fw-medium">
+                                                {{ $report->sem_number == 1 ? '1st Sem (Jan-Jun)' : '2nd Sem (Jul-Dec)' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Year</div>
+                                            <div class="fw-medium">{{ $report->year }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @elseif($reportType == 'annual')
+                                <div class="row g-2 mt-2">
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-2 bg-white">
+                                            <div class="small text-muted">Year</div>
+                                            <div class="fw-medium">{{ $report->year }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer py-2">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-                <a href="#" id="downloadLink" class="btn btn-primary">
-                    <i class="fas fa-download me-1"></i>
-                    Download
-                </a>
             </div>
         </div>
     </div>
 </div>
+@endforeach
+
 <!-- File Preview Modal -->
 <div class="modal fade" id="filePreviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+        <div class="modal-content" style="border: none; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);">
             <div class="modal-header bg-light">
                 <div class="d-flex align-items-center">
                     <div id="fileTypeIcon" class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
@@ -1090,141 +957,9 @@ function showDeleteConfirmationModal(reportTypeId) {
                     <i class="fas fa-info-circle me-2"></i>
                     <span>If the document doesn't load correctly, please use the download button.</span>
                 </div>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    // Force scroll to top on page load
-    window.scrollTo(0, 0);
-
-    // Clear any scroll position from sessionStorage
-    Object.keys(sessionStorage).forEach(key => {
-        if (key.startsWith('scrollPos_')) {
-            sessionStorage.removeItem(key);
-        }
-    });
-
-    // For links that navigate to different pages
-    document.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', function() {
-            // Force scroll to top before navigation
-            window.scrollTo(0, 0);
-        });
-    });
-
-    // Function to preview files
-    function previewFile(url, fileName) {
-        // Get the file extension
-        const extension = fileName.split('.').pop().toLowerCase();
-
-        // Get the modal elements
-        const modal = document.getElementById('filePreviewModal');
-        const previewContainer = document.getElementById('previewContainer');
-        const previewFileName = document.getElementById('previewFileName');
-        const downloadLink = document.getElementById('downloadLink');
-        const fileIcon = document.getElementById('fileIcon');
-        const fileIconContainer = document.getElementById('fileIconContainer');
-
-        // Set the file name and download link
-        previewFileName.textContent = fileName;
-        downloadLink.href = url + '&download=true';
-
-        // Set the appropriate icon based on file extension
-        let iconClass = 'fa-file';
-        let colorClass = 'primary';
-
-        switch(extension) {
-            case 'pdf':
-                iconClass = 'fa-file-pdf';
-                colorClass = 'danger';
-                break;
-            case 'doc':
-            case 'docx':
-                iconClass = 'fa-file-word';
-                colorClass = 'primary';
-                break;
-            case 'xls':
-            case 'xlsx':
-                iconClass = 'fa-file-excel';
-                colorClass = 'success';
-                break;
-            case 'jpg':
-            case 'jpeg':
-            case 'png':
-            case 'gif':
-                iconClass = 'fa-file-image';
-                colorClass = 'info';
-                break;
-            case 'txt':
-                iconClass = 'fa-file-alt';
-                colorClass = 'secondary';
-                break;
-        }
-
-        fileIcon.className = 'fas ' + iconClass;
-        fileIcon.classList.add('text-' + colorClass);
-        fileIconContainer.style.backgroundColor = `rgba(var(--${colorClass}-rgb), 0.1)`;
-
-        // Show loading indicator
-        previewContainer.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center p-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `;
-
-        // Show the modal
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
-
-        // Determine how to display the file based on its type
-        if (['jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
-            // For images, create an img element
-            const img = new Image();
-            img.onload = function() {
-                previewContainer.innerHTML = '';
-                img.style.maxWidth = '100%';
-                img.style.height = 'auto';
-                img.style.maxHeight = '70vh';
-                img.classList.add('img-fluid', 'rounded');
-                previewContainer.appendChild(img);
-            };
-            img.onerror = function() {
-                previewContainer.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        Failed to load image.
-                    </div>
-                `;
-            };
-            img.src = url;
-        } else if (extension === 'pdf') {
-            // For PDFs, use an iframe
-            previewContainer.innerHTML = `
-                <iframe src="${url}" width="100%" height="600" style="border: none;"></iframe>
-            `;
-        } else {
-            // For other file types, show a download prompt
-            previewContainer.innerHTML = `
-                <div class="text-center p-5">
-                    <div class="mb-4">
-                        <i class="fas ${iconClass} fa-4x text-${colorClass}"></i>
-                    </div>
-                    <h5 class="mb-3">Preview not available</h5>
-                    <p class="text-muted mb-4">This file type cannot be previewed directly. Please download the file to view its contents.</p>
-                    <a href="${url}&download=true" class="btn btn-primary">
-                        <i class="fas fa-download me-2"></i>
-                        Download File
-                    </a>
-                </div>
-            `;
-        }
-    }
-</script>
-@endpush

@@ -26,16 +26,15 @@ class AdminController extends Controller
         // Get filter parameters
         $reportType = $request->input('report_type');
         $clusterId = $request->input('cluster_id');
-        $search = $request->input('search');
 
         // Get filtered chart data based on the request parameters
-        $filteredChartData = $this->getChartData($reportType, $clusterId, $search);
+        $filteredChartData = $this->getChartData($reportType, $clusterId);
 
         // Get all cluster data regardless of filter
-        $allClusterData = $this->getAllClusterData($reportType, $search);
+        $allClusterData = $this->getAllClusterData($reportType);
 
         // Get all report type data regardless of filter
-        $allReportTypeData = $this->getAllReportTypeData($clusterId, $search);
+        $allReportTypeData = $this->getAllReportTypeData($clusterId);
 
         // Create a merged data object with both filtered and all data
         $mergedData = $filteredChartData;
@@ -73,7 +72,7 @@ class AdminController extends Controller
     /**
      * Get all report type data regardless of filter
      */
-    private function getAllReportTypeData($clusterId, $search)
+    private function getAllReportTypeData($clusterId)
     {
         // Get all barangay users
         $barangayQuery = User::where('user_type', 'barangay');
@@ -81,11 +80,6 @@ class AdminController extends Controller
         // Apply cluster filter if specified
         if ($clusterId) {
             $barangayQuery->where('cluster_id', $clusterId);
-        }
-
-        // Apply search filter if specified
-        if ($search) {
-            $barangayQuery->where('name', 'like', "%{$search}%");
         }
 
         $barangayIds = $barangayQuery->pluck('id')->toArray();
@@ -140,7 +134,7 @@ class AdminController extends Controller
     /**
      * Get all cluster data regardless of filter
      */
-    private function getAllClusterData($reportType, $search)
+    private function getAllClusterData($reportType)
     {
         $clusterSubmissions = [];
         $allClusters = Cluster::all();
@@ -150,10 +144,7 @@ class AdminController extends Controller
             $clusterBarangays = User::where('cluster_id', $cluster->id)
                 ->where('user_type', 'barangay');
 
-            // Apply search filter to barangays if specified
-            if ($search) {
-                $clusterBarangays->where('name', 'like', "%{$search}%");
-            }
+
 
             $clusterBarangayIds = $clusterBarangays->pluck('id')->toArray();
             $submissionCount = 0;
@@ -204,7 +195,7 @@ class AdminController extends Controller
     /**
      * Get all chart data based on filters
      */
-    private function getChartData($reportType, $clusterId, $search)
+    private function getChartData($reportType, $clusterId)
     {
         // Count total report types created by admin
         $totalReportTypes = ReportType::count();
@@ -427,10 +418,7 @@ class AdminController extends Controller
             $barangayQuery->where('cluster_id', $clusterId);
         }
 
-        // Apply search filter to barangays if specified
-        if ($search) {
-            $barangayQuery->where('name', 'like', "%{$search}%");
-        }
+
 
         $barangays = $barangayQuery->get();
 
@@ -578,10 +566,7 @@ class AdminController extends Controller
             $clusterBarangays = User::where('cluster_id', $cluster->id)
                 ->where('user_type', 'barangay');
 
-            // Apply search filter to barangays if specified
-            if ($search) {
-                $clusterBarangays->where('name', 'like', "%{$search}%");
-            }
+
 
             $clusterBarangayIds = $clusterBarangays->pluck('id')->toArray();
             $submissionCount = 0;
@@ -662,13 +647,12 @@ class AdminController extends Controller
         // Get filter parameters
         $reportType = $request->input('report_type');
         $clusterId = $request->input('cluster_id');
-        $search = $request->input('search');
 
         // Get all chart data
-        $chartData = $this->getChartData($reportType, $clusterId, $search);
+        $chartData = $this->getChartData($reportType, $clusterId);
 
         // Get all cluster data regardless of filter
-        $allClusterData = $this->getAllClusterData($reportType, $search);
+        $allClusterData = $this->getAllClusterData($reportType);
 
         // Always use all cluster data for the view
         $chartData['clusterSubmissions'] = $allClusterData;
@@ -727,66 +711,7 @@ class AdminController extends Controller
             }
         }
 
-        // Apply search filter if specified
-        if ($search) {
-            // Get report types matching the search
-            $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
-                ->pluck('id')
-                ->toArray();
 
-            // Get barangays matching the search
-            $barangayIds = User::where('name', 'like', "%{$search}%")
-                ->where('user_type', 'barangay')
-                ->pluck('id')
-                ->toArray();
-
-            if (!empty($reportTypeIds) || !empty($barangayIds)) {
-                $weeklyQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-
-                $monthlyQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-
-                $quarterlyQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-
-                $semestralQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-
-                $annualQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-            }
-        }
 
         // Apply report type filter if specified
         if ($reportType) {
@@ -871,66 +796,7 @@ class AdminController extends Controller
             }
         }
 
-        // Apply search filter if specified
-        if ($search) {
-            // Get report types matching the search
-            $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
-                ->pluck('id')
-                ->toArray();
 
-            // Get barangays matching the search
-            $barangayIds = User::where('name', 'like', "%{$search}%")
-                ->where('user_type', 'barangay')
-                ->pluck('id')
-                ->toArray();
-
-            if (!empty($reportTypeIds) || !empty($barangayIds)) {
-                $weeklyLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('weekly_reports.report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('weekly_reports.user_id', $barangayIds);
-                    }
-                });
-
-                $monthlyLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('monthly_reports.report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('monthly_reports.user_id', $barangayIds);
-                    }
-                });
-
-                $quarterlyLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('quarterly_reports.report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('quarterly_reports.user_id', $barangayIds);
-                    }
-                });
-
-                $semestralLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('semestral_reports.report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('semestral_reports.user_id', $barangayIds);
-                    }
-                });
-
-                $annualLateQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('annual_reports.report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('annual_reports.user_id', $barangayIds);
-                    }
-                });
-            }
-        }
 
         // Apply report type filter if specified
         if ($reportType) {
@@ -974,66 +840,7 @@ class AdminController extends Controller
             }
         }
 
-        // Apply search filter if specified
-        if ($search) {
-            // Get report types matching the search
-            $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
-                ->pluck('id')
-                ->toArray();
 
-            // Get barangays matching the search
-            $barangayIds = User::where('name', 'like', "%{$search}%")
-                ->where('user_type', 'barangay')
-                ->pluck('id')
-                ->toArray();
-
-            if (!empty($reportTypeIds) || !empty($barangayIds)) {
-                $weeklyCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-
-                $monthlyCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-
-                $quarterlyCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-
-                $semestralCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-
-                $annualCountQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                    if (!empty($reportTypeIds)) {
-                        $query->whereIn('report_type_id', $reportTypeIds);
-                    }
-                    if (!empty($barangayIds)) {
-                        $query->orWhereIn('user_id', $barangayIds);
-                    }
-                });
-            }
-        }
 
         // Execute the queries
         $weeklyCount = $weeklyCountQuery->count();
@@ -1086,66 +893,7 @@ class AdminController extends Controller
                 }
             }
 
-            // Apply search filter if specified
-            if ($search) {
-                // Get report types matching the search
-                $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
-                    ->pluck('id')
-                    ->toArray();
 
-                // Get barangays matching the search
-                $barangayIds = User::where('name', 'like', "%{$search}%")
-                    ->where('user_type', 'barangay')
-                    ->pluck('id')
-                    ->toArray();
-
-                if (!empty($reportTypeIds) || !empty($barangayIds)) {
-                    $weeklyMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                        if (!empty($reportTypeIds)) {
-                            $query->whereIn('report_type_id', $reportTypeIds);
-                        }
-                        if (!empty($barangayIds)) {
-                            $query->orWhereIn('user_id', $barangayIds);
-                        }
-                    });
-
-                    $monthlyMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                        if (!empty($reportTypeIds)) {
-                            $query->whereIn('report_type_id', $reportTypeIds);
-                        }
-                        if (!empty($barangayIds)) {
-                            $query->orWhereIn('user_id', $barangayIds);
-                        }
-                    });
-
-                    $quarterlyMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                        if (!empty($reportTypeIds)) {
-                            $query->whereIn('report_type_id', $reportTypeIds);
-                        }
-                        if (!empty($barangayIds)) {
-                            $query->orWhereIn('user_id', $barangayIds);
-                        }
-                    });
-
-                    $semestralMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                        if (!empty($reportTypeIds)) {
-                            $query->whereIn('report_type_id', $reportTypeIds);
-                        }
-                        if (!empty($barangayIds)) {
-                            $query->orWhereIn('user_id', $barangayIds);
-                        }
-                    });
-
-                    $annualMonthQuery->where(function($query) use ($reportTypeIds, $barangayIds) {
-                        if (!empty($reportTypeIds)) {
-                            $query->whereIn('report_type_id', $reportTypeIds);
-                        }
-                        if (!empty($barangayIds)) {
-                            $query->orWhereIn('user_id', $barangayIds);
-                        }
-                    });
-                }
-            }
 
             // Apply report type filter if specified
             if ($reportType) {
@@ -1176,10 +924,7 @@ class AdminController extends Controller
             $barangayQuery->where('cluster_id', $clusterId);
         }
 
-        // Apply search filter to barangays if specified
-        if ($search) {
-            $barangayQuery->where('name', 'like', "%{$search}%");
-        }
+
 
         $barangays = $barangayQuery->get();
 
@@ -1202,20 +947,7 @@ class AdminController extends Controller
 
             // We no longer use date filters
 
-            // Apply search filter for report types if specified
-            if ($search) {
-                $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
-                    ->pluck('id')
-                    ->toArray();
 
-                if (!empty($reportTypeIds)) {
-                    $weeklyBarangayQuery->whereIn('report_type_id', $reportTypeIds);
-                    $monthlyBarangayQuery->whereIn('report_type_id', $reportTypeIds);
-                    $quarterlyBarangayQuery->whereIn('report_type_id', $reportTypeIds);
-                    $semestralBarangayQuery->whereIn('report_type_id', $reportTypeIds);
-                    $annualBarangayQuery->whereIn('report_type_id', $reportTypeIds);
-                }
-            }
 
             // Apply report type filter if specified
             if ($reportType) {
@@ -1257,10 +989,7 @@ class AdminController extends Controller
             $clusterBarangays = User::where('cluster_id', $cluster->id)
                 ->where('user_type', 'barangay');
 
-            // Apply search filter to barangays if specified
-            if ($search) {
-                $clusterBarangays->where('name', 'like', "%{$search}%");
-            }
+
 
             $clusterBarangayIds = $clusterBarangays->pluck('id')->toArray();
 
@@ -1286,20 +1015,7 @@ class AdminController extends Controller
 
                 // We no longer use date filters
 
-                // Apply search filter for report types if specified
-                if ($search) {
-                    $reportTypeIds = ReportType::where('name', 'like', "%{$search}%")
-                        ->pluck('id')
-                        ->toArray();
 
-                    if (!empty($reportTypeIds)) {
-                        $weeklyClusterQuery->whereIn('report_type_id', $reportTypeIds);
-                        $monthlyClusterQuery->whereIn('report_type_id', $reportTypeIds);
-                        $quarterlyClusterQuery->whereIn('report_type_id', $reportTypeIds);
-                        $semestralClusterQuery->whereIn('report_type_id', $reportTypeIds);
-                        $annualClusterQuery->whereIn('report_type_id', $reportTypeIds);
-                    }
-                }
 
                 // Apply report type filter if specified
                 if ($reportType) {
@@ -1341,8 +1057,7 @@ class AdminController extends Controller
             'barangayReportTypes',
             'allClusters',
             'reportType',
-            'clusterId',
-            'search'
+            'clusterId'
         ));
     }
 

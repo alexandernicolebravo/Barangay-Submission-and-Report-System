@@ -1694,4 +1694,114 @@ class BarangayController extends Controller
             return response()->json(['error' => 'Error accessing file: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Get notifications for the barangay user
+     */
+    public function getNotifications()
+    {
+        $user = Auth::user();
+
+        // Get unread notifications
+        $notifications = $user->unreadNotifications()
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function ($notification) {
+                $data = $notification->data;
+                return [
+                    'id' => $notification->id,
+                    'type' => $this->getNotificationType($notification->type),
+                    'title' => $this->getNotificationTitle($notification->type, $data),
+                    'message' => $this->getNotificationMessage($notification->type, $data),
+                    'time' => $notification->created_at->diffForHumans(),
+                    'read_at' => $notification->read_at,
+                    'redirect_url' => $data['redirect_url'] ?? route('barangay.submissions'),
+                    'data' => $data
+                ];
+            });
+
+        $unreadCount = $user->unreadNotifications()->count();
+
+        return response()->json([
+            'notifications' => $notifications,
+            'unread_count' => $unreadCount
+        ]);
+    }
+
+    /**
+     * Mark notification as read
+     */
+    public function markNotificationAsRead($id)
+    {
+        $user = Auth::user();
+        $notification = $user->notifications()->where('id', $id)->first();
+
+        if ($notification) {
+            $notification->markAsRead();
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false], 404);
+    }
+
+    /**
+     * Mark all notifications as read
+     */
+    public function markAllNotificationsAsRead()
+    {
+        $user = Auth::user();
+        $user->unreadNotifications->markAsRead();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Get notification type for display
+     */
+    private function getNotificationType($notificationType)
+    {
+        if (str_contains($notificationType, 'ReportRemarksNotification')) {
+            return 'report';
+        }
+
+        return 'general';
+    }
+
+    /**
+     * Get notification title based on type and data
+     */
+    private function getNotificationTitle($notificationType, $data)
+    {
+        if (str_contains($notificationType, 'ReportRemarksNotification')) {
+            $fullReportTitle = $data['full_report_title'] ?? $data['report_name'] ?? 'Report';
+            return "Remarks Added: {$fullReportTitle}";
+        }
+
+        return 'Notification';
+    }
+
+    /**
+     * Get notification message based on type and data
+     */
+    private function getNotificationMessage($notificationType, $data)
+    {
+        if (str_contains($notificationType, 'ReportRemarksNotification')) {
+            $adminName = $data['admin_name'] ?? 'Admin';
+            $fullReportTitle = $data['full_report_title'] ?? $data['report_name'] ?? 'your report';
+            $canUpdate = $data['can_update'] ?? false;
+
+            $message = "{$adminName} has added remarks to your {$fullReportTitle}";
+
+            if ($canUpdate) {
+                $message .= ". You can now resubmit this report.";
+            } else {
+                $message .= ". Please review the feedback.";
+            }
+
+            return $message;
+        }
+
+        return 'You have a new notification';
+    }
 }

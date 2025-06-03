@@ -190,12 +190,11 @@
                                             <td>
                                                 @if($report->remarks)
                                                     <button type="button"
-                                                            class="btn btn-link btn-sm p-0 text-decoration-none"
-                                                            data-bs-toggle="tooltip"
-                                                            data-bs-placement="top"
-                                                            title="{{ $report->remarks }}">
-                                                        <i class="fas fa-comment-alt text-primary"></i>
-                                                        <small>View</small>
+                                                            class="btn btn-link btn-sm p-0 text-decoration-none text-start"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#remarksModal{{ $report->unique_id }}">
+                                                        <i class="fas fa-comment-alt text-primary me-1"></i>
+                                                        <small class="text-primary">View Remarks</small>
                                                     </button>
                                                 @else
                                                     <small class="text-muted">None</small>
@@ -559,6 +558,52 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- Remarks Modal -->
+                                        @if($report->remarks)
+                                        <div class="modal fade" id="remarksModal{{ $report->unique_id }}" tabindex="-1" aria-labelledby="remarksModalLabel{{ $report->unique_id }}" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="remarksModalLabel{{ $report->unique_id }}">
+                                                            <i class="fas fa-comment-alt text-primary me-2"></i>
+                                                            Remarks for {{ $report->report_name }}
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="alert alert-info">
+                                                            <div class="d-flex align-items-start">
+                                                                <i class="fas fa-info-circle me-2 mt-1"></i>
+                                                                <div>
+                                                                    <strong>Facilitator/Admin Remarks:</strong>
+                                                                    <p class="mb-0 mt-2">{{ $report->remarks }}</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        @if($report->can_update)
+                                                        <div class="alert alert-success">
+                                                            <div class="d-flex align-items-center">
+                                                                <i class="fas fa-check-circle me-2"></i>
+                                                                <span><strong>Good news!</strong> You can resubmit this report with the necessary changes.</span>
+                                                            </div>
+                                                        </div>
+                                                        @endif
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        @if($report->can_update)
+                                                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#resubmitModal{{ $report->unique_id }}">
+                                                            <i class="fas fa-upload me-1"></i>
+                                                            Resubmit Report
+                                                        </button>
+                                                        @endif
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @endif
                                     @endforeach
                                 </tbody>
                             </table>

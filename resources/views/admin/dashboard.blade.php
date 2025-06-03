@@ -4,28 +4,11 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <form id="dashboardFilterForm" action="{{ route('admin.dashboard') }}" method="GET" class="mb-0">
-                <div class="input-group">
-                    <input type="text" class="form-control" id="search" name="search" placeholder="Search barangay..." value="{{ request('search') }}">
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        @if(request('search'))
-                            <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        @endif
-                    </div>
-                </div>
-                <!-- Hidden inputs to maintain filter state -->
-                <input type="hidden" id="report_type" name="report_type" value="{{ request('report_type') }}">
-                <input type="hidden" id="cluster_id" name="cluster_id" value="{{ request('cluster_id') }}">
-            </form>
-        </div>
-    </div>
+    <!-- Hidden form for filter state management -->
+    <form id="dashboardFilterForm" action="{{ route('admin.dashboard') }}" method="GET" style="display: none;">
+        <input type="hidden" id="report_type" name="report_type" value="{{ request('report_type') }}">
+        <input type="hidden" id="cluster_id" name="cluster_id" value="{{ request('cluster_id') }}">
+    </form>
 
     <!-- Stats Row -->
     <div class="row mb-4">
@@ -109,7 +92,6 @@
                         @php
                             // Get the current filter parameters
                             $clusterId = request('cluster_id');
-                            $search = request('search');
 
                             // Get all barangay users
                             $barangayQuery = App\Models\User::where('user_type', 'barangay');
@@ -117,11 +99,6 @@
                             // Apply cluster filter if specified
                             if ($clusterId) {
                                 $barangayQuery->where('cluster_id', $clusterId);
-                            }
-
-                            // Apply search filter if specified
-                            if ($search) {
-                                $barangayQuery->where('name', 'like', "%{$search}%");
                             }
 
                             $barangayIds = $barangayQuery->pluck('id')->toArray();
@@ -257,7 +234,6 @@
 
                             // Get the current filter parameters
                             $reportType = request('report_type');
-                            $search = request('search');
 
                             // Calculate submission counts for each cluster directly
                             $directClusterSubmissions = [];
@@ -266,11 +242,6 @@
                                 // Get all barangays in this cluster
                                 $clusterBarangays = App\Models\User::where('cluster_id', $cluster->id)
                                     ->where('user_type', 'barangay');
-
-                                // Apply search filter if specified
-                                if ($search) {
-                                    $clusterBarangays->where('name', 'like', "%{$search}%");
-                                }
 
                                 $clusterBarangayIds = $clusterBarangays->pluck('id')->toArray();
                                 $submissionCount = 0;
@@ -359,12 +330,12 @@
                 </div>
             </div>
 
-            <!-- Barangay Submissions Chart -->
+            <!-- Report Type Distribution Chart -->
             <div class="chart-card">
                 <div class="card-header">
                     <h5>
-                        <i class="fas fa-chart-bar"></i>
-                        Top 10 Barangay Submissions by Report Type
+                        <i class="fas fa-chart-pie"></i>
+                        Report Type Distribution
                     </h5>
                 </div>
                 <div class="card-body">
@@ -722,22 +693,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form elements
     const reportTypeSelect = document.getElementById('report_type');
     const clusterSelect = document.getElementById('cluster_id');
-    const searchInput = document.getElementById('search');
     const filterForm = document.getElementById('dashboardFilterForm');
     const clearFilterBtn = document.getElementById('clear-filter');
     const clearReportTypeFilterBtn = document.getElementById('clear-report-type-filter');
-
-    // Add event listener for search input
-    searchInput.addEventListener('input', function(e) {
-        // Update the search parameter in the URL
-        const url = new URL(window.location);
-        if (this.value) {
-            url.searchParams.set('search', this.value);
-        } else {
-            url.searchParams.delete('search');
-        }
-        window.history.pushState({}, '', url);
-    });
 
     // Initialize charts
     initCharts();
@@ -789,10 +747,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Get other filter values
             const reportType = reportTypeSelect.value;
-            const search = searchInput.value;
 
             // Make AJAX request to get updated chart data
-            fetch(`{{ route('admin.dashboard.chart-data') }}?cluster_id=${clusterId}&report_type=${reportType}&search=${search}`)
+            fetch(`{{ route('admin.dashboard.chart-data') }}?cluster_id=${clusterId}&report_type=${reportType}`)
                 .then(response => {
                     console.log('Response status:', response.status);
                     if (!response.ok) {
@@ -867,10 +824,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Get other filter values
         const reportType = reportTypeSelect.value;
-        const search = searchInput.value;
 
         // Make AJAX request to get updated chart data
-        fetch(`{{ route('admin.dashboard.chart-data') }}?report_type=${reportType}&search=${search}`)
+        fetch(`{{ route('admin.dashboard.chart-data') }}?report_type=${reportType}`)
             .then(response => {
                 console.log('Response status:', response.status);
                 if (!response.ok) {
@@ -937,10 +893,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Get other filter values
             const clusterId = clusterSelect.value;
-            const search = searchInput.value;
 
             // Make AJAX request to get updated chart data
-            fetch(`{{ route('admin.dashboard.chart-data') }}?report_type=${reportType}&cluster_id=${clusterId}&search=${search}`)
+            fetch(`{{ route('admin.dashboard.chart-data') }}?report_type=${reportType}&cluster_id=${clusterId}`)
                 .then(response => {
                     console.log('Response status:', response.status);
                     if (!response.ok) {
@@ -1000,10 +955,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Get other filter values
         const clusterId = clusterSelect.value;
-        const search = searchInput.value;
 
         // Make AJAX request to get updated chart data
-        fetch(`{{ route('admin.dashboard.chart-data') }}?cluster_id=${clusterId}&search=${search}`)
+        fetch(`{{ route('admin.dashboard.chart-data') }}?cluster_id=${clusterId}`)
             .then(response => {
                 console.log('Response status:', response.status);
                 if (!response.ok) {
@@ -1131,117 +1085,76 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Create barangay submissions chart
+            // Create report type distribution chart
             const barangaySubmissionsCtx = document.getElementById('barangaySubmissionsChart');
             if (barangaySubmissionsCtx) {
-                // Get the top barangays data
-                const barangayLabels = Object.keys(data.topBarangays);
-                const barangayValues = Object.values(data.topBarangays);
-
-                console.log('Creating new barangay submissions chart with data:', {
-                    labels: barangayLabels,
-                    values: barangayValues
+                console.log('Creating new report type distribution chart with data:', {
+                    weeklyCount: data.weeklyCount,
+                    monthlyCount: data.monthlyCount,
+                    quarterlyCount: data.quarterlyCount,
+                    semestralCount: data.semestralCount,
+                    annualCount: data.annualCount
                 });
 
                 // Destroy existing chart if it exists
                 if (window.barangaySubmissionsChart) {
                     try {
                         window.barangaySubmissionsChart.destroy();
-                        console.log('Destroyed existing barangay submissions chart');
+                        console.log('Destroyed existing report type distribution chart');
                     } catch (error) {
-                        console.error('Error destroying barangay submissions chart:', error);
+                        console.error('Error destroying report type distribution chart:', error);
                     }
                 }
 
-                // Get the total number of report types for max scale
-                const totalReportTypes = data.totalReportTypes;
-
-                // No need for dynamic height with only 10 barangays
-
                 window.barangaySubmissionsChart = new Chart(barangaySubmissionsCtx, {
-                    type: 'bar',
+                    type: 'doughnut',
                     data: {
-                        labels: barangayLabels,
+                        labels: ['Weekly', 'Monthly', 'Quarterly', 'Semestral', 'Annual'],
                         datasets: [{
-                            label: 'Submissions',
-                            data: barangayValues,
-                            backgroundColor: barangayLabels.map((_, index) => chartColors[index % chartColors.length]),
-                            borderWidth: 0,
-                            borderRadius: 4,
-                            maxBarThickness: 25
+                            data: [
+                                data.weeklyCount || 0,
+                                data.monthlyCount || 0,
+                                data.quarterlyCount || 0,
+                                data.semestralCount || 0,
+                                data.annualCount || 0
+                            ],
+                            backgroundColor: [
+                                colors.primary,
+                                colors.success,
+                                colors.warning,
+                                colors.info,
+                                colors.danger
+                            ],
+                            borderWidth: 0
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        indexAxis: 'y',  // Horizontal bar chart
                         plugins: {
                             legend: {
-                                display: false
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
                             },
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {
-                                        return `Submissions: ${context.raw}`;
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return `${label}: ${value} (${percentage}%)`;
                                     }
-                                }
-                            },
-                            title: {
-                                display: true,
-                                text: 'Top 10 Barangay Submissions',
-                                font: {
-                                    size: 14,
-                                    weight: 'normal'
-                                },
-                                padding: {
-                                    bottom: 15
-                                },
-                                color: '#495057'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    font: {
-                                        size: 10
-                                    }
-                                }
-                            },
-                            x: {
-                                beginAtZero: true,
-                                // Set max value to total report types
-                                max: totalReportTypes,
-                                title: {
-                                    display: true,
-                                    text: 'Number of Submissions (Max: Total Report Types)',
-                                    font: {
-                                        size: 12
-                                    },
-                                    padding: {
-                                        top: 10
-                                    },
-                                    color: '#6c757d'
-                                },
-                                ticks: {
-                                    precision: 0,
-                                    font: {
-                                        size: 11
-                                    },
-                                    // Add step size to ensure we see reasonable tick marks
-                                    stepSize: Math.max(1, Math.ceil(totalReportTypes / 10))
-                                },
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.03)'
                                 }
                             }
                         }
                     }
                 });
 
-                console.log('Barangay submissions chart created successfully');
+                console.log('Report type distribution chart created successfully');
             }
 
             // Create monthly trend chart
@@ -1369,141 +1282,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-        // Create barangay submissions chart
+        // Create report type distribution chart
         const barangaySubmissionsCtx = document.getElementById('barangaySubmissionsChart');
         if (barangaySubmissionsCtx) {
-            // Get the barangay data
-            const barangayNames = Object.keys(initialData.topBarangays);
-            const barangaySubmissions = Object.values(initialData.topBarangays);
-            const barangayReportTypes = initialData.barangayReportTypes;
-
-            console.log('Initializing barangay submissions chart with data:', {
-                barangayNames,
-                barangaySubmissions,
-                barangayReportTypes
+            console.log('Initializing report type distribution chart with data:', {
+                weeklyCount: initialData.weeklyCount,
+                monthlyCount: initialData.monthlyCount,
+                quarterlyCount: initialData.quarterlyCount,
+                semestralCount: initialData.semestralCount,
+                annualCount: initialData.annualCount
             });
 
-            // Prepare datasets for stacked bar chart
-            const datasets = [
-                {
-                    label: 'Weekly',
-                    data: barangayNames.map(name => barangayReportTypes[name]?.weekly || 0),
-                    backgroundColor: colors.primary,
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.8
-                },
-                {
-                    label: 'Monthly',
-                    data: barangayNames.map(name => barangayReportTypes[name]?.monthly || 0),
-                    backgroundColor: colors.success,
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.8
-                },
-                {
-                    label: 'Quarterly',
-                    data: barangayNames.map(name => barangayReportTypes[name]?.quarterly || 0),
-                    backgroundColor: colors.info,
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.8
-                },
-                {
-                    label: 'Semestral',
-                    data: barangayNames.map(name => barangayReportTypes[name]?.semestral || 0),
-                    backgroundColor: colors.warning,
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.8
-                },
-                {
-                    label: 'Annual',
-                    data: barangayNames.map(name => barangayReportTypes[name]?.annual || 0),
-                    backgroundColor: colors.danger,
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.8
-                }
-            ];
-
             window.barangaySubmissionsChart = new Chart(barangaySubmissionsCtx, {
-                type: 'bar',
+                type: 'doughnut',
                 data: {
-                    labels: barangayNames,
-                    datasets: datasets
+                    labels: ['Weekly', 'Monthly', 'Quarterly', 'Semestral', 'Annual'],
+                    datasets: [{
+                        data: [
+                            initialData.weeklyCount,
+                            initialData.monthlyCount,
+                            initialData.quarterlyCount,
+                            initialData.semestralCount,
+                            initialData.annualCount
+                        ],
+                        backgroundColor: [
+                            colors.primary,
+                            colors.success,
+                            colors.warning,
+                            colors.info,
+                            colors.danger
+                        ],
+                        borderWidth: 0
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    indexAxis: 'y',  // Horizontal bar chart
                     plugins: {
                         legend: {
-                            display: true,
-                            position: 'top',
+                            position: 'bottom',
                             labels: {
-                                font: {
-                                    size: 11
-                                },
-                                boxWidth: 15,
-                                padding: 10
+                                padding: 20,
+                                usePointStyle: true
                             }
                         },
                         tooltip: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Top 10 Barangay Submissions by Report Type',
-                            font: {
-                                size: 14,
-                                weight: 'normal'
-                            },
-                            padding: {
-                                bottom: 15
-                            },
-                            color: '#495057'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            stacked: true,
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Number of Submissions',
-                                font: {
-                                    size: 12
-                                },
-                                padding: {
-                                    top: 10
-                                },
-                                color: '#6c757d'
-                            },
-                            ticks: {
-                                precision: 0,
-                                font: {
-                                    size: 11
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.03)'
-                            }
-                        },
-                        y: {
-                            stacked: true,
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: {
-                                    size: 10
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
                                 }
                             }
                         }

@@ -363,19 +363,25 @@ Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->gro
             Route::get('/{issuance}', [IssuanceController::class, 'barangayShow'])->name('show');
             Route::get('/{issuance}/download', [IssuanceController::class, 'download'])->name('download');
         });
+
+        // Notification routes
+        Route::get('/notifications', [BarangayController::class, 'getNotifications'])->name('notifications.get');
+        Route::post('/notifications/{id}/read', [BarangayController::class, 'markNotificationAsRead'])->name('notifications.read');
+        Route::post('/notifications/read-all', [BarangayController::class, 'markAllNotificationsAsRead'])->name('notifications.read-all');
     });
 
     // Facilitator Routes
     Route::prefix('facilitator')->name('facilitator.')->middleware(\App\Http\Middleware\FacilitatorMiddleware::class)->group(function () {
         // Dashboard
         Route::get('/dashboard', [FacilitatorController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard/chart-data', [FacilitatorController::class, 'getDashboardChartData'])->name('dashboard.chart-data');
 
         // Report Viewing
         Route::get('/view-submissions', [FacilitatorController::class, 'viewSubmissions'])->name('view-submissions');
         Route::put('/reports/{id}/remarks', [FacilitatorController::class, 'addRemarks'])->name('reports.add-remarks');
 
         // File Download
-        Route::get('/files/{id}', [BarangayFileController::class, 'download'])->name('files.download');
+        Route::get('/files/{id}', [FacilitatorController::class, 'downloadFile'])->name('files.download');
     });
 });
 
