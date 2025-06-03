@@ -87,7 +87,7 @@
                                             <td>
                                                 <div class="action-buttons-modern">
                                                     <button type="button" class="action-btn view-btn"
-                                                            onclick="viewFile({{ $issuance->id }}, '{{ $issuance->title }}', '{{ $issuance->file_path }}')"
+                                                            onclick="viewFile({{ $issuance->id }}, '{{ addslashes($issuance->title) }}', '{{ $issuance->file_path }}')"
                                                             title="View File">
                                                         <i class="fas fa-eye"></i>
                                                         <span>View</span>
@@ -124,7 +124,7 @@
 
 <!-- View File Modal -->
 <div class="modal fade" id="viewFileModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -134,7 +134,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="fileViewer" style="height: 500px; width: 100%;">
+                <div id="fileViewer" style="height: 600px; width: 100%;">
                     <div class="text-center py-5">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
@@ -311,6 +311,52 @@
 </style>
 
 <script>
+// View File Modal
+function viewFile(issuanceId, title, filePath) {
+    document.getElementById('viewFileTitle').textContent = title;
+    document.getElementById('downloadFileBtn').href = `/barangay/issuances/${issuanceId}/download`;
+
+    const fileViewer = document.getElementById('fileViewer');
+    const fileUrl = `/storage/${filePath}`;
+    const fileExtension = filePath.split('.').pop().toLowerCase();
+
+    // Clear previous content
+    fileViewer.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-3">Loading file...</p></div>';
+
+    if (['pdf'].includes(fileExtension)) {
+        // For PDF files, use iframe
+        fileViewer.innerHTML = `<iframe src="${fileUrl}" style="width: 100%; height: 600px; border: none;"></iframe>`;
+    } else if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+        // For images
+        fileViewer.innerHTML = `<img src="${fileUrl}" style="max-width: 100%; max-height: 600px; object-fit: contain;" class="d-block mx-auto">`;
+    } else if (['txt'].includes(fileExtension)) {
+        // For text files, fetch and display content
+        fetch(fileUrl)
+            .then(response => response.text())
+            .then(text => {
+                fileViewer.innerHTML = `<pre style="white-space: pre-wrap; max-height: 600px; overflow-y: auto; padding: 1rem; background: #f8f9fa; border-radius: 0.375rem;">${text}</pre>`;
+            })
+            .catch(error => {
+                fileViewer.innerHTML = '<div class="alert alert-warning">Cannot preview this file type. Please download to view.</div>';
+            });
+    } else {
+        // For other file types, show download message
+        fileViewer.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-file fa-3x text-muted mb-3"></i>
+                <h5>Preview not available</h5>
+                <p class="text-muted">This file type cannot be previewed. Please download to view the file.</p>
+                <a href="/barangay/issuances/${issuanceId}/download" class="btn btn-primary">
+                    <i class="fas fa-download me-2"></i>
+                    Download File
+                </a>
+            </div>
+        `;
+    }
+
+    new bootstrap.Modal(document.getElementById('viewFileModal')).show();
+}
+
 // Handle sort button changes
 document.querySelectorAll('input[name="sortOrder"]').forEach(function(radio) {
     radio.addEventListener('change', function() {
