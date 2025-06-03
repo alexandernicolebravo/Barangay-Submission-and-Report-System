@@ -211,11 +211,11 @@
                                                     <button type="button"
                                                             class="btn btn-sm"
                                                             style="background: var(--primary-light); color: var(--primary); border: none;"
-                                                            onclick="previewFile('{{ route('barangay.direct.files.download', $reportId) }}', '{{ basename($report->file_path) }}')"
-                                                            data-bs-toggle="tooltip"
-                                                            title="View/Download">
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#viewFileModal{{ $reportId }}"
+                                                            title="View File">
                                                         <i class="fas fa-eye me-1"></i>
-                                                        View
+                                                        View File
                                                     </button>
                                                     @php
                                                         // Determine button style based on status and can_update flag
@@ -329,9 +329,10 @@
                                                                         <small class="text-muted">Submitted on {{ $report->created_at->format('M d, Y h:i A') }}</small>
                                                                     </div>
                                                                     <div>
-                                                                        <a href="{{ route('barangay.direct.files.download', $reportId) }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                                                            <i class="fas fa-eye me-1"></i> View
-                                                                        </a>
+                                                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                                                data-bs-toggle="modal" data-bs-target="#viewFileModal{{ $reportId }}">
+                                                                            <i class="fas fa-eye me-1"></i> View File
+                                                                        </button>
                                                                         <a href="{{ route('barangay.direct.files.download', $reportId) }}?download=true" class="btn btn-sm btn-outline-secondary ms-1">
                                                                             <i class="fas fa-download me-1"></i> Download
                                                                         </a>
@@ -515,6 +516,45 @@
                                                             <!-- Add a hidden field to ensure the form is properly submitted -->
                                                             <input type="hidden" name="_token" value="{{ csrf_token() }}">
                                                         </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- View File Modal -->
+                                        <div class="modal fade" id="viewFileModal{{ $reportId }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-xl modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <div class="modal-header bg-light py-3">
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="me-3 p-2 rounded-circle" style="background-color: rgba(var(--primary-rgb), 0.1);">
+                                                                <i class="fas fa-file-alt text-primary"></i>
+                                                            </div>
+                                                            <div>
+                                                                <h5 class="modal-title mb-0 fw-bold">{{ $report->reportType->name ?? 'Report Submission' }}</h5>
+                                                                <div class="text-muted small">{{ basename($report->file_path) }}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <a href="{{ route('barangay.direct.files.download', $reportId) }}?download=true"
+                                                               class="btn btn-sm btn-primary">
+                                                                <i class="fas fa-download me-1"></i>
+                                                                Download
+                                                            </a>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-body p-0">
+                                                        <div class="file-viewer-modal" id="fileViewer{{ $reportId }}" style="height: 70vh; background: #f8f9fc;">
+                                                            <div class="d-flex align-items-center justify-content-center h-100">
+                                                                <div class="text-center py-5">
+                                                                    <div class="spinner-border text-primary" role="status">
+                                                                        <span class="visually-hidden">Loading...</span>
+                                                                    </div>
+                                                                    <p class="mt-3 text-muted">Loading file preview...</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -703,6 +743,33 @@
         .status-badge {
             padding: 0.5em 0.75em;
             font-weight: 500;
+        }
+
+        /* File Viewer Modal Styles */
+        .file-viewer-modal {
+            background: #f8f9fc;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .file-viewer-modal iframe {
+            border-radius: 8px;
+        }
+
+        .modal-xl {
+            max-width: 90vw;
+        }
+
+        @media (max-width: 768px) {
+            .modal-xl {
+                max-width: 95vw;
+                margin: 0.5rem;
+            }
+
+            .file-viewer-modal {
+                height: 60vh !important;
+            }
+        }
             border-radius: 0.375rem;
             display: inline-flex;
             align-items: center;
@@ -1691,4 +1758,132 @@
     </div>
 
     @endif
+
+    @push('scripts')
+    <script>
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Handle form submission with loading state
+        document.querySelectorAll('form[id^="resubmitForm"]').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processing...';
+
+                // Re-enable button after 10 seconds as fallback
+                setTimeout(function() {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }, 10000);
+            });
+        });
+
+        // Handle file viewer modals
+        document.querySelectorAll('[id^="viewFileModal"]').forEach(function(modal) {
+            modal.addEventListener('shown.bs.modal', function() {
+                const modalId = modal.id;
+                const reportId = modalId.replace('viewFileModal', '');
+                const fileViewer = document.getElementById('fileViewer' + reportId);
+
+                if (fileViewer && !fileViewer.dataset.loaded) {
+                    loadFilePreview(reportId, fileViewer);
+                    fileViewer.dataset.loaded = 'true';
+                }
+            });
+        });
+
+        function loadFilePreview(reportId, fileViewer) {
+            // Make an AJAX request to get file information
+            fetch(`/barangay/direct-files/${reportId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('File not found');
+                    }
+
+                    const contentType = response.headers.get('content-type');
+                    const contentDisposition = response.headers.get('content-disposition');
+
+                    // Get filename from content-disposition header
+                    let filename = 'document';
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                        if (filenameMatch) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+
+                    const fileExtension = filename.split('.').pop().toLowerCase();
+                    const fileUrl = `/barangay/direct-files/${reportId}`;
+
+                    if (['pdf'].includes(fileExtension)) {
+                        // For PDF files, use iframe
+                        fileViewer.innerHTML = `<iframe src="${fileUrl}" style="width: 100%; height: 100%; border: none;"></iframe>`;
+                    } else if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension)) {
+                        // For images
+                        fileViewer.innerHTML = `
+                            <div class="d-flex align-items-center justify-content-center h-100 p-3">
+                                <img src="${fileUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain;" class="shadow-sm rounded">
+                            </div>
+                        `;
+                    } else if (['txt'].includes(fileExtension)) {
+                        // For text files, fetch and display content
+                        response.text().then(text => {
+                            fileViewer.innerHTML = `
+                                <div class="p-3 h-100">
+                                    <pre style="white-space: pre-wrap; height: 100%; overflow-y: auto; background: white; padding: 1.5rem; margin: 0; font-size: 0.9rem; line-height: 1.5; border-radius: 8px;">${text}</pre>
+                                </div>
+                            `;
+                        });
+                    } else if (['docx', 'doc'].includes(fileExtension)) {
+                        // For Word documents, use Google Docs Viewer
+                        const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + fileUrl)}&embedded=true`;
+                        fileViewer.innerHTML = `
+                            <iframe src="${googleDocsUrl}" style="width: 100%; height: 100%; border: none;"></iframe>
+                        `;
+                    } else if (['xls', 'xlsx'].includes(fileExtension)) {
+                        // For Excel documents, use Google Docs Viewer
+                        const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + fileUrl)}&embedded=true`;
+                        fileViewer.innerHTML = `
+                            <iframe src="${googleDocsUrl}" style="width: 100%; height: 100%; border: none;"></iframe>
+                        `;
+                    } else {
+                        // For other file types, show download message
+                        fileViewer.innerHTML = `
+                            <div class="text-center py-5">
+                                <div class="mb-4">
+                                    <i class="fas fa-file fa-3x text-primary"></i>
+                                </div>
+                                <h5>Preview not available</h5>
+                                <p class="text-muted mb-4">This file type cannot be previewed in the browser.</p>
+                                <a href="/barangay/direct-files/${reportId}?download=true" class="btn btn-primary">
+                                    <i class="fas fa-download me-2"></i>
+                                    Download to View
+                                </a>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading file:', error);
+                    fileViewer.innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                            <h6>Unable to load file preview</h6>
+                            <p class="text-muted">Please try downloading the file instead.</p>
+                            <a href="/barangay/direct-files/${reportId}?download=true" class="btn btn-primary">
+                                <i class="fas fa-download me-2"></i>
+                                Download File
+                            </a>
+                        </div>
+                    `;
+                });
+        }
+    </script>
+    @endpush
 @endsection

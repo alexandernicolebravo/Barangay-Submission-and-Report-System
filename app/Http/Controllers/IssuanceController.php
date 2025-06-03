@@ -13,21 +13,19 @@ class IssuanceController extends Controller
     /**
      * Display a listing of issuances for admin.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $issuances = Issuance::with('uploader')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = Issuance::with('uploader');
+
+        if ($request->get('archived') === 'true') {
+            $query->archived(); // Show archived issuances
+        } else {
+            $query->active(); // Show active issuances
+        }
+
+        $issuances = $query->orderBy('created_at', 'desc')->paginate(10);
 
         return view('admin.issuances.index', compact('issuances'));
-    }
-
-    /**
-     * Show the form for creating a new issuance.
-     */
-    public function create()
-    {
-        return view('admin.issuances.create');
     }
 
     /**
@@ -39,6 +37,12 @@ class IssuanceController extends Controller
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'file' => 'required|file|max:20480|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,zip,rar'
+            ], [
+                'title.required' => 'The title field is required.',
+                'title.max' => 'The title may not be greater than 255 characters.',
+                'file.required' => 'Please select a file to upload.',
+                'file.max' => 'The file size must not exceed 20MB.',
+                'file.mimes' => 'The file must be a valid format (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, JPG, JPEG, PNG, ZIP, RAR).'
             ]);
 
             $file = $request->file('file');
@@ -57,6 +61,10 @@ class IssuanceController extends Controller
             return redirect()->route('admin.issuances.index')
                 ->with('success', 'Issuance uploaded successfully.');
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         } catch (\Exception $e) {
             Log::error('Error uploading issuance: ' . $e->getMessage());
             return redirect()->back()
@@ -89,33 +97,40 @@ class IssuanceController extends Controller
         try {
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
-                'file' => 'nullable|file|max:20480|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,zip,rar'
+                'file' => 'required|file|max:20480|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,jpg,jpeg,png,zip,rar'
+            ], [
+                'title.required' => 'The title field is required.',
+                'title.max' => 'The title may not be greater than 255 characters.',
+                'file.required' => 'Please select a file to upload.',
+                'file.max' => 'The file size must not exceed 20MB.',
+                'file.mimes' => 'The file must be a valid format (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, JPG, JPEG, PNG, ZIP, RAR).'
             ]);
 
+            // Delete old file
+            Storage::disk('public')->delete($issuance->file_path);
+
+            // Upload new file
+            $file = $request->file('file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('issuances', $fileName, 'public');
+
             $updateData = [
-                'title' => $validated['title']
+                'title' => $validated['title'],
+                'file_name' => $file->getClientOriginalName(),
+                'file_path' => $filePath,
+                'file_size' => $file->getSize(),
+                'file_type' => $file->getClientOriginalExtension(),
             ];
-
-            // If a new file is uploaded
-            if ($request->hasFile('file')) {
-                // Delete old file
-                Storage::disk('public')->delete($issuance->file_path);
-
-                $file = $request->file('file');
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('issuances', $fileName, 'public');
-
-                $updateData['file_name'] = $file->getClientOriginalName();
-                $updateData['file_path'] = $filePath;
-                $updateData['file_size'] = $file->getSize();
-                $updateData['file_type'] = $file->getClientOriginalExtension();
-            }
 
             $issuance->update($updateData);
 
             return redirect()->route('admin.issuances.index')
-                ->with('success', 'Issuance updated successfully.');
+                ->with('success', 'Issuance reuploaded successfully.');
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()
+                ->withErrors($e->validator)
+                ->withInput();
         } catch (\Exception $e) {
             Log::error('Error updating issuance: ' . $e->getMessage());
             return redirect()->back()
@@ -169,11 +184,19 @@ class IssuanceController extends Controller
     /**
      * Display issuances for barangay users.
      */
-    public function barangayIndex()
+    public function barangayIndex(Request $request)
     {
-        $issuances = Issuance::with('uploader')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = Issuance::with('uploader')->active(); // Only show non-archived issuances
+
+        // Handle sorting
+        $sort = $request->get('sort', 'newest');
+        if ($sort === 'oldest') {
+            $query->orderBy('created_at', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $issuances = $query->paginate(10);
 
         return view('barangay.issuances.index', compact('issuances'));
     }
@@ -184,5 +207,41 @@ class IssuanceController extends Controller
     public function barangayShow(Issuance $issuance)
     {
         return view('barangay.issuances.show', compact('issuance'));
+    }
+
+    /**
+     * Archive the specified issuance.
+     */
+    public function archive(Issuance $issuance)
+    {
+        try {
+            $issuance->archive();
+
+            return redirect()->route('admin.issuances.index')
+                ->with('success', 'Issuance archived successfully.');
+
+        } catch (\Exception $e) {
+            Log::error('Error archiving issuance: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Failed to archive issuance. Please try again.');
+        }
+    }
+
+    /**
+     * Unarchive the specified issuance.
+     */
+    public function unarchive(Issuance $issuance)
+    {
+        try {
+            $issuance->unarchive();
+
+            return redirect()->route('admin.issuances.index', ['archived' => 'true'])
+                ->with('success', 'Issuance unarchived successfully.');
+
+        } catch (\Exception $e) {
+            Log::error('Error unarchiving issuance: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Failed to unarchive issuance. Please try again.');
+        }
     }
 }

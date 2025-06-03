@@ -314,11 +314,12 @@ Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->gro
         // Issuance routes
         Route::prefix('issuances')->name('issuances.')->group(function () {
             Route::get('/', [IssuanceController::class, 'index'])->name('index');
-            Route::get('/create', [IssuanceController::class, 'create'])->name('create');
             Route::post('/', [IssuanceController::class, 'store'])->name('store');
             Route::get('/{issuance}', [IssuanceController::class, 'show'])->name('show');
             Route::get('/{issuance}/edit', [IssuanceController::class, 'edit'])->name('edit');
             Route::put('/{issuance}', [IssuanceController::class, 'update'])->name('update');
+            Route::patch('/{issuance}/archive', [IssuanceController::class, 'archive'])->name('archive');
+            Route::patch('/{issuance}/unarchive', [IssuanceController::class, 'unarchive'])->name('unarchive');
             Route::delete('/{issuance}', [IssuanceController::class, 'destroy'])->name('destroy');
             Route::get('/{issuance}/download', [IssuanceController::class, 'download'])->name('download');
         });

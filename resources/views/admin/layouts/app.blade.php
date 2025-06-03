@@ -1007,6 +1007,9 @@
                         <a class="nav-link {{ request()->routeIs('admin.announcements.*') ? 'active' : '' }}" href="{{ route('admin.announcements.index') }}">
                             <i class="fas fa-bullhorn"></i> Announcements
                         </a>
+                        <a class="nav-link {{ request()->routeIs('admin.issuances.*') ? 'active' : '' }}" href="{{ route('admin.issuances.index') }}">
+                            <i class="fas fa-file-alt"></i> Issuances
+                        </a>
                         <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Logout</span>

@@ -13,7 +13,12 @@ class Issuance extends Model
         'file_path',
         'file_size',
         'file_type',
-        'uploaded_by'
+        'uploaded_by',
+        'archived_at'
+    ];
+
+    protected $dates = [
+        'archived_at'
     ];
 
     /**
@@ -29,6 +34,10 @@ class Issuance extends Model
      */
     public function getFileSizeHumanAttribute(): string
     {
+        if (!$this->file_size) {
+            return 'Unknown';
+        }
+
         $bytes = $this->file_size;
         $units = ['B', 'KB', 'MB', 'GB'];
 
@@ -37,5 +46,45 @@ class Issuance extends Model
         }
 
         return round($bytes, 2) . ' ' . $units[$i];
+    }
+
+    /**
+     * Scope to get only active (non-archived) issuances.
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    /**
+     * Scope to get only archived issuances.
+     */
+    public function scopeArchived($query)
+    {
+        return $query->whereNotNull('archived_at');
+    }
+
+    /**
+     * Check if the issuance is archived.
+     */
+    public function isArchived(): bool
+    {
+        return !is_null($this->archived_at);
+    }
+
+    /**
+     * Archive the issuance.
+     */
+    public function archive()
+    {
+        $this->update(['archived_at' => now()]);
+    }
+
+    /**
+     * Unarchive the issuance.
+     */
+    public function unarchive()
+    {
+        $this->update(['archived_at' => null]);
     }
 }

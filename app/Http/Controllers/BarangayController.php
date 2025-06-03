@@ -692,54 +692,7 @@ class BarangayController extends Controller
         }
     }
 
-    public function viewFile($id)
-    {
-        try {
-            // Try to find the report in each table
-            $report = WeeklyReport::where('id', $id)
-                ->where('user_id', Auth::id())
-                ->first();
 
-            if (!$report) {
-                $report = MonthlyReport::where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->first();
-            }
-
-            if (!$report) {
-                $report = QuarterlyReport::where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->first();
-            }
-
-            if (!$report) {
-                $report = SemestralReport::where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->first();
-            }
-
-            if (!$report) {
-                $report = AnnualReport::where('id', $id)
-                    ->where('user_id', Auth::id())
-                    ->first();
-            }
-
-            if (!$report) {
-                abort(404, 'Report not found');
-            }
-
-            $path = storage_path('app/public/' . $report->file_path);
-
-            if (!file_exists($path)) {
-                abort(404, 'File not found');
-            }
-
-            return response()->file($path);
-        } catch (\Exception $e) {
-            Log::error('File view error: ' . $e->getMessage());
-            return back()->with('error', 'Failed to view file. Please try again.');
-        }
-    }
 
     public function deleteFile($id)
     {
