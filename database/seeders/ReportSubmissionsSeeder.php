@@ -19,188 +19,180 @@ class ReportSubmissionsSeeder extends Seeder
      */
     public function run()
     {
+        echo "🚀 Starting comprehensive report submissions seeding...\n";
+
+        // Clear existing submissions first
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('weekly_reports')->truncate();
+        DB::table('monthly_reports')->truncate();
+        DB::table('quarterly_reports')->truncate();
+        DB::table('semestral_reports')->truncate();
+        DB::table('annual_reports')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         // Get all barangay users
-        $barangays = User::where(function($query) {
-            $query->where('role', 'barangay')
-                  ->orWhere('user_type', 'barangay');
-        })->get();
+        $barangays = User::where('user_type', 'barangay')->get();
+        echo "📍 Found {$barangays->count()} barangays\n";
 
         // Get all report types
         $reportTypes = ReportType::all();
+        echo "📋 Found {$reportTypes->count()} report types\n";
 
-        // Create a directory to store sample files if it doesn't exist
-        if (!Storage::disk('public')->exists('reports')) {
-            Storage::disk('public')->makeDirectory('reports');
-        }
-
-        // Find existing PDF files in the public directory
+        // Find existing PDF files
         $sampleFiles = $this->findExistingPdfFiles();
+        echo "📁 Found " . count($sampleFiles) . " sample PDF files\n";
 
-        // Start date for submissions (January 1st of current year)
-        $startDate = Carbon::create(Carbon::now()->year, 1, 1, 0, 0, 0);
+        // Submission date range: 2024-01-01 to today
+        $startDate = Carbon::create(2024, 1, 1, 0, 0, 0, 'Asia/Manila');
+        $endDate = Carbon::now('Asia/Manila');
 
-        // End date for submissions (current date)
-        $endDate = Carbon::now();
+        echo "📅 Submission date range: {$startDate->toDateString()} to {$endDate->toDateString()}\n";
 
-        // Days between start and end date
-        $daysBetween = $startDate->diffInDays($endDate);
+        $totalSubmissions = 0;
+        $submissionTracker = []; // Track submissions per barangay per report type
 
-        echo "Seeding report submissions...\n";
+        // Generate 1000+ submissions randomly distributed across barangays and report types
+        $targetSubmissions = 1200; // Target more than 1000 to ensure we get at least 1000
+        $submissionsCreated = 0;
 
-        // For each barangay
-        foreach ($barangays as $barangay) {
-            echo "Processing barangay: {$barangay->name}\n";
+        echo "🎯 Target: {$targetSubmissions} submissions\n";
 
-            // For each report type
-            foreach ($reportTypes as $reportType) {
-                // Randomly decide if this barangay will submit this report type
-                // 80% chance of submission, 20% chance of no submission
-                $willSubmit = (rand(1, 100) <= 80);
+        while ($submissionsCreated < $targetSubmissions) {
+            // Randomly select a barangay
+            $barangay = $barangays->random();
 
-                if (!$willSubmit) {
-                    echo "  - Skipped {$reportType->frequency} report: {$reportType->name}\n";
-                    continue;
-                }
+            // Randomly select a report type
+            $reportType = $reportTypes->random();
 
-                // Generate a random date between start and end date
-                $randomDays = rand(0, $daysBetween);
-                $submissionDate = $startDate->copy()->addDays($randomDays);
+            // Create unique key to prevent duplicate submissions
+            $key = $barangay->id . '_' . $reportType->id;
+            if (isset($submissionTracker[$key])) {
+                continue; // Skip if this combination already exists
+            }
+            $submissionTracker[$key] = true;
 
-                // Determine if this will be a late submission (30% chance)
-                $isLateSubmission = (rand(1, 100) <= 30);
+            // Generate random submission date (2024-01-01 to today)
+            $daysBetween = $startDate->diffInDays($endDate);
+            $randomDays = rand(0, $daysBetween);
+            $submissionDate = $startDate->copy()->addDays($randomDays);
 
-                // Choose a random sample file
-                $sampleFile = $sampleFiles[array_rand($sampleFiles)];
+            // Ensure submission is not in the future
+            if ($submissionDate->gt($endDate)) {
+                $submissionDate = $endDate->copy()->subDays(rand(1, 30));
+            }
 
-                // Copy the sample file to the storage directory with a unique name
-                $fileName = time() . '_' . $barangay->id . '_' . $reportType->id . '_' . $sampleFile['name'];
-                $filePath = 'reports/' . $fileName;
+            // Choose a random sample file
+            $sampleFile = $sampleFiles[array_rand($sampleFiles)];
 
-                // Copy the file to storage
-                Storage::disk('public')->put(
-                    $filePath,
-                    File::get($sampleFile['path'])
-                );
+            // Create unique file name
+            $timestamp = $submissionDate->timestamp;
+            $fileName = $timestamp . '_' . $barangay->id . '_' . $reportType->id . '_' . $sampleFile['name'];
+            $filePath = 'reports/' . $fileName;
 
-                // Determine which table to insert into based on report frequency
-                $tableName = $this->getTableNameForFrequency($reportType->frequency);
+            // Copy the file to storage
+            try {
+                Storage::disk('public')->put($filePath, File::get($sampleFile['path']));
+            } catch (\Exception $e) {
+                echo "⚠️  Error copying file: " . $e->getMessage() . "\n";
+                continue;
+            }
 
-                // Get the columns for this table
-                $columns = $this->getTableColumns($tableName);
+            // Create the submission
+            $this->createReportSubmission($reportType, $barangay, $filePath, $fileName, $submissionDate);
 
-                // Prepare common data for all report types
-                $commonData = [
-                    'user_id' => $barangay->id,
-                    'report_type_id' => $reportType->id,
-                    'file_path' => $filePath,
-                    'status' => 'submitted',
-                    'created_at' => $submissionDate,
-                    'updated_at' => $submissionDate,
-                ];
+            $submissionsCreated++;
+            $totalSubmissions++;
 
-                // Add file_name if the column exists
-                if (in_array('file_name', $columns)) {
-                    $commonData['file_name'] = $sampleFile['name'];
-                }
-
-                // Add deadline if the column exists
-                if (in_array('deadline', $columns)) {
-                    // For late submissions, set the deadline to be before the submission date
-                    if ($isLateSubmission) {
-                        // Set deadline to be 5-15 days before the submission date
-                        $daysLate = rand(5, 15);
-                        $commonData['deadline'] = $submissionDate->copy()->subDays($daysLate);
-                        echo "  - Added LATE {$reportType->frequency} report: {$reportType->name} ({$daysLate} days late)\n";
-                    } else {
-                        // For on-time submissions, set the deadline to be after the submission date
-                        $daysAhead = rand(10, 30);
-                        $commonData['deadline'] = $submissionDate->copy()->addDays($daysAhead);
-                        echo "  - Added on-time {$reportType->frequency} report: {$reportType->name}\n";
-                    }
-                }
-
-                // Add frequency-specific fields if they exist in the table
-                switch ($reportType->frequency) {
-                    case 'weekly':
-                        $additionalData = [];
-
-                        if (in_array('month', $columns)) {
-                            $additionalData['month'] = $submissionDate->format('F');
-                        }
-
-                        if (in_array('week_number', $columns)) {
-                            $additionalData['week_number'] = rand(1, 4);
-                        }
-
-                        if (in_array('num_of_clean_up_sites', $columns)) {
-                            $additionalData['num_of_clean_up_sites'] = rand(1, 10);
-                        }
-
-                        if (in_array('num_of_participants', $columns)) {
-                            $additionalData['num_of_participants'] = rand(10, 100);
-                        }
-
-                        if (in_array('num_of_barangays', $columns)) {
-                            $additionalData['num_of_barangays'] = rand(1, 5);
-                        }
-
-                        if (in_array('total_volume', $columns)) {
-                            $additionalData['total_volume'] = rand(10, 1000) / 10;
-                        }
-
-                        $reportData = array_merge($commonData, $additionalData);
-                        break;
-
-                    case 'monthly':
-                        $additionalData = [];
-
-                        if (in_array('month', $columns)) {
-                            $additionalData['month'] = $submissionDate->format('F');
-                        }
-
-                        $reportData = array_merge($commonData, $additionalData);
-                        break;
-
-                    case 'quarterly':
-                        $additionalData = [];
-                        $quarter = ceil($submissionDate->format('n') / 3);
-
-                        if (in_array('quarter_number', $columns)) {
-                            $additionalData['quarter_number'] = (string) $quarter;
-                        }
-
-                        if (in_array('year', $columns)) {
-                            $additionalData['year'] = $submissionDate->format('Y');
-                        }
-
-                        $reportData = array_merge($commonData, $additionalData);
-                        break;
-
-                    case 'semestral':
-                        $additionalData = [];
-                        $semester = ceil($submissionDate->format('n') / 6);
-
-                        if (in_array('sem_number', $columns)) {
-                            $additionalData['sem_number'] = (string) $semester;
-                        }
-
-                        $reportData = array_merge($commonData, $additionalData);
-                        break;
-
-                    case 'annual':
-                        $reportData = $commonData;
-                        break;
-
-                    default:
-                        $reportData = $commonData;
-                }
-
-                // Insert the report submission record
-                DB::table($tableName)->insert($reportData);
+            // Progress indicator
+            if ($submissionsCreated % 100 == 0) {
+                echo "✅ Created {$submissionsCreated} submissions...\n";
             }
         }
 
-        echo "Report submissions seeding completed!\n";
+        echo "🎉 Report submissions seeding completed!\n";
+        echo "📊 Total submissions created: {$totalSubmissions}\n";
+    }
+
+    /**
+     * Create a report submission based on frequency
+     */
+    private function createReportSubmission($reportType, $barangay, $filePath, $fileName, $submissionDate)
+    {
+        // Determine which table to insert into based on report frequency
+        $tableName = $this->getTableNameForFrequency($reportType->frequency);
+
+        // Get the columns for this table
+        $columns = $this->getTableColumns($tableName);
+
+        // Prepare common data for all report types
+        $commonData = [
+            'user_id' => $barangay->id,
+            'report_type_id' => $reportType->id,
+            'file_path' => $filePath,
+            'status' => 'submitted',
+            'created_at' => $submissionDate,
+            'updated_at' => $submissionDate,
+        ];
+
+        // Add file_name if the column exists
+        if (in_array('file_name', $columns)) {
+            $commonData['file_name'] = $fileName;
+        }
+
+        // Add deadline if the column exists (set to report type deadline)
+        if (in_array('deadline', $columns)) {
+            $commonData['deadline'] = $reportType->deadline;
+        }
+
+        // Add frequency-specific fields
+        switch ($reportType->frequency) {
+            case 'weekly':
+                if (in_array('month', $columns)) {
+                    $commonData['month'] = $submissionDate->format('F');
+                }
+                if (in_array('week_number', $columns)) {
+                    $commonData['week_number'] = rand(1, 4);
+                }
+                if (in_array('num_of_clean_up_sites', $columns)) {
+                    $commonData['num_of_clean_up_sites'] = rand(1, 10);
+                }
+                if (in_array('num_of_participants', $columns)) {
+                    $commonData['num_of_participants'] = rand(10, 100);
+                }
+                if (in_array('num_of_barangays', $columns)) {
+                    $commonData['num_of_barangays'] = rand(1, 5);
+                }
+                if (in_array('total_volume', $columns)) {
+                    $commonData['total_volume'] = rand(10, 1000) / 10;
+                }
+                break;
+
+            case 'monthly':
+                if (in_array('month', $columns)) {
+                    $commonData['month'] = $submissionDate->format('F');
+                }
+                break;
+
+            case 'quarterly':
+                $quarter = ceil($submissionDate->format('n') / 3);
+                if (in_array('quarter_number', $columns)) {
+                    $commonData['quarter_number'] = (string) $quarter;
+                }
+                if (in_array('year', $columns)) {
+                    $commonData['year'] = $submissionDate->format('Y');
+                }
+                break;
+
+            case 'semestral':
+                $semester = ceil($submissionDate->format('n') / 6);
+                if (in_array('sem_number', $columns)) {
+                    $commonData['sem_number'] = (string) $semester;
+                }
+                break;
+        }
+
+        // Insert the report submission record
+        DB::table($tableName)->insert($commonData);
     }
 
     /**
@@ -261,9 +253,25 @@ class ReportSubmissionsSeeder extends Seeder
     {
         $sampleFiles = [];
 
-        // First, check if we have a sample_files directory in public
-        if (File::exists(public_path('sample_files'))) {
-            // Get all PDF files from the sample_files directory
+        // Priority 1: Check for existing real PDF files in storage/app/public/reports
+        $storageReportsPath = storage_path('app/public/reports');
+        if (File::exists($storageReportsPath)) {
+            $files = File::files($storageReportsPath);
+            foreach ($files as $file) {
+                if (strtolower($file->getExtension()) === 'pdf') {
+                    // Only use files that are actual PDFs (larger than 1KB)
+                    if ($file->getSize() > 1024) {
+                        $sampleFiles[] = [
+                            'path' => $file->getPathname(),
+                            'name' => $file->getFilename()
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Priority 2: Check public/sample_files directory
+        if (empty($sampleFiles) && File::exists(public_path('sample_files'))) {
             $files = File::files(public_path('sample_files'));
             foreach ($files as $file) {
                 if (strtolower($file->getExtension()) === 'pdf') {
@@ -275,44 +283,45 @@ class ReportSubmissionsSeeder extends Seeder
             }
         }
 
-        // If we don't have any sample files, create some minimal ones
-        if (empty($sampleFiles)) {
-            // Create sample_files directory if it doesn't exist
-            if (!File::exists(public_path('sample_files'))) {
-                File::makeDirectory(public_path('sample_files'));
-            }
+        // Priority 3: Look for specific known good files
+        $knownGoodFiles = [
+            storage_path('app/public/reports/CORTEZANO-OJT REPORT.pdf'),
+            storage_path('app/public/reports/1747730341_CORTEZANO-OJT REPORT.pdf'),
+            storage_path('app/public/reports/1747368319_FrontisPiece_ServiceConnect1312312.pdf'),
+            storage_path('app/public/reports/CHAPTER_1-Final.pdf'),
+            storage_path('app/public/reports/1741137492_CHAPTER_1-Final.pdf'),
+            public_path('sample_files/sample1.pdf'),
+            public_path('sample_files/sample2.pdf'),
+            public_path('sample_files/sample3.pdf'),
+            public_path('sample_files/sample4.pdf'),
+            public_path('sample_files/sample5.pdf'),
+        ];
 
-            // Create 5 minimal PDF files
-            for ($i = 1; $i <= 5; $i++) {
-                $fileName = "sample{$i}.pdf";
-                $filePath = public_path('sample_files/' . $fileName);
-
-                // Create a minimal PDF file
-                $pdfContent = "%PDF-1.4
-1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
-2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
-3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Resources<<>>/Parent 2 0 R>>endobj
-xref
-0 4
-0000000000 65535 f
-0000000009 00000 n
-0000000053 00000 n
-0000000102 00000 n
-trailer<</Size 4/Root 1 0 R>>
-startxref
-178
-%%EOF";
-
-                // Write the PDF content to the file
-                File::put($filePath, $pdfContent);
-
+        foreach ($knownGoodFiles as $filePath) {
+            if (File::exists($filePath) && File::size($filePath) > 1024) {
                 $sampleFiles[] = [
                     'path' => $filePath,
-                    'name' => $fileName
+                    'name' => basename($filePath)
                 ];
             }
         }
 
-        return $sampleFiles;
+        // Remove duplicates based on file name
+        $uniqueFiles = [];
+        $usedNames = [];
+        foreach ($sampleFiles as $file) {
+            if (!in_array($file['name'], $usedNames)) {
+                $uniqueFiles[] = $file;
+                $usedNames[] = $file['name'];
+            }
+        }
+
+        echo "📁 Found " . count($uniqueFiles) . " real PDF files to use\n";
+        foreach ($uniqueFiles as $file) {
+            $size = File::size($file['path']);
+            echo "  - {$file['name']} (" . number_format($size) . " bytes)\n";
+        }
+
+        return $uniqueFiles;
     }
 }

@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@example.com',
         ]);
 
+        // Seed report types
+        $this->call(ReportTypeSeeder::class);
+
         // Uncomment the line below to seed report submissions
         // $this->call(ReportSubmissionsSeeder::class);
     }
