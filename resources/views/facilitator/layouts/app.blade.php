@@ -814,7 +814,8 @@
                         <small>{{ auth()->user()->name }}</small>
                     </div>
                     <nav class="d-flex flex-column h-100">
-                        <div class="flex-grow-1">
+                        <!-- Navigation Links Section -->
+                        <div class="navigation-links">
                             <a href="{{ route('facilitator.dashboard') }}" class="nav-link {{ request()->routeIs('facilitator.dashboard') ? 'active' : '' }}">
                                 <i class="fas fa-tachometer-alt"></i>
                                 Dashboard
@@ -823,11 +824,13 @@
                                 <i class="fas fa-file-alt"></i>
                                 View Submissions
                             </a>
-
                         </div>
 
-                        <!-- Announcements Section at Bottom of Sidebar -->
-                        <div class="mt-auto">
+                        <!-- Spacer to push announcements to very bottom -->
+                        <div class="flex-grow-1"></div>
+
+                        <!-- Announcements Section at Absolute Bottom Edge -->
+                        <div class="announcements-bottom-section" style="border-top: 2px solid var(--gray-200); padding-top: 1rem; margin-top: 1rem;">
                             @include('components.sidebar-announcements')
                         </div>
                     </nav>

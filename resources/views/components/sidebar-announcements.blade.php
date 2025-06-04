@@ -12,8 +12,7 @@
 
 <style>
     .sidebar-announcements {
-        padding: 0.5rem 1rem;
-        border-top: 1px solid var(--gray-200);
+        padding: 0.5rem 1rem 1rem 1rem; /* Extra bottom padding to reach edge */
         margin: 0;
     }
     
@@ -141,11 +140,27 @@
     
     /* Fix for the modals */
     .modal-announcement {
-        z-index: 1050 !important;
+        z-index: 1060 !important;
     }
-    
-    .modal-backdrop {
-        z-index: 1040 !important;
+
+    .modal-announcement .modal-backdrop {
+        z-index: 1055 !important;
+    }
+
+    /* Ensure modal content is above backdrop */
+    .modal-announcement .modal-dialog {
+        z-index: 1065 !important;
+        position: relative;
+    }
+
+    /* Fix for body modal-open state */
+    body.modal-open {
+        overflow: hidden;
+    }
+
+    /* Prevent sidebar from interfering with modal */
+    .sidebar {
+        z-index: 1030 !important;
     }
     
     /* Fix for the tooltip */
@@ -241,14 +256,14 @@
     </div>
 @endif
 
-<!-- Modals container (outside the sidebar to prevent nesting issues) -->
-<div class="announcement-modals">
+<!-- Modals container (will be moved to body via JavaScript) -->
+<div class="announcement-modals" style="display: none;">
     @foreach($announcements as $announcement)
         @php
             // Determine if the modal should be in "image-only" mode
-            $isModalImageOnly = $announcement->image_path && 
-                                empty(trim(strip_tags((string) $announcement->title))) && 
-                                empty(trim(strip_tags((string) $announcement->content))) && 
+            $isModalImageOnly = $announcement->image_path &&
+                                empty(trim(strip_tags((string) $announcement->title))) &&
+                                empty(trim(strip_tags((string) $announcement->content))) &&
                                 empty(trim(strip_tags((string) $announcement->button_text)));
         @endphp
         <div class="modal fade modal-announcement" id="modal-announcement-{{ $announcement->id }}" tabindex="-1" aria-labelledby="announcementModalLabel-{{ $announcement->id }}" aria-hidden="true">
@@ -259,7 +274,7 @@
                             <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close" onclick="closeAnnouncementModal({{ $announcement->id }})"></button>
                         </div>
                         <div class="modal-body p-2 text-center">
-                            <img src="{{ asset('storage/' . $announcement->image_path) }}" 
+                            <img src="{{ asset('storage/' . $announcement->image_path) }}"
                                  alt="Announcement Image"
                                  class="img-fluid rounded mx-auto d-block"
                                  style="max-height: 80vh;">
@@ -272,17 +287,17 @@
                         <div class="modal-body">
                             @if($announcement->image_path)
                                 <div class="text-center mb-3">
-                                    <img src="{{ asset('storage/' . $announcement->image_path) }}" 
+                                    <img src="{{ asset('storage/' . $announcement->image_path) }}"
                                          alt="{{ $announcement->title }}"
                                          class="img-fluid rounded mx-auto d-block"
                                          style="max-height: 300px;">
                                 </div>
                             @endif
-                            
+
                             <div class="announcement-content">
                                 {!! $announcement->content !!}
                             </div>
-                            
+
                             @if($announcement->button_text && $announcement->button_link)
                                 <div class="text-center mt-4">
                                     <a href="{{ $announcement->button_link }}" class="btn btn-primary" target="_blank">
@@ -301,6 +316,22 @@
         </div>
     @endforeach
 </div>
+
+<!-- Script to move modals to body -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Move all announcement modals to body to prevent nesting issues
+    const modalsContainer = document.querySelector('.announcement-modals');
+    if (modalsContainer) {
+        const modals = modalsContainer.querySelectorAll('.modal-announcement');
+        modals.forEach(modal => {
+            document.body.appendChild(modal);
+        });
+        // Remove the empty container
+        modalsContainer.remove();
+    }
+});
+</script>
 
 <script>
     // Variables to track the current announcement
@@ -351,14 +382,39 @@
     function openAnnouncementModal(id) {
         const modalId = `modal-announcement-${id}`;
         const modalElement = document.getElementById(modalId);
+
+        if (!modalElement) {
+            console.error('Modal not found:', modalId);
+            return;
+        }
+
+        // Destroy any existing modal instance
+        const existingModal = bootstrap.Modal.getInstance(modalElement);
+        if (existingModal) {
+            existingModal.dispose();
+        }
+
+        // Create new modal instance with proper configuration
         const modal = new bootstrap.Modal(modalElement, {
-            backdrop: true,  // Allow clicking outside to close
-            keyboard: true   // Allow ESC key to close
+            backdrop: true,
+            keyboard: true,
+            focus: true
         });
+
+        // Show the modal
         modal.show();
 
         // Store the current modal ID for ESC key handling
         window.currentAnnouncementModalId = id;
+
+        // Ensure proper z-index after modal is shown
+        setTimeout(() => {
+            const backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.style.zIndex = '1055';
+            }
+            modalElement.style.zIndex = '1060';
+        }, 50);
     }
 
     function closeAnnouncementModal(id) {

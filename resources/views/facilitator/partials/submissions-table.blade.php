@@ -37,20 +37,42 @@
     <td>{{ \Carbon\Carbon::parse($report->updated_at)->format('M d, Y') }}</td>
     <td>
         @php
-            $statusIcon = match($report->status) {
-                'submitted' => 'fa-check-circle',
-                'no submission' => 'fa-times-circle',
-                'pending' => 'fa-clock',
-                'approved' => 'fa-thumbs-up',
-                'rejected' => 'fa-thumbs-down',
-                default => 'fa-info-circle'
-            };
-            $statusClass = str_replace(' ', '-', $report->status);
+            $displayStatus = $report->display_status ?? 'submitted';
         @endphp
-        <span class="status-badge {{ $statusClass }}">
-            <i class="fas {{ $statusIcon }}"></i>
-            {{ ucfirst($report->status) }}
-        </span>
+
+        @if($displayStatus === 'resubmit')
+            <span class="status-badge resubmit">
+                <i class="fas fa-sync-alt"></i>
+                Resubmit
+                @if($report->submission_count > 1)
+                    <span class="badge bg-dark ms-1">{{ $report->submission_count }}</span>
+                @endif
+            </span>
+        @elseif($displayStatus === 'resubmitted')
+            <span class="status-badge resubmitted">
+                <i class="fas fa-check-double"></i>
+                Resubmitted
+                @if($report->submission_count > 1)
+                    <span class="badge bg-dark ms-1">{{ $report->submission_count }}</span>
+                @endif
+            </span>
+        @else
+            @php
+                $statusIcon = match($report->status) {
+                    'submitted' => 'fa-check-circle',
+                    'no submission' => 'fa-times-circle',
+                    'pending' => 'fa-clock',
+                    'approved' => 'fa-thumbs-up',
+                    'rejected' => 'fa-thumbs-down',
+                    default => 'fa-info-circle'
+                };
+                $statusClass = str_replace(' ', '-', $report->status);
+            @endphp
+            <span class="status-badge {{ $statusClass }}">
+                <i class="fas {{ $statusIcon }}"></i>
+                {{ ucfirst($report->status) }}
+            </span>
+        @endif
     </td>
     <td>
         <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $report->unique_id }}">

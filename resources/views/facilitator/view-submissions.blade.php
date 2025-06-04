@@ -383,6 +383,49 @@
         border: 1px solid rgba(var(--secondary-rgb), 0.2);
     }
 
+    .status-badge.resubmit {
+        background-color: rgba(var(--warning-rgb), 0.15);
+        color: var(--warning);
+        border: 1px solid rgba(var(--warning-rgb), 0.3);
+        animation: pulse-resubmit 2s infinite;
+        position: relative;
+    }
+
+    .status-badge.resubmitted {
+        background-color: rgba(var(--info-rgb), 0.15);
+        color: var(--info);
+        border: 1px solid rgba(var(--info-rgb), 0.3);
+        position: relative;
+    }
+
+    /* Badge styling for submission counts */
+    .status-badge .badge {
+        font-size: 0.65rem;
+        padding: 0.25em 0.5em;
+        border-radius: 50%;
+        min-width: 1.5rem;
+        height: 1.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    @keyframes pulse-resubmit {
+        0% {
+            box-shadow: 0 0 0 0 rgba(var(--warning-rgb), 0.4);
+            transform: scale(1);
+        }
+        70% {
+            box-shadow: 0 0 0 8px rgba(var(--warning-rgb), 0);
+            transform: scale(1.02);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(var(--warning-rgb), 0);
+            transform: scale(1);
+        }
+    }
+
     /* Pagination Styles */
     .pagination {
         margin: 0;
@@ -574,20 +617,42 @@
                         <td>{{ \Carbon\Carbon::parse($report->updated_at)->format('M d, Y') }}</td>
                         <td>
                             @php
-                                $statusIcon = match($report->status) {
-                                    'submitted' => 'fa-check-circle',
-                                    'no submission' => 'fa-times-circle',
-                                    'pending' => 'fa-clock',
-                                    'approved' => 'fa-thumbs-up',
-                                    'rejected' => 'fa-thumbs-down',
-                                    default => 'fa-info-circle'
-                                };
-                                $statusClass = str_replace(' ', '-', $report->status);
+                                $displayStatus = $report->display_status ?? 'submitted';
                             @endphp
-                            <span class="status-badge {{ $statusClass }}">
-                                <i class="fas {{ $statusIcon }}"></i>
-                                {{ ucfirst($report->status) }}
-                            </span>
+
+                            @if($displayStatus === 'resubmit')
+                                <span class="status-badge resubmit">
+                                    <i class="fas fa-sync-alt"></i>
+                                    Resubmit
+                                    @if($report->submission_count > 1)
+                                        <span class="badge bg-dark ms-1">{{ $report->submission_count }}</span>
+                                    @endif
+                                </span>
+                            @elseif($displayStatus === 'resubmitted')
+                                <span class="status-badge resubmitted">
+                                    <i class="fas fa-check-double"></i>
+                                    Resubmitted
+                                    @if($report->submission_count > 1)
+                                        <span class="badge bg-dark ms-1">{{ $report->submission_count }}</span>
+                                    @endif
+                                </span>
+                            @else
+                                @php
+                                    $statusIcon = match($report->status) {
+                                        'submitted' => 'fa-check-circle',
+                                        'no submission' => 'fa-times-circle',
+                                        'pending' => 'fa-clock',
+                                        'approved' => 'fa-thumbs-up',
+                                        'rejected' => 'fa-thumbs-down',
+                                        default => 'fa-info-circle'
+                                    };
+                                    $statusClass = str_replace(' ', '-', $report->status);
+                                @endphp
+                                <span class="status-badge {{ $statusClass }}">
+                                    <i class="fas {{ $statusIcon }}"></i>
+                                    {{ ucfirst($report->status) }}
+                                </span>
+                            @endif
                         </td>
                         <td>
                             <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;" data-bs-toggle="modal" data-bs-target="#viewSubmissionModal{{ $report->unique_id }}">
@@ -729,10 +794,32 @@
                                     <div class="list-group-item bg-transparent px-0 py-2 border-0 border-bottom">
                                         <div class="d-flex justify-content-between">
                                             <span class="text-muted">Status:</span>
-                                            <span class="status-badge {{ $statusClass }}">
-                                                <i class="fas {{ $statusIcon }}"></i>
-                                                {{ ucfirst($report->status) }}
-                                            </span>
+                                            @php
+                                                $displayStatus = $report->display_status ?? 'submitted';
+                                            @endphp
+
+                                            @if($displayStatus === 'resubmit')
+                                                <span class="status-badge resubmit">
+                                                    <i class="fas fa-sync-alt"></i>
+                                                    Resubmit
+                                                    @if($report->submission_count > 1)
+                                                        <span class="badge bg-dark ms-1">{{ $report->submission_count }}</span>
+                                                    @endif
+                                                </span>
+                                            @elseif($displayStatus === 'resubmitted')
+                                                <span class="status-badge resubmitted">
+                                                    <i class="fas fa-check-double"></i>
+                                                    Resubmitted
+                                                    @if($report->submission_count > 1)
+                                                        <span class="badge bg-dark ms-1">{{ $report->submission_count }}</span>
+                                                    @endif
+                                                </span>
+                                            @else
+                                                <span class="status-badge {{ $statusClass }}">
+                                                    <i class="fas {{ $statusIcon }}"></i>
+                                                    {{ ucfirst($report->status) }}
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="list-group-item bg-transparent px-0 py-2 border-0 border-bottom">

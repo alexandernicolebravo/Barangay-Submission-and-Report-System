@@ -155,7 +155,27 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                @if($report->status === 'approved')
+                                                @php
+                                                    $displayStatus = $report->display_status ?? 'submitted';
+                                                @endphp
+
+                                                @if($displayStatus === 'resubmit')
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-sync-alt me-1"></i>
+                                                        Resubmit
+                                                        @if($report->submission_count > 1)
+                                                            <span class="badge bg-dark ms-1">{{ $report->submission_count }}</span>
+                                                        @endif
+                                                    </span>
+                                                @elseif($displayStatus === 'resubmitted')
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-check-double me-1"></i>
+                                                        Resubmitted
+                                                        @if($report->submission_count > 1)
+                                                            <span class="badge bg-dark ms-1">{{ $report->submission_count }}</span>
+                                                        @endif
+                                                    </span>
+                                                @elseif($report->status === 'approved')
                                                     <span class="badge bg-success">
                                                         <i class="fas fa-check-circle me-1"></i>
                                                         Approved

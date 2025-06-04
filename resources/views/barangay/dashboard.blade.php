@@ -97,10 +97,32 @@
                                                 <i class="far fa-clock me-1"></i>
                                                 {{ $report->created_at->format('M d, Y') }}
                                             </span>
-                                            <span class="report-status status-{{ $report->status }}">
-                                                <i class="fas {{ $report->status === 'submitted' ? 'fa-check-circle' : 'fa-exclamation-circle' }} me-1"></i>
-                                                {{ ucfirst($report->status) }}
-                                            </span>
+                                            @php
+                                                $displayStatus = $report->display_status ?? 'submitted';
+                                            @endphp
+
+                                            @if($displayStatus === 'resubmit')
+                                                <span class="report-status status-resubmit">
+                                                    <i class="fas fa-sync-alt me-1"></i>
+                                                    Resubmit
+                                                    @if($report->submission_count > 1)
+                                                        <span class="badge bg-warning ms-1">{{ $report->submission_count }}</span>
+                                                    @endif
+                                                </span>
+                                            @elseif($displayStatus === 'resubmitted')
+                                                <span class="report-status status-resubmitted">
+                                                    <i class="fas fa-check-double me-1"></i>
+                                                    Resubmitted
+                                                    @if($report->submission_count > 1)
+                                                        <span class="badge bg-info ms-1">{{ $report->submission_count }}</span>
+                                                    @endif
+                                                </span>
+                                            @else
+                                                <span class="report-status status-submitted">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    Submitted
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -779,6 +801,47 @@
 .report-status.status-submitted {
     background-color: rgba(var(--success-rgb), 0.1);
     color: var(--success);
+}
+
+.report-status.status-resubmit {
+    background-color: rgba(var(--warning-rgb), 0.15);
+    color: var(--warning);
+    animation: pulse-resubmit 2s infinite;
+    position: relative;
+}
+
+.report-status.status-resubmitted {
+    background-color: rgba(var(--info-rgb), 0.15);
+    color: var(--info);
+    position: relative;
+}
+
+/* Badge styling for submission counts */
+.report-status .badge {
+    font-size: 0.65rem;
+    padding: 0.25em 0.5em;
+    border-radius: 50%;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+@keyframes pulse-resubmit {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--warning-rgb), 0.4);
+        transform: scale(1);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(var(--warning-rgb), 0);
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--warning-rgb), 0);
+        transform: scale(1);
+    }
 }
 
 .report-status.status-no-submission {

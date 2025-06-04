@@ -495,6 +495,89 @@ Route::get('/test-notification-specific/{userId}/{reportId}/{reportType}', funct
     }
 });
 
+// Test Resubmission Status Display
+Route::get('/test-resubmission-status', function() {
+    try {
+        $output = "=== RESUBMISSION STATUS TEST ===\n\n";
+
+        // Find a barangay user with reports
+        $barangayUser = User::where('user_type', 'barangay')->first();
+
+        if (!$barangayUser) {
+            return 'No barangay user found.';
+        }
+
+        $output .= "Testing with user: {$barangayUser->name} (ID: {$barangayUser->id})\n\n";
+
+        // Get a report to test with
+        $report = WeeklyReport::with('reportType')->where('user_id', $barangayUser->id)->first() ??
+                 MonthlyReport::with('reportType')->where('user_id', $barangayUser->id)->first() ??
+                 QuarterlyReport::with('reportType')->where('user_id', $barangayUser->id)->first();
+
+        if (!$report) {
+            return $output . "No reports found for this user.";
+        }
+
+        $output .= "Testing with report: {$report->reportType->name} (ID: {$report->id})\n\n";
+
+        // Test scenario 1: Normal submission (should show "Submitted")
+        $output .= "✅ Scenario 1: Normal submission - should show 'Submitted'\n";
+        $output .= "   Report ID: {$report->id} (can_update: false, count: 1)\n\n";
+
+        // Test scenario 2: Mark report for resubmission (should show "Resubmit")
+        $report->update(['can_update' => true, 'remarks' => 'Please resubmit with corrections.']);
+        $output .= "✅ Scenario 2: Marked for resubmission - should show 'Resubmit'\n";
+        $output .= "   Report ID: {$report->id} (can_update: true, count: 1)\n\n";
+
+        // Test scenario 3: Create a duplicate submission to simulate resubmitted report
+        $reportClass = get_class($report);
+        $newReport = $reportClass::create([
+            'user_id' => $report->user_id,
+            'report_type_id' => $report->report_type_id,
+            'file_name' => 'resubmitted_' . $report->file_name,
+            'file_path' => 'resubmitted_' . $report->file_path,
+            'status' => 'submitted',
+            'deadline' => $report->deadline,
+            'month' => $report->month ?? null,
+            'week_number' => $report->week_number ?? null,
+            'quarter_number' => $report->quarter_number ?? null,
+            'sem_number' => $report->sem_number ?? null,
+            'num_of_clean_up_sites' => $report->num_of_clean_up_sites ?? null,
+            'num_of_participants' => $report->num_of_participants ?? null,
+            'num_of_barangays' => $report->num_of_barangays ?? null,
+            'total_volume' => $report->total_volume ?? null,
+        ]);
+
+        $output .= "✅ Scenario 3: Created resubmission - should show 'Resubmitted'\n";
+        $output .= "   New Report ID: {$newReport->id} (can_update: false, count: 2)\n\n";
+
+        $output .= "CORRECTED Status Flow:\n";
+        $output .= "1. Barangay submits → Status: 'Submitted' ✅ (green)\n";
+        $output .= "2. Facilitator marks can_update=true → Status: 'Resubmit' 🔄 (orange with pulse)\n";
+        $output .= "3. Barangay resubmits → Status: 'Resubmitted' ✅✅ (blue with badge count)\n\n";
+
+        $output .= "Key Logic Changes:\n";
+        $output .= "- Status depends on can_update flag, not just submission count\n";
+        $output .= "- Submission count now displayed as visible badges instead of small text\n";
+        $output .= "- Both interfaces show identical status for consistency\n\n";
+
+        $output .= "=== BARANGAY VIEW ===\n";
+        $output .= "Dashboard URL: " . route('barangay.dashboard') . "\n";
+        $output .= "Submissions URL: " . route('barangay.submissions') . "\n";
+        $output .= "Login as: {$barangayUser->email} / password\n\n";
+
+        $output .= "=== FACILITATOR VIEW ===\n";
+        $output .= "View Submissions URL: " . route('facilitator.view-submissions') . "\n";
+        $output .= "Login as facilitator to see the same status logic\n\n";
+
+        $output .= "Both barangay and facilitator will see the same status to avoid confusion!\n";
+
+        return response($output)->header('Content-Type', 'text/plain');
+    } catch (\Exception $e) {
+        return 'Error testing resubmission status: ' . $e->getMessage() . "\n" . $e->getTraceAsString();
+    }
+});
+
 // Authenticated Routes Group
 Route::middleware(['auth'])->group(function () {
     // Notification Routes

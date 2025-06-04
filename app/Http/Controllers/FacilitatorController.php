@@ -1099,6 +1099,22 @@ class FacilitatorController extends Controller
                 // Sort by created_at in descending order and take the first one (latest)
                 $latestReport = $group->sortByDesc('created_at')->first();
                 if ($latestReport) {
+                    // Check submission status and history
+                    $submissionCount = $group->count();
+                    $latestReport->submission_count = $submissionCount;
+
+                    // Determine the display status based on facilitator workflow
+                    if ($latestReport->can_update) {
+                        // Facilitator has marked this for resubmission - show as pending resubmission
+                        $latestReport->display_status = 'resubmit';
+                    } elseif ($submissionCount > 1 && !$latestReport->can_update) {
+                        // Multiple submissions and not marked for resubmission - this is resubmitted
+                        $latestReport->display_status = 'resubmitted';
+                    } else {
+                        // Normal first submission or single submission not marked for resubmission
+                        $latestReport->display_status = 'submitted';
+                    }
+
                     $latestReports->push($latestReport);
                 }
             }
