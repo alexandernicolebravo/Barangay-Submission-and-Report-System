@@ -93,9 +93,7 @@
                         <div class="text-center py-5">
                             <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">No reports have been submitted yet</h5>
-                            <a href="{{ route('barangay.submit-report') }}" class="btn btn-primary mt-3">
-                                <i class="fas fa-plus me-2"></i>Submit New Report
-                            </a>
+                            <p class="text-muted">Reports can be submitted through the upcoming deadlines section on your dashboard</p>
                         </div>
                     @else
                         <div class="table-responsive">
@@ -236,6 +234,149 @@
                                                         <form action="{{ route('barangay.submissions.resubmit', $reportId) }}" method="POST" enctype="multipart/form-data">
                                                             @csrf
                                                             <input type="hidden" name="report_type_id" value="{{ $report->report_type_id }}">
+
+                                                            <!-- Weekly Report Fields -->
+                                                            @if($report->reportType->frequency === 'weekly')
+                                                                <div class="card bg-light mb-3">
+                                                                    <div class="card-body">
+                                                                        <h6 class="card-title mb-3">
+                                                                            <i class="fas fa-calendar-alt me-2"></i>
+                                                                            Report Period
+                                                                        </h6>
+                                                                        <div class="row">
+                                                                            <div class="col-md-6 mb-3">
+                                                                                <label class="form-label">Month</label>
+                                                                                <select class="form-select" name="month" required>
+                                                                                    @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
+                                                                                        <option value="{{ $month }}" {{ (isset($report->month) && $report->month === $month) ? 'selected' : '' }}>{{ $month }}</option>
+                                                                                    @endforeach
+                                                                                </select>
+                                                                            </div>
+                                                                            <div class="col-md-6 mb-3">
+                                                                                <label class="form-label">Week Number</label>
+                                                                                <input type="number" class="form-control" name="week_number" min="1" max="52" value="{{ $report->week_number ?? '' }}" required>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="row">
+                                                                            <div class="col-md-6 mb-3">
+                                                                                <label class="form-label">Number of Clean-up Sites</label>
+                                                                                <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" value="{{ $report->num_of_clean_up_sites ?? '' }}" required>
+                                                                            </div>
+                                                                            <div class="col-md-6 mb-3">
+                                                                                <label class="form-label">Number of Participants</label>
+                                                                                <input type="number" class="form-control" name="num_of_participants" min="0" value="{{ $report->num_of_participants ?? '' }}" required>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="row">
+                                                                            <div class="col-md-6 mb-3">
+                                                                                <label class="form-label">Number of Barangays</label>
+                                                                                <input type="number" class="form-control" name="num_of_barangays" min="0" value="{{ $report->num_of_barangays ?? '' }}" required>
+                                                                            </div>
+                                                                            <div class="col-md-6 mb-3">
+                                                                                <label class="form-label">Total Volume (m³)</label>
+                                                                                <input type="number" class="form-control" name="total_volume" min="0" step="0.01" value="{{ $report->total_volume ?? '' }}" required>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+
+                                                            <!-- Monthly Report Fields -->
+                                                            @if($report->reportType->frequency === 'monthly')
+                                                                <div class="card bg-light mb-3">
+                                                                    <div class="card-body">
+                                                                        <h6 class="card-title mb-3">
+                                                                            <i class="fas fa-calendar-alt me-2"></i>
+                                                                            Report Period
+                                                                        </h6>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Month</label>
+                                                                            <select class="form-select" name="month" required>
+                                                                                @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
+                                                                                    <option value="{{ $month }}" {{ (isset($report->month) && $report->month === $month) ? 'selected' : '' }}>{{ $month }}</option>
+                                                                                @endforeach
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+
+                                                            <!-- Quarterly Report Fields -->
+                                                            @if($report->reportType->frequency === 'quarterly')
+                                                                <div class="card bg-light mb-3">
+                                                                    <div class="card-body">
+                                                                        <h6 class="card-title mb-3">
+                                                                            <i class="fas fa-calendar-alt me-2"></i>
+                                                                            Report Period
+                                                                        </h6>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Quarter</label>
+                                                                            <select class="form-select" name="quarter_number" required>
+                                                                                <option value="">Select Quarter</option>
+                                                                                <option value="1" {{ (isset($report->quarter_number) && $report->quarter_number == 1) ? 'selected' : '' }}>First Quarter (January - March)</option>
+                                                                                <option value="2" {{ (isset($report->quarter_number) && $report->quarter_number == 2) ? 'selected' : '' }}>Second Quarter (April - June)</option>
+                                                                                <option value="3" {{ (isset($report->quarter_number) && $report->quarter_number == 3) ? 'selected' : '' }}>Third Quarter (July - September)</option>
+                                                                                <option value="4" {{ (isset($report->quarter_number) && $report->quarter_number == 4) ? 'selected' : '' }}>Fourth Quarter (October - December)</option>
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+
+                                                            <!-- Semestral Report Fields -->
+                                                            @if($report->reportType->frequency === 'semestral')
+                                                                <div class="card bg-light mb-3">
+                                                                    <div class="card-body">
+                                                                        <h6 class="card-title mb-3">
+                                                                            <i class="fas fa-calendar-alt me-2"></i>
+                                                                            Report Period
+                                                                        </h6>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Semester</label>
+                                                                            <select class="form-select" name="sem_number" required>
+                                                                                <option value="">Select Semester</option>
+                                                                                <option value="1" {{ (isset($report->sem_number) && $report->sem_number == 1) ? 'selected' : '' }}>First Semester (January - June)</option>
+                                                                                <option value="2" {{ (isset($report->sem_number) && $report->sem_number == 2) ? 'selected' : '' }}>Second Semester (July - December)</option>
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+
+                                                            <!-- Current File Display -->
+                                                            <div class="card bg-light mb-3">
+                                                                <div class="card-body">
+                                                                    <h6 class="card-title mb-3">
+                                                                        <i class="fas fa-file-alt me-2"></i>
+                                                                        Current File
+                                                                    </h6>
+                                                                    <div class="d-flex align-items-center justify-content-between p-2 border rounded bg-white">
+                                                                        <div class="d-flex align-items-center">
+                                                                            @php
+                                                                                $extension = strtolower(pathinfo($report->file_name, PATHINFO_EXTENSION));
+                                                                                $iconClass = match($extension) {
+                                                                                    'pdf' => 'fa-file-pdf text-danger',
+                                                                                    'doc', 'docx' => 'fa-file-word text-primary',
+                                                                                    'xls', 'xlsx' => 'fa-file-excel text-success',
+                                                                                    'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image text-info',
+                                                                                    default => 'fa-file text-secondary'
+                                                                                };
+                                                                            @endphp
+                                                                            <i class="fas {{ $iconClass }} fa-lg me-2"></i>
+                                                                            <div>
+                                                                                <div class="fw-medium small">{{ $report->file_name }}</div>
+                                                                                <small class="text-muted">{{ $report->created_at->format('M d, Y') }}</small>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <a href="{{ route('barangay.direct.files.download', $reportId) }}?download=true"
+                                                                               class="btn btn-sm btn-outline-primary">
+                                                                                <i class="fas fa-download"></i>
+                                                                            </a>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
 
                                                             <div class="mb-3">
                                                                 <label for="file{{ $reportId }}" class="form-label">Select New File</label>

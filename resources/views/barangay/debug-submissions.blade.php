@@ -123,10 +123,7 @@
                     @else
                     <div class="alert alert-warning">
                         <h6>No Reports Found</h6>
-                        <p>No reports have been submitted yet. Please submit a report first to test the view functionality.</p>
-                        <a href="{{ route('barangay.submit-report') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i>Submit a Report
-                        </a>
+                        <p>No reports have been submitted yet. Reports can be submitted through the upcoming deadlines section on your dashboard.</p>
                     </div>
                     @endif
                 </div>

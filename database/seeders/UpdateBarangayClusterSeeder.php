@@ -78,9 +78,40 @@ class UpdateBarangayClusterSeeder extends Seeder
             }
         }
 
+        // Fix facilitator-cluster assignments
+        $facilitatorAssignments = [
+            ['email' => 'john.cluster1@gmail.com', 'cluster_id' => 1],
+            ['email' => 'emelyn.cluster2@gmail.com', 'cluster_id' => 2],
+            ['email' => 'greg.cluster3@gmail.com', 'cluster_id' => 3],
+            ['email' => 'sandra.cluster4@gmail.com', 'cluster_id' => 4],
+        ];
+
+        foreach ($facilitatorAssignments as $assignment) {
+            $facilitator = User::where('email', $assignment['email'])
+                              ->where('user_type', 'facilitator')
+                              ->first();
+
+            if ($facilitator) {
+                // Remove any existing assignments for this facilitator
+                DB::table('facilitator_cluster')->where('user_id', $facilitator->id)->delete();
+
+                // Add the correct assignment
+                DB::table('facilitator_cluster')->insert([
+                    'user_id' => $facilitator->id,
+                    'cluster_id' => $assignment['cluster_id'],
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                $this->command->info("Assigned {$facilitator->name} to Cluster {$assignment['cluster_id']}");
+            } else {
+                $this->command->warn("Facilitator with email {$assignment['email']} not found");
+            }
+        }
+
         $this->command->info('Barangay cluster assignments updated successfully!');
         $this->command->info('Total barangays created: ' . User::where('user_type', 'barangay')->count());
-        
+
         // Show summary by cluster
         foreach ($barangayAssignments as $clusterId => $barangays) {
             $clusterName = Cluster::find($clusterId)->name;
