@@ -210,7 +210,7 @@ class ReportController extends Controller
             }
 
             // Get all barangay users for the filter dropdown
-            $barangays = \App\Models\User::where('user_type', 'barangay')
+            $barangays = User::where('user_type', 'barangay')
                                         ->where('is_active', true)
                                         ->orderBy('name')
                                         ->get();
@@ -218,7 +218,7 @@ class ReportController extends Controller
             // Get the selected barangay if any
             $selectedBarangay = null;
             if ($request->filled('barangay_id')) {
-                $selectedBarangay = \App\Models\User::find($request->barangay_id);
+                $selectedBarangay = User::find($request->barangay_id);
             }
 
             return view('admin.view-submissions', compact('reports', 'barangays', 'selectedBarangay'));
@@ -226,7 +226,7 @@ class ReportController extends Controller
             Log::error('Error in admin view submissions: ' . $e->getMessage());
             return view('admin.view-submissions', [
                 'reports' => collect(),
-                'barangays' => \App\Models\User::where('user_type', 'barangay')->where('is_active', true)->get(),
+                'barangays' => User::where('user_type', 'barangay')->where('is_active', true)->get(),
                 'selectedBarangay' => null
             ])->with('error', 'An error occurred while loading submissions.');
         }
@@ -234,8 +234,8 @@ class ReportController extends Controller
 
     public function showSubmitReport()
     {
-        // Get all report types and ensure we have at least one of each frequency
-        $reportTypes = ReportType::all();
+        // Get all ACTIVE report types and ensure we have at least one of each frequency
+        $reportTypes = ReportType::active()->get();
 
         // If no report types exist, create default ones
         if ($reportTypes->isEmpty()) {
@@ -251,7 +251,7 @@ class ReportController extends Controller
                 ReportType::create($type);
             }
 
-            $reportTypes = ReportType::all();
+            $reportTypes = ReportType::active()->get();
         }
 
         // Get the current user's ID
@@ -441,7 +441,7 @@ class ReportController extends Controller
      */
     public function create()
     {
-        $reportTypes = ReportType::all();
+        $reportTypes = ReportType::active()->get();
 
         // Fetch the submitted reports
         $weeklyReports = WeeklyReport::with('user', 'reportType')->orderBy('created_at', 'desc')->get();
@@ -604,7 +604,7 @@ class ReportController extends Controller
     public function view()
     {
         $userId = Auth::id();
-        $reportTypes = ReportType::all();
+        $reportTypes = ReportType::active()->get();
 
         // Fetch all submitted reports for the current user
         $weeklyReports = WeeklyReport::where('user_id', $userId)
@@ -658,7 +658,7 @@ class ReportController extends Controller
             return back()->with('error', 'Report not found or you do not have permission to resubmit this report.');
         }
 
-        $reportTypes = ReportType::all();
+        $reportTypes = ReportType::active()->get();
         return view('barangay.resubmit-report', compact('report', 'reportTypes'));
     }
 

@@ -483,6 +483,31 @@ document.getElementById('createIssuanceForm').addEventListener('submit', functio
     document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
 });
 
+// Handle reupload form submission
+document.getElementById('reuploadForm').addEventListener('submit', function(e) {
+    // Clear previous error states
+    document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    document.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+
+    // Validate required fields
+    const title = document.getElementById('reuploadTitleInput').value.trim();
+    const file = document.getElementById('reuploadFile').files[0];
+
+    if (!title) {
+        e.preventDefault();
+        document.getElementById('reuploadTitleInput').classList.add('is-invalid');
+        document.querySelector('#reuploadTitleInput + .invalid-feedback').textContent = 'The title field is required.';
+        return false;
+    }
+
+    if (!file) {
+        e.preventDefault();
+        document.getElementById('reuploadFile').classList.add('is-invalid');
+        document.querySelector('#reuploadFile + .form-text + .invalid-feedback').textContent = 'Please select a file to upload.';
+        return false;
+    }
+});
+
 // Reset modal forms when closed
 document.getElementById('createIssuanceModal').addEventListener('hidden.bs.modal', function() {
     document.getElementById('createIssuanceForm').reset();
@@ -499,24 +524,52 @@ document.getElementById('reuploadModal').addEventListener('hidden.bs.modal', fun
 // Show modal with validation errors if there are any
 @if($errors->any())
     document.addEventListener('DOMContentLoaded', function() {
-        const modal = new bootstrap.Modal(document.getElementById('createIssuanceModal'));
-        modal.show();
+        // Check if this is a reupload error (when coming back from update route)
+        const isReuploadError = '{{ request()->route()->getName() }}' === 'admin.issuances.update' ||
+                               window.location.href.includes('/admin/issuances/') &&
+                               '{{ request()->method() }}' === 'PUT';
 
-        // Show validation errors
-        @if($errors->has('title'))
-            document.getElementById('title').classList.add('is-invalid');
-            document.querySelector('#title + .invalid-feedback').textContent = '{{ $errors->first('title') }}';
-        @endif
+        if (isReuploadError) {
+            // Show reupload modal with errors
+            const reuploadModal = new bootstrap.Modal(document.getElementById('reuploadModal'));
+            reuploadModal.show();
 
-        @if($errors->has('file'))
-            document.getElementById('file').classList.add('is-invalid');
-            document.querySelector('#file + .form-text + .invalid-feedback').textContent = '{{ $errors->first('file') }}';
-        @endif
+            // Show validation errors for reupload form
+            @if($errors->has('title'))
+                document.getElementById('reuploadTitleInput').classList.add('is-invalid');
+                document.querySelector('#reuploadTitleInput + .invalid-feedback').textContent = '{{ $errors->first('title') }}';
+            @endif
 
-        // Restore form values
-        @if(old('title'))
-            document.getElementById('title').value = '{{ old('title') }}';
-        @endif
+            @if($errors->has('file'))
+                document.getElementById('reuploadFile').classList.add('is-invalid');
+                document.querySelector('#reuploadFile + .form-text + .invalid-feedback').textContent = '{{ $errors->first('file') }}';
+            @endif
+
+            // Restore form values for reupload
+            @if(old('title'))
+                document.getElementById('reuploadTitleInput').value = '{{ old('title') }}';
+            @endif
+        } else {
+            // Show create modal with errors
+            const modal = new bootstrap.Modal(document.getElementById('createIssuanceModal'));
+            modal.show();
+
+            // Show validation errors for create form
+            @if($errors->has('title'))
+                document.getElementById('title').classList.add('is-invalid');
+                document.querySelector('#title + .invalid-feedback').textContent = '{{ $errors->first('title') }}';
+            @endif
+
+            @if($errors->has('file'))
+                document.getElementById('file').classList.add('is-invalid');
+                document.querySelector('#file + .form-text + .invalid-feedback').textContent = '{{ $errors->first('file') }}';
+            @endif
+
+            // Restore form values for create
+            @if(old('title'))
+                document.getElementById('title').value = '{{ old('title') }}';
+            @endif
+        }
     });
 @endif
 </script>

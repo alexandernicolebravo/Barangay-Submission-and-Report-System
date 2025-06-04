@@ -4,98 +4,143 @@
 
 @push('styles')
 <style>
-    /* Stats card styles */
+    /* Modern Facilitator Dashboard Styles */
+    .container-fluid {
+        padding: 2rem;
+        background: transparent;
+    }
+
+    /* Modern Stats Cards */
     .stat-card {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: transform 0.3s, box-shadow 0.3s;
-        margin-bottom: 20px;
+        background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
         overflow: hidden;
+        position: relative;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        opacity: 0;
+        transition: all 0.3s ease;
     }
 
     .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #c4b5fd;
     }
 
-    /* Clickable stat card styles */
+    .stat-card:hover::before {
+        opacity: 1;
+    }
+
+    /* Modern Clickable Stat Cards */
     .clickable-stat-card {
         cursor: pointer;
         transition: all 0.3s ease;
     }
 
     .clickable-stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        transform: translateY(-6px);
+        box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.15), 0 15px 15px -5px rgba(0, 0, 0, 0.08);
     }
 
     .clickable-stat-card.active {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        border: 2px solid #4361ee;
+        transform: translateY(-4px);
+        box-shadow: 0 25px 30px -5px rgba(139, 92, 246, 0.25), 0 15px 15px -5px rgba(139, 92, 246, 0.15);
+        border: 2px solid #8b5cf6;
+    }
+
+    .clickable-stat-card.active::before {
+        opacity: 1;
+        height: 6px;
     }
 
     .clickable-stat-card.active .stat-icon {
-        transform: scale(1.1);
+        transform: scale(1.15);
     }
 
     .clickable-stat-card.active .stat-value {
-        color: #4361ee;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         font-weight: 700;
     }
 
     .stat-card .card-body {
         display: flex;
         align-items: center;
-        padding: 20px;
+        padding: 1.5rem;
+        background: white;
     }
 
+    /* Modern Stat Icons */
     .stat-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
+        width: 64px;
+        height: 64px;
+        border-radius: 1rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: 15px;
+        margin-right: 1.25rem;
         flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .stat-icon::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit;
+        opacity: 0.1;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon::before {
+        opacity: 0.2;
     }
 
     .stat-icon i {
-        font-size: 24px;
+        font-size: 1.5rem;
+        color: white;
+        z-index: 1;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon i {
+        transform: scale(1.1);
     }
 
     .primary-icon {
-        background-color: rgba(67, 97, 238, 0.2);
-    }
-
-    .primary-icon i {
-        color: #4361ee;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
     }
 
     .success-icon {
-        background-color: rgba(54, 179, 126, 0.2);
-    }
-
-    .success-icon i {
-        color: #36b37e;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     }
 
     .warning-icon {
-        background-color: rgba(255, 171, 0, 0.2);
-    }
-
-    .warning-icon i {
-        color: #ffab00;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     }
 
     .danger-icon {
-        background-color: rgba(245, 54, 92, 0.2);
-    }
-
-    .danger-icon i {
-        color: #f5365c;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     }
 
     .stat-content {
@@ -103,48 +148,86 @@
     }
 
     .stat-value {
-        font-size: 28px;
-        font-weight: 600;
+        font-size: 2rem;
+        font-weight: 700;
         margin: 0;
-        color: #2d3748;
+        color: #0f172a;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-value {
+        transform: scale(1.05);
     }
 
     .stat-label {
-        font-size: 14px;
-        color: #718096;
+        font-size: 0.875rem;
+        color: #64748b;
         margin: 0;
+        font-weight: 500;
+        margin-top: 0.25rem;
     }
 
-    /* Chart card styles */
+    /* Modern Chart Cards */
     .chart-card {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        border: none;
-        transition: transform 0.3s, box-shadow 0.3s;
+        background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .chart-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        opacity: 0;
+        transition: all 0.3s ease;
     }
 
     .chart-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #c4b5fd;
+    }
+
+    .chart-card:hover::before {
+        opacity: 1;
     }
 
     .chart-card .card-header {
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #e9ecef;
-        padding: 15px 20px;
-        border-radius: 8px 8px 0 0;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 1rem 1rem 0 0;
     }
 
     .chart-card .card-header h5 {
         margin: 0;
-        font-size: 16px;
+        font-size: 1.125rem;
         font-weight: 600;
-        color: #4361ee;
+        color: #0f172a;
+    }
+
+    .chart-card .card-header h5 i {
+        margin-right: 0.5rem;
+        color: #8b5cf6;
+        font-size: 1rem;
     }
 
     .chart-card .card-body {
-        padding: 20px;
+        padding: 1.5rem;
+        background: white;
     }
 
     /* Report type card styles */
@@ -190,6 +273,10 @@
         background-color: rgba(245, 54, 92, 0.15);
     }
 
+    .executive-order-card.active {
+        background-color: rgba(111, 66, 193, 0.15);
+    }
+
     .report-type-icon {
         width: 45px;
         height: 45px;
@@ -226,6 +313,10 @@
         background-color: #f5365c;
     }
 
+    .executive-order-card .report-type-icon {
+        background-color: #6f42c1;
+    }
+
     .report-type-content {
         flex-grow: 1;
     }
@@ -243,93 +334,7 @@
         margin: 0;
     }
 
-    /* Cluster card styles */
-    .cluster-card {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        padding: 15px;
-        display: flex;
-        align-items: center;
-        transition: transform 0.3s, box-shadow 0.3s;
-        cursor: pointer;
-    }
 
-    .cluster-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-
-    .cluster-card.active {
-        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-        transform: translateY(-3px);
-    }
-
-    /* Active state for each cluster card */
-    .cluster-1-card.active {
-        background-color: rgba(67, 97, 238, 0.15);
-    }
-
-    .cluster-2-card.active {
-        background-color: rgba(54, 179, 126, 0.15);
-    }
-
-    .cluster-3-card.active {
-        background-color: rgba(255, 171, 0, 0.15);
-    }
-
-    .cluster-4-card.active {
-        background-color: rgba(0, 184, 217, 0.15);
-    }
-
-    .cluster-icon {
-        width: 45px;
-        height: 45px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 15px;
-        flex-shrink: 0;
-    }
-
-    .cluster-1-card .cluster-icon {
-        background-color: #4361ee;
-    }
-
-    .cluster-2-card .cluster-icon {
-        background-color: #36b37e;
-    }
-
-    .cluster-3-card .cluster-icon {
-        background-color: #ffab00;
-    }
-
-    .cluster-4-card .cluster-icon {
-        background-color: #00b8d9;
-    }
-
-    .cluster-icon i {
-        font-size: 20px;
-        color: #fff;
-    }
-
-    .cluster-content {
-        flex-grow: 1;
-    }
-
-    .cluster-value {
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0;
-        color: #2d3748;
-    }
-
-    .cluster-label {
-        font-size: 12px;
-        color: #718096;
-        margin: 0;
-    }
 </style>
 @endpush
 
@@ -462,27 +467,38 @@
                             $directQuarterlyCount = 0;
                             $directSemestralCount = 0;
                             $directAnnualCount = 0;
+                            $directExecutiveOrderCount = 0;
 
                             if (!empty($barangayIds)) {
-                                // Weekly reports
+                                // Weekly reports with DISTINCT to prevent counting resubmissions
                                 $weeklyQuery = App\Models\WeeklyReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
-                                // Monthly reports
+                                // Monthly reports with DISTINCT to prevent counting resubmissions
                                 $monthlyQuery = App\Models\MonthlyReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
-                                // Quarterly reports
+                                // Quarterly reports with DISTINCT to prevent counting resubmissions
                                 $quarterlyQuery = App\Models\QuarterlyReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
-                                // Semestral reports
+                                // Semestral reports with DISTINCT to prevent counting resubmissions
                                 $semestralQuery = App\Models\SemestralReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
-                                // Annual reports
+                                // Annual reports with DISTINCT to prevent counting resubmissions
                                 $annualQuery = App\Models\AnnualReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
+
+                                // Executive Order reports with DISTINCT to prevent counting resubmissions
+                                $executiveOrderQuery = App\Models\ExecutiveOrder::whereIn('user_id', $barangayIds)
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
                                 // Execute the queries and get the counts
                                 $directWeeklyCount = $weeklyQuery->count();
@@ -490,6 +506,7 @@
                                 $directQuarterlyCount = $quarterlyQuery->count();
                                 $directSemestralCount = $semestralQuery->count();
                                 $directAnnualCount = $annualQuery->count();
+                                $directExecutiveOrderCount = $executiveOrderQuery->count();
                             }
                         @endphp
 
@@ -562,53 +579,25 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Cluster Submissions -->
-            <div class="chart-card">
-                <div class="card-header">
-                    <h5>
-                        <i class="fas fa-layer-group"></i>
-                        Submissions per Cluster
-                        <button id="clear-filter" class="btn btn-sm btn-outline-secondary float-end {{ request('cluster_id') ? '' : 'd-none' }}">
-                            <i class="fas fa-times"></i> Clear
-                        </button>
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row cluster-cards" id="cluster-cards-container">
-                        @php
-                            // Get facilitator's assigned clusters
-                            $facilitator = Auth::user();
-                            $assignedClusters = [];
-
-                            if (method_exists($facilitator, 'assignedClusters') && is_callable([$facilitator, 'assignedClusters'])) {
-                                $assignedClusters = $facilitator->assignedClusters()->get();
-                            }
-                        @endphp
-
-                        @foreach($assignedClusters as $index => $cluster)
-                            @php
-                                $clusterClass = 'cluster-' . (($index % 4) + 1) . '-card';
-                            @endphp
-                            <div class="col-6 col-md-6 mb-3">
-                                <div class="cluster-card {{ $clusterClass }} {{ request('cluster_id') == $cluster->id ? 'active' : '' }}"
-                                     data-cluster-id="{{ $cluster->id }}">
-                                    <div class="cluster-icon">
-                                        <i class="fas fa-layer-group"></i>
-                                    </div>
-                                    <div class="cluster-content">
-                                        <h3 class="cluster-value" data-cluster-id="{{ $cluster->id }}">{{ $clusterSubmissions[$cluster->id] ?? 0 }}</h3>
-                                        <p class="cluster-label">{{ $cluster->name }}</p>
-                                    </div>
+                        <!-- Executive Order Reports Card -->
+                        <div class="col-6 col-md-4 mb-3">
+                            <div class="report-type-card executive-order-card {{ request('report_type') == 'executive_order' ? 'active' : '' }}"
+                                 data-report-type="executive_order">
+                                <div class="report-type-icon">
+                                    <i class="fas fa-gavel"></i>
+                                </div>
+                                <div class="report-type-content">
+                                    <h3 class="report-type-value">{{ $directExecutiveOrderCount }}</h3>
+                                    <p class="report-type-label">Executive Orders</p>
                                 </div>
                             </div>
-                        @endforeach
+                        </div>
                     </div>
                 </div>
             </div>
+
+
         </div>
 
         <!-- Right Column - Charts and Recent Submissions -->
@@ -625,17 +614,223 @@
                     <canvas id="monthlyTrendChart" width="400" height="200"></canvas>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Barangay Submissions Chart -->
+    <!-- Submission Categories Row - Full Width -->
+    <div class="row mb-4">
+                <!-- On Time Submissions -->
+                <div class="col-md-4">
+                    <div class="submission-card on-time-card">
+                        <div class="submission-header">
+                            <div class="submission-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="submission-title">
+                                <h6 class="mb-0">On Time Submissions</h6>
+                                <span class="submission-count">{{ count($onTimeBarangays ?? []) }} barangays</span>
+                            </div>
+                            @if(count($onTimeBarangays ?? []) > 5)
+                                <button class="btn btn-sm btn-view-all" onclick="viewAllSubmissions('on-time')">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                            @endif
+                        </div>
+                        <div class="submission-body">
+                            <div class="submission-list">
+                                @forelse(array_slice($onTimeBarangays ?? [], 0, 5) as $barangay)
+                                <div class="submission-item">
+                                    <div class="d-flex align-items-center">
+                                        <div class="barangay-avatar success">
+                                            {{ substr($barangay['name'], 0, 2) }}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="barangay-name">{{ $barangay['name'] }}</div>
+                                            <div class="cluster-name">{{ $barangay['cluster_name'] }}</div>
+                                        </div>
+                                        <div class="submission-badge success">
+                                            {{ $barangay['on_time_count'] }}
+                                        </div>
+                                    </div>
+                                </div>
+                                @empty
+                                <div class="empty-state">
+                                    <i class="fas fa-clock"></i>
+                                    <p>No on-time submissions yet</p>
+                                </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Late Submissions -->
+                <div class="col-md-4">
+                    <div class="submission-card late-card">
+                        <div class="submission-header">
+                            <div class="submission-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="submission-title">
+                                <h6 class="mb-0">Late Submissions</h6>
+                                <span class="submission-count">{{ count($lateBarangays ?? []) }} barangays</span>
+                            </div>
+                            @if(count($lateBarangays ?? []) > 5)
+                                <button class="btn btn-sm btn-view-all" onclick="viewAllSubmissions('late')">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </button>
+                            @endif
+                        </div>
+                        <div class="submission-body">
+                            <div class="submission-list">
+                                @forelse(array_slice($lateBarangays ?? [], 0, 5) as $barangay)
+                                <div class="submission-item">
+                                    <div class="d-flex align-items-center">
+                                        <div class="barangay-avatar warning">
+                                            {{ substr($barangay['name'], 0, 2) }}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="barangay-name">{{ $barangay['name'] }}</div>
+                                            <div class="cluster-name">{{ $barangay['cluster_name'] }}</div>
+                                        </div>
+                                        <div class="submission-badge warning">
+                                            {{ $barangay['late_count'] }}
+                                        </div>
+                                    </div>
+                                </div>
+                                @empty
+                                <div class="empty-state">
+                                    <i class="fas fa-clock"></i>
+                                    <p>No late submissions</p>
+                                </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- No Submissions -->
+                <div class="col-md-4">
+                    <div class="submission-card no-submission-card">
+                        <div class="submission-header">
+                            <div class="submission-icon">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div class="submission-title">
+                                <h6 class="mb-0">No Submissions</h6>
+                                <span class="submission-count">{{ count($noSubmissionBarangays ?? []) }} barangays</span>
+                            </div>
+                        </div>
+                        <div class="submission-body">
+                            <div class="submission-list" style="max-height: 400px; overflow-y: auto;">
+                                @forelse($noSubmissionBarangays ?? [] as $barangay)
+                                <div class="submission-item">
+                                    <div class="d-flex align-items-center">
+                                        <div class="barangay-avatar danger">
+                                            {{ substr($barangay['name'], 0, 2) }}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="barangay-name">{{ $barangay['name'] }}</div>
+                                            <div class="cluster-name">{{ $barangay['cluster_name'] }}</div>
+                                        </div>
+                                        <div class="submission-badge danger">
+                                            {{ $barangay['pending_submissions'] ?? $barangay['no_submission'] ?? 0 }}
+                                        </div>
+                                    </div>
+                                </div>
+                                @empty
+                                <div class="empty-state success">
+                                    <i class="fas fa-check-circle"></i>
+                                    <p>All barangays have submitted!</p>
+                                </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <!-- Barangay Summary - Full Width -->
+    <div class="row mb-4">
+        <div class="col-12">
             <div class="chart-card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5>
-                        <i class="fas fa-chart-pie"></i>
-                        Barangay Submissions
+                        <i class="fas fa-users"></i>
+                        Barangay Summary
                     </h5>
+                    <div class="filter-controls">
+                        <select id="clusterFilter" class="form-select form-select-sm me-2" style="width: auto; display: inline-block;">
+                            <option value="">All Clusters</option>
+                            @foreach($assignedClusters ?? [] as $cluster)
+                                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
+                            @endforeach
+                        </select>
+                        <select id="reportTypeFilter" class="form-select form-select-sm" style="width: auto; display: inline-block;">
+                            <option value="">All Report Types</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="semestral">Semestral</option>
+                            <option value="annual">Annual</option>
+                            <option value="executive_order">Executive Order</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <canvas id="barangaySubmissionsChart" width="400" height="200"></canvas>
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="barangayTable">
+                            <thead>
+                                <tr>
+                                    <th>Barangay</th>
+                                    <th>Cluster</th>
+                                    <th>Total Reports</th>
+                                    <th>On Time</th>
+                                    <th>Late</th>
+                                    <th>No Submission</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($barangaySummary ?? [] as $barangay)
+                                <tr data-cluster="{{ $barangay['cluster_id'] }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="barangay-avatar me-2">
+                                                {{ substr($barangay['name'], 0, 2) }}
+                                            </div>
+                                            <div>
+                                                <div class="fw-medium">{{ $barangay['name'] }}</div>
+                                                <small class="text-muted">{{ $barangay['email'] }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="cluster-badge cluster-{{ $barangay['cluster_id'] }}">
+                                            {{ $barangay['cluster_name'] }}
+                                        </span>
+                                    </td>
+                                    <td>{{ $barangay['total_reports'] }}</td>
+                                    <td>
+                                        <span class="badge bg-success">{{ $barangay['on_time'] }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">{{ $barangay['late'] }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ $barangay['pending_submissions'] ?? $barangay['no_submission'] ?? 0 }}</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewBarangayDetails({{ $barangay['id'] }})">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -645,84 +840,98 @@
     <div class="row">
         <div class="col-12">
             <div class="chart-card">
-                <div class="card-header">
-                    <h5>
-                        <i class="fas fa-clock"></i>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock text-primary"></i>
                         Recent Submissions
-                        <a href="{{ route('facilitator.view-submissions') }}" class="btn btn-sm btn-primary float-end">
-                            <i class="fas fa-list"></i> View All
-                        </a>
                     </h5>
+                    <a href="{{ route('facilitator.view-submissions') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-list me-1"></i> View All
+                    </a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Report</th>
-                                    <th>User</th>
-                                    <th>Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="border-0 fw-semibold">Report</th>
+                                    <th class="border-0 fw-semibold">Barangay</th>
+                                    <th class="border-0 fw-semibold">Date</th>
+                                    <th class="border-0 fw-semibold">Status</th>
+                                    <th class="border-0 fw-semibold text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($recentReports as $report)
-                                <tr>
-                                    <td>
+                                <tr class="border-bottom">
+                                    <td class="py-3">
                                         <div class="d-flex align-items-center">
-                                            <div class="me-2" style="width: 32px; height: 32px; border-radius: 8px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                                            <div class="file-icon me-3">
                                                 @php
                                                     $extension = strtolower(pathinfo($report->file_path ?? '', PATHINFO_EXTENSION));
-                                                    $icon = match($extension) {
-                                                        'pdf' => 'fa-file-pdf',
-                                                        'doc', 'docx' => 'fa-file-word',
-                                                        'xls', 'xlsx' => 'fa-file-excel',
-                                                        'jpg', 'jpeg', 'png', 'gif' => 'fa-file-image',
-                                                        'txt' => 'fa-file-alt',
-                                                        default => 'fa-file'
+                                                    $iconData = match($extension) {
+                                                        'pdf' => ['icon' => 'fa-file-pdf', 'color' => '#dc3545'],
+                                                        'doc', 'docx' => ['icon' => 'fa-file-word', 'color' => '#0d6efd'],
+                                                        'xls', 'xlsx' => ['icon' => 'fa-file-excel', 'color' => '#198754'],
+                                                        'jpg', 'jpeg', 'png', 'gif' => ['icon' => 'fa-file-image', 'color' => '#fd7e14'],
+                                                        'txt' => ['icon' => 'fa-file-alt', 'color' => '#6c757d'],
+                                                        default => ['icon' => 'fa-file', 'color' => '#6f42c1']
                                                     };
                                                 @endphp
-                                                <i class="fas {{ $icon }} fa-sm"></i>
+                                                <i class="fas {{ $iconData['icon'] }}" style="color: {{ $iconData['color'] }}; font-size: 1.5rem;"></i>
                                             </div>
                                             <div>
-                                                <div style="font-weight: 500; color: var(--dark);">{{ $report->report_name }}</div>
-                                                <small class="text-muted">{{ ucfirst($report->type) }}</small>
+                                                <div class="fw-semibold text-dark">{{ $report->report_name }}</div>
+                                                <small class="text-muted">{{ ucfirst($report->type) }} Report</small>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>{{ $report->barangay_name }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($report->created_at)->format('M d, Y') }}</td>
-                                    <td>
+                                    <td class="py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="barangay-avatar-sm me-2">
+                                                {{ substr($report->barangay_name, 0, 2) }}
+                                            </div>
+                                            <span class="fw-medium">{{ $report->barangay_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3">
+                                        <div class="text-dark">{{ \Carbon\Carbon::parse($report->created_at)->format('M d, Y') }}</div>
+                                        <small class="text-muted">{{ \Carbon\Carbon::parse($report->created_at)->format('h:i A') }}</small>
+                                    </td>
+                                    <td class="py-3">
                                         @php
-                                            $statusIcon = match($report->status) {
-                                                'submitted' => 'fa-check-circle',
-                                                'no submission' => 'fa-times-circle',
-                                                'pending' => 'fa-clock',
-                                                'approved' => 'fa-thumbs-up',
-                                                'rejected' => 'fa-thumbs-down',
-                                                default => 'fa-info-circle'
+                                            $statusConfig = match($report->status) {
+                                                'submitted' => ['icon' => 'fa-check-circle', 'class' => 'success', 'text' => 'Submitted'],
+                                                'no submission' => ['icon' => 'fa-times-circle', 'class' => 'danger', 'text' => 'No Submission'],
+                                                'pending' => ['icon' => 'fa-clock', 'class' => 'warning', 'text' => 'Pending'],
+                                                'approved' => ['icon' => 'fa-thumbs-up', 'class' => 'info', 'text' => 'Approved'],
+                                                'rejected' => ['icon' => 'fa-thumbs-down', 'class' => 'danger', 'text' => 'Rejected'],
+                                                default => ['icon' => 'fa-info-circle', 'class' => 'secondary', 'text' => ucfirst($report->status)]
                                             };
-                                            $statusClass = str_replace(' ', '-', $report->status);
                                         @endphp
-                                        <span class="status-badge {{ $statusClass }}">
-                                            <i class="fas {{ $statusIcon }}"></i>
-                                            {{ ucfirst($report->status) }}
+                                        <span class="badge bg-{{ $statusConfig['class'] }} d-inline-flex align-items-center">
+                                            <i class="fas {{ $statusConfig['icon'] }} me-1"></i>
+                                            {{ $statusConfig['text'] }}
                                         </span>
                                     </td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm" style="background: var(--primary-light); color: var(--primary); border: none;">
-                                            <i class="fas fa-eye me-1"></i>
-                                            View
-                                        </button>
+                                    <td class="py-3 text-center">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" title="View Report">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" title="Download">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="text-center py-4">
-                                        <div class="text-muted">
-                                            <i class="fas fa-inbox fa-2x mb-2"></i>
-                                            <p class="mb-0">No recent submissions found.</p>
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="empty-state">
+                                            <i class="fas fa-inbox text-muted mb-3" style="font-size: 3rem;"></i>
+                                            <h6 class="text-muted">No recent submissions found</h6>
+                                            <p class="text-muted small mb-0">Recent submissions will appear here once barangays start submitting reports.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -796,6 +1005,368 @@
         background: var(--light);
         font-weight: 600;
     }
+
+    /* Summary Cards */
+    .summary-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        border: 1px solid #e9ecef;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .summary-card.on-time {
+        border-left: 4px solid #198754;
+    }
+
+    .summary-card.late {
+        border-left: 4px solid #ffc107;
+    }
+
+    .summary-card.no-submission {
+        border-left: 4px solid #dc3545;
+    }
+
+    .summary-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+    }
+
+    .summary-card.on-time .summary-icon {
+        background: rgba(25, 135, 84, 0.1);
+        color: #198754;
+    }
+
+    .summary-card.late .summary-icon {
+        background: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+    }
+
+    .summary-card.no-submission .summary-icon {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+
+    .summary-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        color: #212529;
+    }
+
+    .summary-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    /* Barangay Avatar */
+    .barangay-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+    }
+
+    .barangay-avatar-sm {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+
+    /* Cluster Badges */
+    .cluster-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .cluster-badge.cluster-1 {
+        background: rgba(67, 97, 238, 0.1);
+        color: #4361ee;
+        border: 1px solid rgba(67, 97, 238, 0.2);
+    }
+
+    .cluster-badge.cluster-2 {
+        background: rgba(54, 179, 126, 0.1);
+        color: #36b37e;
+        border: 1px solid rgba(54, 179, 126, 0.2);
+    }
+
+    .cluster-badge.cluster-3 {
+        background: rgba(255, 171, 0, 0.1);
+        color: #ffab00;
+        border: 1px solid rgba(255, 171, 0, 0.2);
+    }
+
+    .cluster-badge.cluster-4 {
+        background: rgba(0, 184, 217, 0.1);
+        color: #00b8d9;
+        border: 1px solid rgba(0, 184, 217, 0.2);
+    }
+
+    /* Enhanced Table Styles */
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,0,0,0.02);
+    }
+
+    .table thead th {
+        border-bottom: 2px solid #dee2e6;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #495057;
+    }
+
+    .file-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .empty-state {
+        padding: 2rem;
+    }
+
+    /* Filter Controls */
+    .filter-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .filter-controls .form-select {
+        min-width: 150px;
+    }
+
+    /* Modern Submission Cards */
+    .submission-card {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .submission-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .submission-header {
+        padding: 1.5rem 1.5rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .submission-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .on-time-card .submission-icon {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .late-card .submission-icon {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+    }
+
+    .no-submission-card .submission-icon {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .submission-title h6 {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.95rem;
+    }
+
+    .submission-count {
+        font-size: 0.8rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .btn-view-all {
+        background: rgba(0, 0, 0, 0.05);
+        border: none;
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        transition: all 0.2s ease;
+        margin-left: auto;
+    }
+
+    .btn-view-all:hover {
+        background: rgba(0, 0, 0, 0.1);
+        color: #374151;
+        transform: scale(1.05);
+    }
+
+    .submission-body {
+        padding: 0;
+    }
+
+    .submission-list {
+        max-height: 280px;
+        overflow-y: auto;
+    }
+
+    .submission-item {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+    }
+
+    .submission-item:hover {
+        background: rgba(0, 0, 0, 0.02);
+    }
+
+    .submission-item:last-child {
+        border-bottom: none;
+    }
+
+    .barangay-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        margin-right: 0.75rem;
+    }
+
+    .barangay-avatar.success {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .barangay-avatar.warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .barangay-avatar.danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .barangay-name {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.9rem;
+        line-height: 1.2;
+    }
+
+    .cluster-name {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+        margin-top: 2px;
+    }
+
+    .submission-badge {
+        min-width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: white;
+    }
+
+    .submission-badge.success {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .submission-badge.warning {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .submission-badge.danger {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .empty-state {
+        padding: 2rem 1.5rem;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .empty-state.success {
+        color: #10b981;
+    }
+
+    .empty-state.success i {
+        color: #10b981;
+        opacity: 0.8;
+    }
 </style>
 @endpush
 
@@ -830,9 +1401,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form elements
     const reportTypeSelect = document.getElementById('report_type');
-    const clusterSelect = document.getElementById('cluster_id');
     const filterForm = document.getElementById('dashboardFilterForm');
-    const clearFilterBtn = document.getElementById('clear-filter');
     const clearReportTypeFilterBtn = document.getElementById('clear-report-type-filter');
     const clearAllFiltersBtn = document.getElementById('clear-all-filters');
 
@@ -860,7 +1429,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Store chart instances globally for updates
     let monthlyTrendChart = null;
-    let barangaySubmissionsChart = null;
 
     // Add click event to stat cards
     document.querySelectorAll('.clickable-stat-card').forEach(card => {
@@ -924,11 +1492,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearAllFilters() {
         // Hide the clear all filters button
         clearAllFiltersBtn.classList.add('d-none');
-        clearFilterBtn.classList.add('d-none');
         clearReportTypeFilterBtn.classList.add('d-none');
 
         // Remove active class from all cards
-        document.querySelectorAll('.clickable-stat-card, .cluster-card, .report-type-card').forEach(card => {
+        document.querySelectorAll('.clickable-stat-card, .report-type-card').forEach(card => {
             card.classList.remove('active');
         });
 
@@ -936,14 +1503,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('status').value = '';
         document.getElementById('timeliness').value = '';
         reportTypeSelect.value = '';
-        clusterSelect.value = '';
 
         // Update the URL without reloading the page
         const url = new URL(window.location);
         url.searchParams.delete('status');
         url.searchParams.delete('timeliness');
         url.searchParams.delete('report_type');
-        url.searchParams.delete('cluster_id');
         window.history.pushState({}, '', url);
 
         // Reload chart data and page content
@@ -970,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.pushState({}, '', url);
 
         // Check if any filters are still active
-        const hasActiveFilters = document.querySelector('.clickable-stat-card.active, .cluster-card.active, .report-type-card.active');
+        const hasActiveFilters = document.querySelector('.clickable-stat-card.active, .report-type-card.active');
         if (!hasActiveFilters) {
             clearAllFiltersBtn.classList.add('d-none');
         }
@@ -980,68 +1545,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.reload();
     }
 
-    // Add click event to cluster cards
-    document.querySelectorAll('.cluster-card').forEach(card => {
-        card.addEventListener('click', function(e) {
-            e.preventDefault();
 
-            const clusterId = this.getAttribute('data-cluster-id');
-            console.log('Cluster card clicked:', clusterId);
-
-            // If the card is already active, do nothing
-            if (this.classList.contains('active')) {
-                console.log('Card already active, doing nothing');
-                return;
-            }
-
-            // Show the clear filter button
-            clearFilterBtn.classList.remove('d-none');
-
-            // Set active class on the selected cluster card
-            document.querySelectorAll('.cluster-card').forEach(c => {
-                c.classList.remove('active');
-            });
-            this.classList.add('active');
-
-            // Set the cluster_id value in the form
-            clusterSelect.value = clusterId;
-
-            // Update the URL without reloading the page
-            const url = new URL(window.location);
-            url.searchParams.set('cluster_id', clusterId);
-            window.history.pushState({}, '', url);
-
-            // Reload chart data and page content
-            loadChartData();
-            window.location.reload();
-        });
-    });
-
-    // Clear cluster filter button
-    clearFilterBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        console.log('Clear cluster filter button clicked');
-
-        // Hide the clear filter button
-        clearFilterBtn.classList.add('d-none');
-
-        // Remove active class from all cluster cards
-        document.querySelectorAll('.cluster-card').forEach(card => {
-            card.classList.remove('active');
-        });
-
-        // Reset the cluster_id value in the form
-        clusterSelect.value = '';
-
-        // Update the URL without reloading the page
-        const url = new URL(window.location);
-        url.searchParams.delete('cluster_id');
-        window.history.pushState({}, '', url);
-
-        // Reload chart data and page content
-        loadChartData();
-        window.location.reload();
-    });
 
     // Add click event to report type cards
     document.querySelectorAll('.report-type-card').forEach(card => {
@@ -1114,14 +1618,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadChartData() {
         // Get current filter values
         const reportType = reportTypeSelect.value;
-        const clusterId = clusterSelect.value;
         const status = document.getElementById('status').value;
         const timeliness = document.getElementById('timeliness').value;
 
         // Build query parameters
         const params = new URLSearchParams();
         if (reportType) params.append('report_type', reportType);
-        if (clusterId) params.append('cluster_id', clusterId);
         if (status) params.append('status', status);
         if (timeliness) params.append('timeliness', timeliness);
 
@@ -1130,16 +1632,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 updateCharts(data);
-                updateClusterCards(data.clusterSubmissions || {});
             })
             .catch(error => {
                 console.error('Error loading chart data:', error);
                 // Fallback to default data
                 updateCharts({
                     submissionsByMonth: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    reportTypeData: [0, 0, 0, 0, 0]
+                    reportTypeData: [0, 0, 0, 0, 0, 0]
                 });
-                updateClusterCards({});
             });
     }
 
@@ -1188,54 +1688,60 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Update Barangay Submissions Chart
-        const barangaySubmissionsCtx = document.getElementById('barangaySubmissionsChart');
-        if (barangaySubmissionsCtx) {
-            if (barangaySubmissionsChart) {
-                barangaySubmissionsChart.destroy();
-            }
-            barangaySubmissionsChart = new Chart(barangaySubmissionsCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Weekly', 'Monthly', 'Quarterly', 'Semestral', 'Annual'],
-                    datasets: [{
-                        data: data.reportTypeData,
-                        backgroundColor: [
-                            colors.primary,
-                            colors.success,
-                            colors.warning,
-                            colors.info,
-                            colors.danger
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true
-                            }
-                        }
-                    }
-                }
-            });
-        }
     }
 
-    function updateClusterCards(clusterSubmissions) {
-        // Update cluster card values
-        document.querySelectorAll('.cluster-value').forEach(element => {
-            const clusterId = element.getAttribute('data-cluster-id');
-            if (clusterId && clusterSubmissions.hasOwnProperty(clusterId)) {
-                element.textContent = clusterSubmissions[clusterId];
-            }
-        });
+    // Filter functionality for Barangay Summary table
+    const clusterFilter = document.getElementById('clusterFilter');
+    const reportTypeFilter = document.getElementById('reportTypeFilter');
+    const barangayTable = document.getElementById('barangayTable');
+
+    if (clusterFilter && reportTypeFilter && barangayTable) {
+        function filterTable() {
+            const clusterValue = clusterFilter.value;
+            const reportTypeValue = reportTypeFilter.value;
+            const rows = barangayTable.querySelectorAll('tbody tr');
+
+            rows.forEach(row => {
+                const clusterData = row.getAttribute('data-cluster');
+                let showRow = true;
+
+                // Filter by cluster
+                if (clusterValue && clusterData !== clusterValue) {
+                    showRow = false;
+                }
+
+                // Show/hide row
+                row.style.display = showRow ? '' : 'none';
+            });
+        }
+
+        clusterFilter.addEventListener('change', filterTable);
+        reportTypeFilter.addEventListener('change', filterTable);
     }
+
+    // View Barangay Details function
+    window.viewBarangayDetails = function(barangayId) {
+        // Redirect to view submissions with barangay filter
+        window.location.href = `{{ route('facilitator.view-submissions') }}?barangay_id=${barangayId}`;
+    };
+
+    // View All Submissions function
+    window.viewAllSubmissions = function(type) {
+        // Redirect to view submissions with status filter
+        let statusFilter = '';
+        switch(type) {
+            case 'on-time':
+                statusFilter = 'timeliness=on_time';
+                break;
+            case 'late':
+                statusFilter = 'timeliness=late';
+                break;
+            case 'no-submission':
+                statusFilter = 'status=no_submission';
+                break;
+        }
+        window.location.href = `{{ route('facilitator.view-submissions') }}?${statusFilter}`;
+    };
 });
 </script>
 @endpush

@@ -133,7 +133,7 @@
 
                                     @error('report_type_id')
                                         <div class="invalid-feedback">
-                                            {{ $message }}
+                                            {{ $errors->first('report_type_id') }}
                                         </div>
                                     @enderror
 
@@ -197,7 +197,7 @@
                                     </div>
                                     @error('file')
                                         <div class="invalid-feedback d-block">
-                                            {{ $message }}
+                                            {{ $errors->first('file') }}
                                         </div>
                                     @enderror
                                 </div>
@@ -222,7 +222,7 @@
                                             </select>
                                             @error('month')
                                                 <div class="invalid-feedback d-block">
-                                                    {{ $message }}
+                                                    {{ $errors->first('month') }}
                                                 </div>
                                             @enderror
                                         </div>
@@ -231,7 +231,7 @@
                                             <input type="number" class="form-control" name="week_number" min="1" max="52" required>
                                             @error('week_number')
                                                 <div class="invalid-feedback d-block">
-                                                    {{ $message }}
+                                                    {{ $errors->first('week_number') }}
                                                 </div>
                                             @enderror
                                         </div>
@@ -254,7 +254,7 @@
                                             </div>
                                             @error('num_of_clean_up_sites')
                                                 <div class="invalid-feedback d-block">
-                                                    {{ $message }}
+                                                    {{ $errors->first('num_of_clean_up_sites') }}
                                                 </div>
                                             @enderror
                                         </div>
@@ -266,7 +266,7 @@
                                             </div>
                                             @error('num_of_participants')
                                                 <div class="invalid-feedback d-block">
-                                                    {{ $message }}
+                                                    {{ $errors->first('num_of_participants') }}
                                                 </div>
                                             @enderror
                                         </div>
@@ -278,7 +278,7 @@
                                             </div>
                                             @error('num_of_barangays')
                                                 <div class="invalid-feedback d-block">
-                                                    {{ $message }}
+                                                    {{ $errors->first('num_of_barangays') }}
                                                 </div>
                                             @enderror
                                         </div>
@@ -290,7 +290,7 @@
                                             </div>
                                             @error('total_volume')
                                                 <div class="invalid-feedback d-block">
-                                                    {{ $message }}
+                                                    {{ $errors->first('total_volume') }}
                                                 </div>
                                             @enderror
                                         </div>
@@ -316,7 +316,7 @@
                                         </select>
                                         @error('month')
                                             <div class="invalid-feedback d-block">
-                                                {{ $message }}
+                                                {{ $errors->first('month') }}
                                             </div>
                                         @enderror
                                     </div>
@@ -343,7 +343,7 @@
                                         </select>
                                         @error('quarter_number')
                                             <div class="invalid-feedback d-block">
-                                                {{ $message }}
+                                                {{ $errors->first('quarter_number') }}
                                             </div>
                                         @enderror
                                     </div>
@@ -368,7 +368,7 @@
                                         </select>
                                         @error('sem_number')
                                             <div class="invalid-feedback d-block">
-                                                {{ $message }}
+                                                {{ $errors->first('sem_number') }}
                                             </div>
                                         @enderror
                                     </div>

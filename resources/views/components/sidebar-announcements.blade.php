@@ -12,9 +12,9 @@
 
 <style>
     .sidebar-announcements {
-        padding-top: 1rem;
+        padding: 0.5rem 1rem;
         border-top: 1px solid var(--gray-200);
-        margin-bottom: 1rem;
+        margin: 0;
     }
     
     .announcements-header {
@@ -22,21 +22,21 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 10px;
-        padding: 0 10px;
+        padding: 0 0.5rem;
     }
     
     .announcements-slider {
         position: relative;
         border-radius: 8px;
-        background-color: #f5f5f5;
-        margin: 0 10px;
-        padding: 16px;
+        background-color: var(--gray-100);
+        margin: 0;
+        padding: 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     
     .slider-wrapper {
         position: relative;
-        min-height: 150px;
+        min-height: 120px;
     }
     
     .sidebar-announcement {
@@ -52,50 +52,50 @@
     
     .announcement-title {
         font-weight: 600;
-        font-size: 16px;
-        color: #333;
-        margin-bottom: 12px;
+        font-size: 14px;
+        color: var(--gray-800);
+        margin-bottom: 8px;
         line-height: 1.3;
     }
     
     .announcement-image {
         width: 100%;
-        height: 120px;
+        height: 100px;
         border-radius: 6px;
         overflow: hidden;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
         object-fit: cover;
     }
     
     .announcement-date {
-        font-size: 12px;
-        color: #666;
+        font-size: 11px;
+        color: var(--gray-600);
         margin-top: auto;
     }
     
     .announcement-category {
         text-align: right;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
     
     .announcement-category .badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         padding: 0;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         line-height: 1;
         border-radius: 50%;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
     
     /* Navigation arrows */
     .slider-nav {
         position: absolute;
-        width: 32px;
-        height: 32px;
+        width: 24px;
+        height: 24px;
         background-color: var(--primary);
         color: white;
         border-radius: 50%;
@@ -106,31 +106,31 @@
         transform: translateY(-50%);
         cursor: pointer;
         z-index: 5;
-        font-size: 14px;
+        font-size: 12px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
     
     .slider-nav.prev {
-        left: -16px;
+        left: -12px;
     }
     
     .slider-nav.next {
-        right: -16px;
+        right: -12px;
     }
     
     /* Dots navigation */
     .slider-dots {
         display: flex;
         justify-content: center;
-        margin-top: 14px;
-        gap: 6px;
+        margin-top: 10px;
+        gap: 5px;
     }
     
     .slider-dot {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
-        background-color: #ddd;
+        background-color: var(--gray-300);
         cursor: pointer;
         transition: background-color 0.3s;
     }
@@ -226,259 +226,175 @@
             @endif
         </div>
     </div>
-    
-    <!-- Modals container (outside the sidebar to prevent nesting issues) -->
-    <div class="announcement-modals">
-        @foreach($announcements as $announcement)
-            @php
-                // Determine if the modal should be in "image-only" mode
-                $isModalImageOnly = $announcement->image_path && 
-                                    empty(trim(strip_tags((string) $announcement->title))) && 
-                                    empty(trim(strip_tags((string) $announcement->content))) && 
-                                    empty(trim(strip_tags((string) $announcement->button_text)));
-            @endphp
-            <div class="modal fade modal-announcement" id="modal-announcement-{{ $announcement->id }}" tabindex="-1" aria-labelledby="announcementModalLabel-{{ $announcement->id }}" aria-hidden="true">
-                <div class="modal-dialog {{ $isModalImageOnly ? 'modal-xl' : 'modal-lg' }}">
-                    <div class="modal-content">
-                        @if($isModalImageOnly)
-                            <div class="modal-header border-0 pb-0">
-                                <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close" onclick="closeAnnouncementModal({{ $announcement->id }})"></button>
-                            </div>
-                            <div class="modal-body p-2 text-center">
-                                <img src="{{ asset('storage/' . $announcement->image_path) }}" 
-                                     alt="Announcement Image"
-                                     class="img-fluid rounded mx-auto d-block"
-                                     style="max-height: 85vh; object-fit: contain;">
-                            </div>
-                            {{-- No footer for purely image-only modal if close is in header --}}
-                        @else
-                            <div class="modal-header" style="background-color: {{ $announcement->background_color ?? '#f8fafc' }}; color: {{ ($announcement->background_color ?? '#f8fafc') === '#f8fafc' ? '#000' : '#fff' }};">
+@else
+    <div class="sidebar-announcements">
+        <div class="announcements-header">
+            <h6 class="text-muted fw-semibold fs-7 text-uppercase m-0">
+                <i class="fas fa-bullhorn me-2"></i> Announcements
+            </h6>
+        </div>
+        <div class="announcements-slider">
+            <div class="p-2 text-center text-muted fs-7">
+                No announcements available
+            </div>
+        </div>
+    </div>
+@endif
+
+<!-- Modals container (outside the sidebar to prevent nesting issues) -->
+<div class="announcement-modals">
+    @foreach($announcements as $announcement)
+        @php
+            // Determine if the modal should be in "image-only" mode
+            $isModalImageOnly = $announcement->image_path && 
+                                empty(trim(strip_tags((string) $announcement->title))) && 
+                                empty(trim(strip_tags((string) $announcement->content))) && 
+                                empty(trim(strip_tags((string) $announcement->button_text)));
+        @endphp
+        <div class="modal fade modal-announcement" id="modal-announcement-{{ $announcement->id }}" tabindex="-1" aria-labelledby="announcementModalLabel-{{ $announcement->id }}" aria-hidden="true">
+            <div class="modal-dialog {{ $isModalImageOnly ? 'modal-xl' : 'modal-lg' }}">
+                <div class="modal-content">
+                    @if($isModalImageOnly)
+                        <div class="modal-header border-0 pb-0">
+                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close" onclick="closeAnnouncementModal({{ $announcement->id }})"></button>
+                        </div>
+                        <div class="modal-body p-2 text-center">
+                            <img src="{{ asset('storage/' . $announcement->image_path) }}" 
+                                 alt="Announcement Image"
+                                 class="img-fluid rounded mx-auto d-block"
+                                 style="max-height: 80vh;">
+                        </div>
+                    @else
+                        <div class="modal-header" style="{{ $announcement->background_color ? 'background-color: ' . $announcement->background_color : '' }}">
                             <h5 class="modal-title" id="announcementModalLabel-{{ $announcement->id }}">{{ $announcement->title }}</h5>
-                                <button type="button" class="btn-close {{ ($announcement->background_color ?? '#f8fafc') === '#f8fafc' ? '' : 'btn-close-white' }}" data-bs-dismiss="modal" aria-label="Close" onclick="closeAnnouncementModal({{ $announcement->id }})"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closeAnnouncementModal({{ $announcement->id }})"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="row">
-                                @if($announcement->image_path)
-                                    <div class="col-md-4 mb-3 mb-md-0">
-                                        <img src="{{ asset('storage/' . $announcement->image_path) }}" 
-                                                alt="{{ $announcement->title ?? 'Announcement Image' }}"
-                                            class="img-fluid rounded">
-                                    </div>
-                                @endif
-                                <div class="col-md-{{ $announcement->image_path ? '8' : '12' }}">
-                                        {{-- Display title within body only if not already in header (it is, so this could be removed or kept for consistency if header changes) --}}
-                                        {{-- <h5 class="modal-title mb-2 d-md-none">{{ $announcement->title }}</h5> --}}
-                                    <div class="announcement-content">
-                                        {!! $announcement->content !!}
-                                    </div>
-                                    
-                                    @if($announcement->button_text && $announcement->button_link)
-                                        <div class="mt-3">
-                                            <a href="{{ $announcement->button_link }}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
-                                                {{ $announcement->button_text }}
-                                                <i class="fas fa-external-link-alt ms-2"></i>
-                                            </a>
-                                        </div>
-                                    @endif
+                            @if($announcement->image_path)
+                                <div class="text-center mb-3">
+                                    <img src="{{ asset('storage/' . $announcement->image_path) }}" 
+                                         alt="{{ $announcement->title }}"
+                                         class="img-fluid rounded mx-auto d-block"
+                                         style="max-height: 300px;">
                                 </div>
+                            @endif
+                            
+                            <div class="announcement-content">
+                                {!! $announcement->content !!}
                             </div>
+                            
+                            @if($announcement->button_text && $announcement->button_link)
+                                <div class="text-center mt-4">
+                                    <a href="{{ $announcement->button_link }}" class="btn btn-primary" target="_blank">
+                                        {{ $announcement->button_text }}
+                                    </a>
+                                </div>
+                            @endif
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" onclick="closeAnnouncementModal({{ $announcement->id }})">Close</button>
+                            <small class="text-muted me-auto">Posted {{ $announcement->created_at->diffForHumans() }}</small>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeAnnouncementModal({{ $announcement->id }})">Close</button>
                         </div>
-                        @endif
-                    </div>
+                    @endif
                 </div>
             </div>
-        @endforeach
-    </div>
+        </div>
+    @endforeach
+</div>
 
-    <script>
-        // Announcement slider variables
-        let currentAnnouncementIndex = 0;
-        const totalAnnouncements = {{ count($announcements) }};
-        
-        // Slider navigation functions
-        function showAnnouncement(index) {
-            // Hide all announcements
-            document.querySelectorAll('.sidebar-announcement').forEach(el => {
-                el.style.display = 'none';
-            });
-            
-            // Show the selected announcement
-            const announcement = document.querySelector(`.sidebar-announcement[data-index="${index}"]`);
-            if (announcement) {
-                announcement.style.display = 'block';
-            }
-            
-            // Update dots
-            document.querySelectorAll('.slider-dot').forEach(dot => {
-                dot.classList.remove('active');
-            });
-            const activeDot = document.querySelector(`.slider-dot[data-index="${index}"]`);
-            if (activeDot) {
-                activeDot.classList.add('active');
-            }
-            
-            // Update current index
-            currentAnnouncementIndex = index;
-        }
-        
-        function nextAnnouncement() {
-            let nextIndex = currentAnnouncementIndex + 1;
-            if (nextIndex >= totalAnnouncements) {
-                nextIndex = 0;
-            }
-            showAnnouncement(nextIndex);
-        }
-        
-        function prevAnnouncement() {
-            let prevIndex = currentAnnouncementIndex - 1;
-            if (prevIndex < 0) {
-                prevIndex = totalAnnouncements - 1;
-            }
-            showAnnouncement(prevIndex);
-        }
-        
-        function goToAnnouncement(index) {
-            showAnnouncement(index);
-        }
-        
-        // Auto rotate announcements every 5 seconds
-        let slideInterval;
-        
-        function startSlideTimer() {
-            if (totalAnnouncements > 1) {
-                slideInterval = setInterval(nextAnnouncement, 5000);
-            }
-        }
-        
-        function stopSlideTimer() {
-            clearInterval(slideInterval);
-        }
-        
-        // Modal handling functions
-        function openAnnouncementModal(id) {
-            // First close any open modals and remove backdrops
-            closeAllModals();
-            
-            // Now open the requested modal
-            const modalId = 'modal-announcement-' + id;
-            const modalElement = document.getElementById(modalId);
-            
-            if (modalElement) {
-                // Create modal instance manually
-                const modal = new bootstrap.Modal(modalElement, {
-                    backdrop: 'static',
-                    keyboard: false
-                });
-                
-                // Show the modal
-                modal.show();
-                
-                // Add event listener for when the modal is hidden
-                modalElement.addEventListener('hidden.bs.modal', function() {
-                    document.body.classList.remove('modal-open');
-                    const backdrops = document.querySelectorAll('.modal-backdrop');
-                    backdrops.forEach(backdrop => backdrop.remove());
-                });
-            }
-        }
-        
-        function closeAnnouncementModal(id) {
-            const modalId = 'modal-announcement-' + id;
-            const modalElement = document.getElementById(modalId);
-            
-            if (modalElement) {
-                const modal = bootstrap.Modal.getInstance(modalElement);
-                if (modal) {
-                    modal.hide();
-                }
-            }
-            
-            // Ensure backdrop is removed
-            setTimeout(() => {
-                document.body.classList.remove('modal-open');
-                const backdrops = document.querySelectorAll('.modal-backdrop');
-                backdrops.forEach(backdrop => backdrop.remove());
-            }, 100);
-        }
-        
-        function closeAllModals() {
-            // Get all open modals
-            const openModals = document.querySelectorAll('.modal.show');
-            openModals.forEach(modalElement => {
-                if (modalElement) {
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    if (modal) {
-                        modal.hide();
-                    }
-                }
-            });
-            
-            // Remove modal-open class from body
-            document.body.classList.remove('modal-open');
-            
-            // Remove any backdrop elements
-            const backdrops = document.querySelectorAll('.modal-backdrop');
-            backdrops.forEach(backdrop => backdrop.remove());
-        }
-        
-        // Move modals to the body to prevent nesting issues
-        document.addEventListener('DOMContentLoaded', function() {
-            const modalsContainer = document.querySelector('.announcement-modals');
-            if (modalsContainer) {
-                const modalElements = modalsContainer.querySelectorAll('.modal');
-                modalElements.forEach(element => {
-                    document.body.appendChild(element);
-                });
-                modalsContainer.remove();
-            }
-            
-            // Add hover event to pause/resume the slides
-            const slider = document.getElementById('announcements-slider');
-            if (slider) {
-                slider.addEventListener('mouseenter', stopSlideTimer);
-                slider.addEventListener('mouseleave', startSlideTimer);
-            }
-            
-            // Start the auto rotation
-            startSlideTimer();
-            
-            // Add keyboard navigation
-            document.addEventListener('keydown', function(e) {
-                // Check if any modal is open
-                const openModal = document.querySelector('.modal.show');
-                
-                // If Escape key is pressed and a modal is open, close it
-                if (e.key === 'Escape' && openModal) {
-                    const modalId = openModal.id;
-                    const announcementId = modalId.split('-').pop();
-                    closeAnnouncementModal(announcementId);
-                    return;
-                }
-                
-                // Only respond if the announcements are in view
-                const slider = document.getElementById('announcements-slider');
-                if (slider && isElementInViewport(slider)) {
-                    if (e.key === 'ArrowLeft') {
-                        prevAnnouncement();
-                    } else if (e.key === 'ArrowRight') {
-                        nextAnnouncement();
-                    }
-                }
-            });
+<script>
+    // Variables to track the current announcement
+    let currentAnnouncementIndex = 0;
+    const announcementCount = {{ count($announcements) }};
+    
+    // Functions to navigate between announcements
+    function showAnnouncement(index) {
+        // Hide all announcements
+        document.querySelectorAll('.sidebar-announcement').forEach(announcement => {
+            announcement.style.display = 'none';
         });
         
-        // Utility function to check if element is in viewport
-        function isElementInViewport(el) {
-            const rect = el.getBoundingClientRect();
-            return (
-                rect.top >= 0 &&
-                rect.left >= 0 &&
-                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-            );
+        // Show the selected announcement
+        const announcement = document.querySelector(`.sidebar-announcement[data-index="${index}"]`);
+        if (announcement) {
+            announcement.style.display = 'block';
         }
-    </script>
-@endif 
+        
+        // Update dots
+        document.querySelectorAll('.slider-dot').forEach(dot => {
+            dot.classList.remove('active');
+        });
+        
+        const activeDot = document.querySelector(`.slider-dot[data-index="${index}"]`);
+        if (activeDot) {
+            activeDot.classList.add('active');
+        }
+        
+        // Update current index
+        currentAnnouncementIndex = index;
+    }
+    
+    function nextAnnouncement() {
+        let nextIndex = (currentAnnouncementIndex + 1) % announcementCount;
+        showAnnouncement(nextIndex);
+    }
+    
+    function prevAnnouncement() {
+        let prevIndex = (currentAnnouncementIndex - 1 + announcementCount) % announcementCount;
+        showAnnouncement(prevIndex);
+    }
+    
+    function goToAnnouncement(index) {
+        showAnnouncement(index);
+    }
+    
+    function openAnnouncementModal(id) {
+        const modalId = `modal-announcement-${id}`;
+        const modalElement = document.getElementById(modalId);
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,  // Allow clicking outside to close
+            keyboard: true   // Allow ESC key to close
+        });
+        modal.show();
+
+        // Store the current modal ID for ESC key handling
+        window.currentAnnouncementModalId = id;
+    }
+
+    function closeAnnouncementModal(id) {
+        const modalId = `modal-announcement-${id}`;
+        const modalElement = document.getElementById(modalId);
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+            modal.hide();
+        }
+        // Clear the current modal ID
+        window.currentAnnouncementModalId = null;
+    }
+
+    // Add ESC key event listener for closing modals
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && window.currentAnnouncementModalId) {
+            closeAnnouncementModal(window.currentAnnouncementModalId);
+        }
+    });
+
+    // Add event listeners for all announcement modals to handle backdrop clicks
+    document.addEventListener('DOMContentLoaded', function() {
+        @foreach($announcements as $announcement)
+            const modal{{ $announcement->id }} = document.getElementById('modal-announcement-{{ $announcement->id }}');
+            if (modal{{ $announcement->id }}) {
+                modal{{ $announcement->id }}.addEventListener('hidden.bs.modal', function() {
+                    window.currentAnnouncementModalId = null;
+                });
+            }
+        @endforeach
+    });
+    
+    // Auto-rotate announcements every 8 seconds if more than one
+    if (announcementCount > 1) {
+        setInterval(() => {
+            nextAnnouncement();
+        }, 8000);
+    }
+</script> 

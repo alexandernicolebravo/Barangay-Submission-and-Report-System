@@ -114,13 +114,15 @@
 
                     // Create preview based on content type and extension
                     if (contentType === 'application/pdf' || extension === 'pdf') {
-                        // PDF preview
+                        // PDF preview - Advanced viewer with thumbnails and controls
+                        previewContainer.style.padding = '0';
                         previewContainer.innerHTML = `
-                            <div class="bg-white rounded shadow-sm" style="width: 95%; height: 65vh;">
-                                <iframe src="${fileUrl}"
-                                        style="width: 100%; height: 100%; border: none; border-radius: 0.375rem;"
-                                        title="${fileName}">
-                                </iframe>
+                            <div style="width: 100%; height: 70vh;">
+                                <embed src="${fileUrl}"
+                                       type="application/pdf"
+                                       style="width: 100%; height: 100%; border: none;"
+                                       title="${fileName}">
+                                </embed>
                             </div>`;
                     } else if (contentType && contentType.startsWith('image/')) {
                         // Image preview
@@ -199,6 +201,16 @@
                         </div>`;
                 });
         }
+
+        // Add ESC key functionality to close modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('filePreviewModal'));
+                if (modal) {
+                    modal.hide();
+                }
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize tooltips

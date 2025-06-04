@@ -47,15 +47,7 @@
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#submitReportModal">
-                <i class="fas fa-plus-circle me-2"></i>
-                Submit New Report
-            </button>
-        </div>
-    </div>
+
 
     <!-- Main Content -->
     <div class="row g-4">
@@ -79,10 +71,7 @@
                                 <i class="fas fa-file-alt"></i>
                             </div>
                             <p>No recent reports</p>
-                            <button type="button" class="btn btn-sm btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#submitReportModal">
-                                <i class="fas fa-plus-circle me-1"></i>
-                                Submit Your First Report
-                            </button>
+                            <small class="text-muted">Your submitted reports will appear here</small>
                         </div>
                     @else
                         <div class="report-list">
@@ -179,15 +168,16 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <button type="button"
-                                                class="btn-submit"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#submitReportModal"
-                                                data-report-type="{{ $deadline->id }}"
-                                                data-frequency="{{ $deadline->frequency }}">
-                                            <i class="fas fa-file-upload me-1"></i>
-                                            Submit
-                                        </button>
+                                        <div class="deadline-actions">
+                                            <button type="button"
+                                                    class="btn btn-submit btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#submitModal{{ $deadline->id }}"
+                                                    title="Submit {{ $deadline->name }}">
+                                                <i class="fas fa-upload me-1"></i>
+                                                Submit
+                                            </button>
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>
@@ -205,51 +195,222 @@
     </div>
 </div>
 
+<!-- Submit Modals for Upcoming Deadlines -->
+@foreach($upcomingDeadlines as $deadline)
+    <div class="modal fade" id="submitModal{{ $deadline->id }}" tabindex="-1" aria-labelledby="submitModalLabel{{ $deadline->id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="submitModalLabel{{ $deadline->id }}">
+                        Submit {{ $deadline->name }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('barangay.submissions.store') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="report_type_id" value="{{ $deadline->id }}">
+                    <input type="hidden" name="report_type" value="{{ $deadline->frequency }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="file{{ $deadline->id }}" class="form-label">Upload Report File</label>
+                            <input type="file"
+                                   class="form-control"
+                                   id="file{{ $deadline->id }}"
+                                   name="file"
+                                   accept=".pdf,.docx,.xlsx"
+                                   required>
+                            <div class="form-text">Accepted formats: PDF, DOCX, XLSX (Max: 2MB)</div>
+                        </div>
+
+                        @if($deadline->frequency === 'weekly')
+                            <div class="mb-3">
+                                <label class="form-label">Number of Clean-up Sites</label>
+                                <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Number of Participants</label>
+                                <input type="number" class="form-control" name="num_of_participants" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Number of Barangays</label>
+                                <input type="number" class="form-control" name="num_of_barangays" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Total Volume</label>
+                                <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
+                            </div>
+                        @elseif($deadline->frequency === 'monthly')
+                            <div class="mb-3">
+                                <label class="form-label">Month</label>
+                                <select class="form-select" name="month" required>
+                                    @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
+                                        <option value="{{ $month }}">{{ $month }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @elseif($deadline->frequency === 'quarterly')
+                            <div class="mb-3">
+                                <label class="form-label">Quarter</label>
+                                <select class="form-select" name="quarter_number" required>
+                                    <option value="1">First Quarter</option>
+                                    <option value="2">Second Quarter</option>
+                                    <option value="3">Third Quarter</option>
+                                    <option value="4">Fourth Quarter</option>
+                                </select>
+                            </div>
+                        @elseif($deadline->frequency === 'semestral')
+                            <div class="mb-3">
+                                <label class="form-label">Semester</label>
+                                <select class="form-select" name="sem_number" required>
+                                    <option value="1">First Semester</option>
+                                    <option value="2">Second Semester</option>
+                                </select>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i>
+                            Submit Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
+
 <style>
+/* Modern Barangay Dashboard Styles */
 :root {
-    --primary-rgb: 13, 110, 253;
-    --success-rgb: 25, 135, 84;
-    --warning-rgb: 255, 193, 7;
-    --danger-rgb: 220, 53, 69;
-    --info-rgb: 13, 202, 240;
-    --secondary-rgb: 108, 117, 125;
-    --gray-rgb: 173, 181, 189;
-    --primary-dark: #0b5ed7;
+    --primary-rgb: 79, 70, 229;
+    --success-rgb: 16, 185, 129;
+    --warning-rgb: 245, 158, 11;
+    --danger-rgb: 239, 68, 68;
+    --info-rgb: 6, 182, 212;
+    --secondary-rgb: 100, 116, 139;
+    --gray-rgb: 148, 163, 184;
+    --primary-dark: #3730a3;
 }
 
 .dashboard {
     max-width: 1400px;
     margin: 0 auto;
+    padding: 2rem;
+    background: transparent;
 }
 
 .welcome-section {
-    padding: 1rem 0;
+    padding: 1.5rem 0;
+    margin-bottom: 2rem;
 }
 
+.welcome-section h1 {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    font-size: 2.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-section p {
+    color: #64748b;
+    font-size: 1.125rem;
+    margin: 0;
+}
+
+/* Modern Stat Cards */
 .stat-card {
-    background: white;
-    border-radius: var(--radius-md);
+    background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
     padding: 1.5rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
     transition: all 0.3s ease;
     height: 100%;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    opacity: 0;
+    transition: all 0.3s ease;
 }
 
 .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: #c4b5fd;
+}
+
+.stat-card:hover::before {
+    opacity: 1;
 }
 
 .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-sm);
+    width: 64px;
+    height: 64px;
+    border-radius: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.stat-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: inherit;
+    opacity: 0.1;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon::before {
+    opacity: 0.2;
+}
+
+.stat-icon i {
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon i {
+    transform: scale(1.1);
+}
+
+.stat-icon.text-info {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+}
+
+.stat-icon.text-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.stat-icon.text-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
 }
 
 .stat-content {
@@ -257,37 +418,93 @@
 }
 
 .stat-value {
-    font-size: 1.75rem;
-    font-weight: 600;
+    font-size: 2rem;
+    font-weight: 700;
     margin: 0;
     line-height: 1.2;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-value {
+    transform: scale(1.05);
 }
 
 .stat-label {
-    color: var(--gray-600);
+    color: #64748b;
     margin: 0;
     font-size: 0.875rem;
+    font-weight: 500;
+    margin-top: 0.25rem;
 }
 
+/* Modern Cards */
 .card {
-    border: none;
-    box-shadow: var(--shadow-sm);
+    background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    opacity: 0;
     transition: all 0.3s ease;
 }
 
 .card:hover {
-    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: #c4b5fd;
+}
+
+.card:hover::before {
+    opacity: 1;
 }
 
 .card-header {
-    background: white;
-    border-bottom: 1px solid var(--gray-200);
-    padding: 1.25rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1.5rem;
 }
 
 .card-title {
-    color: var(--gray-800);
+    color: #0f172a;
     font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.card-title i {
+    color: #4f46e5;
+    margin-right: 0.5rem;
+}
+
+.btn-view-all {
+    color: #4f46e5;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.btn-view-all:hover {
+    color: #3730a3;
+    transform: translateX(2px);
 }
 
 .list-group-item {
@@ -672,6 +889,10 @@
     background-color: rgba(var(--primary-rgb), 0.02);
 }
 
+.deadline-actions {
+    margin-left: 1rem;
+}
+
 .deadline-info {
     display: flex;
     align-items: center;
@@ -773,533 +994,13 @@
 }
 </style>
 
-<!-- Submit Report Modal -->
-<div class="modal fade" id="submitReportModal" tabindex="-1" aria-labelledby="submitReportModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header py-2">
-                <h6 class="modal-title" id="submitReportModalLabel">
-                    <i class="fas fa-file-alt me-2"></i>
-                    Submit New Report
-                </h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body py-3">
-                <form id="submitReportForm" method="POST" action="{{ route('barangay.submissions.store') }}" enctype="multipart/form-data" class="needs-validation" data-no-ajax="true" novalidate>
-                    @csrf
-                    @if(session('error'))
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ session('error') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
-                    @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    @endif
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="form-group mb-2">
-                                <label for="frequency_filter" class="form-label small">
-                                    Filter by Frequency
-                                </label>
-                                <select id="frequency_filter" class="form-select form-select-sm">
-                                    <option value="">All Frequencies</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="semestral">Semestral</option>
-                                    <option value="annual">Annual</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="report_type" class="form-label small">
-                                    Report Type
-                                </label>
-                                <select id="report_type" class="form-select @error('report_type_id') is-invalid @enderror" name="report_type_id" required>
-                                    <option value="">Select Report Type</option>
-                                    @foreach($reportTypes as $reportType)
-                                        <option value="{{ $reportType->id }}"
-                                            data-frequency="{{ $reportType->frequency }}"
-                                            data-allowed-types="{{ json_encode($reportType->allowed_file_types ?? ['pdf']) }}"
-                                            data-instructions="{{ $reportType->instructions ?? '' }}">
-                                            {{ $reportType->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div id="no-report-types-message" class="alert alert-info mt-2" style="display: none;">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    You have already submitted all available reports for this frequency.
-                                </div>
 
-                                @if($availableReportTypeCounts['total'] == 0)
-                                <div class="alert alert-info mt-2">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    You have already submitted all available reports. Check your submissions for any reports that need resubmission.
-                                </div>
-                                @endif
 
-                                <!-- Debug information for submitted report types (hidden) -->
-                                <div class="d-none">
-                                    <p>Submitted Report Type IDs:
-                                        @foreach($submittedReportTypeIds as $id)
-                                            {{ $id }},
-                                        @endforeach
-                                    </p>
-                                    <p>Available Report Types by Frequency:</p>
-                                    <ul>
-                                        @foreach($reportTypesByFrequency as $frequency => $types)
-                                            <li>{{ $frequency }}: {{ $types->count() }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                                @error('report_type_id')
-                                    <div class="invalid-feedback">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Instructions Section -->
-                    <div id="instructions-section" class="row mb-2" style="display: none;">
-                        <div class="col-12">
-                            <div class="card border-primary">
-                                <div class="card-header bg-primary text-white py-2">
-                                    <h6 class="mb-0 small">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        Submission Instructions
-                                    </h6>
-                                </div>
-                                <div class="card-body py-2">
-                                    <div id="instructions-content" class="text-muted small">
-                                        <!-- Instructions will be populated here -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="file" class="form-label small">
-                                    Upload File
-                                </label>
-                                <div class="mb-1">
-                                    <div class="alert alert-info py-1 mb-1 small" id="allowedFormatsAlert">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        <span id="allowedFormatsText">Please select a report type to see accepted file formats</span>
-                                    </div>
-                                </div>
-                                <div class="drop-zone compact" id="dropZone">
-                                    <div class="drop-zone__prompt">
-                                        <i class="fas fa-cloud-upload-alt fa-lg mb-1 text-primary"></i>
-                                        <p class="mb-0 small">Drag and drop your file here or click to browse</p>
-                                        <small class="text-muted" id="dropZoneFormatsText">Select a report type first</small>
-                                    </div>
-                                    <input type="file" name="file" id="file" class="drop-zone__input" accept=".pdf,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar" required>
-                                </div>
-                                @error('file')
-                                    <div class="invalid-feedback d-block">
-                                        {{ $message }}
-                                    </div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Weekly Report Fields -->
-                    <div id="weekly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-2">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-2 small">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Report Period
-                                </h6>
-                                <div class="row">
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label small">Month</label>
-                                        <select class="form-select form-select-sm" name="month" required>
-                                            @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
-                                                <option value="{{ $month }}">{{ $month }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label small">Week Number</label>
-                                        <input type="number" class="form-control form-control-sm" name="week_number" min="1" max="52" required>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="card bg-light mb-2">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-2 small">
-                                    <i class="fas fa-chart-bar me-2"></i>
-                                    Report Details
-                                </h6>
-                                <div class="row">
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label small">Number of Clean-up Sites</label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
-                                            <span class="input-group-text">sites</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label small">Number of Participants</label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="number" class="form-control" name="num_of_participants" min="0" required>
-                                            <span class="input-group-text">people</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label small">Number of Barangays</label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="number" class="form-control" name="num_of_barangays" min="0" required>
-                                            <span class="input-group-text">barangays</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6 mb-2">
-                                        <label class="form-label small">Total Volume</label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
-                                            <span class="input-group-text">m³</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Monthly Report Fields -->
-                    <div id="monthly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-2">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-2 small">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Report Period
-                                </h6>
-                                <div class="mb-2">
-                                    <label class="form-label small">Month</label>
-                                    <select class="form-select form-select-sm" name="month" required>
-                                        @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
-                                            <option value="{{ $month }}">{{ $month }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quarterly Report Fields -->
-                    <div id="quarterly-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-2">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-2 small">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Report Period
-                                </h6>
-                                <div class="mb-2">
-                                    <label class="form-label small">Quarter Number</label>
-                                    <select class="form-select form-select-sm" name="quarter_number" required>
-                                        <option value="1">First Quarter (Jan-Mar)</option>
-                                        <option value="2">Second Quarter (Apr-Jun)</option>
-                                        <option value="3">Third Quarter (Jul-Sep)</option>
-                                        <option value="4">Fourth Quarter (Oct-Dec)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Semestral Report Fields -->
-                    <div id="semestral-fields" class="report-fields" style="display: none;">
-                        <div class="card bg-light mb-2">
-                            <div class="card-body py-2">
-                                <h6 class="card-title mb-2 small">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    Report Period
-                                </h6>
-                                <div class="mb-2">
-                                    <label class="form-label small">Semester Number</label>
-                                    <select class="form-select form-select-sm" name="sem_number" required>
-                                        <option value="1">First Semester (Jan-Jun)</option>
-                                        <option value="2">Second Semester (Jul-Dec)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="text-end">
-                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" id="debugBtn" class="btn btn-secondary me-2">
-                            <i class="fas fa-bug me-2"></i>
-                            Debug
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane me-2"></i>
-                            Submit Report
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-success text-white justify-content-center">
-                <h5 class="modal-title text-center mb-0">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Success
-                </h5>
-            </div>
-            <div class="modal-body p-4">
-                <div class="text-center mb-3">
-                    <div class="success-icon mb-3">
-                        <i class="fas fa-check-circle fa-5x text-success"></i>
-                    </div>
-                    <h4 class="mb-3" id="successModalTitle">Report Submitted Successfully!</h4>
-                    <p class="text-muted" id="successModalMessage">Your report has been submitted and is now available for review.</p>
-                    <div class="mt-3">
-                        <small class="text-muted">This message will close automatically in <span id="countdown">2</span> seconds</small>
-                    </div>
-                </div>
-            </div>
-            <!-- No footer with close button -->
-        </div>
-    </div>
-</div>
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if we need to show the success modal (after form submission)
-    @if(session('success'))
-    var successModal = new bootstrap.Modal(document.getElementById('successModal'), {
-        backdrop: 'static',  // Prevent closing when clicking outside
-        keyboard: false      // Prevent closing with keyboard
-    });
-    document.getElementById('successModalMessage').textContent = "{{ session('success') }}";
-
-    // Show the modal
-    successModal.show();
-
-    // Set up countdown timer
-    let countdown = 2;
-    const countdownElement = document.getElementById('countdown');
-
-    // Update countdown every second
-    const countdownInterval = setInterval(function() {
-        countdown--;
-        countdownElement.textContent = countdown;
-
-        if (countdown <= 0) {
-            clearInterval(countdownInterval);
-            successModal.hide();
-            window.location.reload();
-        }
-    }, 1000);
-    @endif
-
-    // Report type change handler
-    const reportTypeSelect = document.getElementById('report_type');
-    const frequencyFilter = document.getElementById('frequency_filter');
-    const weeklyFields = document.getElementById('weekly-fields');
-    const monthlyFields = document.getElementById('monthly-fields');
-    const quarterlyFields = document.getElementById('quarterly-fields');
-    const semestralFields = document.getElementById('semestral-fields');
-
-    // Function to filter report types based on frequency
-    function filterReportTypes() {
-        const selectedFrequency = frequencyFilter.value;
-        const options = reportTypeSelect.options;
-        let visibleOptions = 0;
-
-        for (let i = 0; i < options.length; i++) {
-            const option = options[i];
-            if (option.value === '') continue; // Skip the default option
-
-            if (!selectedFrequency || option.dataset.frequency === selectedFrequency) {
-                option.style.display = '';
-                visibleOptions++;
-            } else {
-                option.style.display = 'none';
-            }
-        }
-
-        // Reset report type selection if the current selection doesn't match the filter
-        if (reportTypeSelect.value) {
-            const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
-            if (selectedFrequency && selectedOption.dataset.frequency !== selectedFrequency) {
-                reportTypeSelect.value = '';
-                hideAllFields();
-            }
-        }
-
-        // Show a message if no options are available after filtering
-        const noOptionsMessage = document.getElementById('no-report-types-message');
-        if (noOptionsMessage) {
-            if (visibleOptions === 0) {
-                noOptionsMessage.style.display = 'block';
-                if (selectedFrequency) {
-                    noOptionsMessage.innerHTML = `
-                        <i class="fas fa-info-circle me-2"></i>
-                        You have already submitted all available ${selectedFrequency} reports.
-                    `;
-                } else {
-                    noOptionsMessage.innerHTML = `
-                        <i class="fas fa-info-circle me-2"></i>
-                        You have already submitted all available reports.
-                    `;
-                }
-            } else {
-                noOptionsMessage.style.display = 'none';
-            }
-        }
-    }
-
-    // Function to hide all report fields
-    function hideAllFields() {
-        weeklyFields.style.display = 'none';
-        monthlyFields.style.display = 'none';
-        quarterlyFields.style.display = 'none';
-        semestralFields.style.display = 'none';
-    }
-
-    // Add event listener for frequency filter
-    frequencyFilter.addEventListener('change', filterReportTypes);
-
-    reportTypeSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const frequency = selectedOption.dataset.frequency;
-        const instructions = selectedOption.dataset.instructions;
-
-        // Hide all fields first
-        hideAllFields();
-
-        // Show relevant fields
-        switch (frequency) {
-            case 'weekly':
-                weeklyFields.style.display = 'block';
-                break;
-            case 'monthly':
-                monthlyFields.style.display = 'block';
-                break;
-            case 'quarterly':
-                quarterlyFields.style.display = 'block';
-                break;
-            case 'semestral':
-                semestralFields.style.display = 'block';
-                break;
-        }
-
-        // Update instructions display
-        updateInstructionsDisplay(instructions);
-
-        // Update allowed formats display
-        updateAllowedFormatsDisplay();
-
-        // Reset the file input and drop zone
-        if (fileInput) {
-            fileInput.value = '';
-            resetDropZone();
-        }
-    });
-
-    // Function to update the allowed formats display
-    function updateAllowedFormatsDisplay() {
-        const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
-        const allowedFormatsAlert = document.getElementById('allowedFormatsAlert');
-        const allowedFormatsText = document.getElementById('allowedFormatsText');
-        const dropZoneFormatsText = document.getElementById('dropZoneFormatsText');
-
-        if (selectedOption && selectedOption.value) {
-            try {
-                // Get allowed file types
-                let allowedTypes = ['pdf']; // Default
-                if (selectedOption.dataset.allowedTypes) {
-                    allowedTypes = JSON.parse(selectedOption.dataset.allowedTypes);
-                }
-
-                // Format for display
-                const formattedTypes = allowedTypes.map(type => type.toUpperCase()).join(', ');
-
-                // Update the alert
-                allowedFormatsAlert.classList.remove('alert-warning');
-                allowedFormatsAlert.classList.add('alert-info');
-                allowedFormatsText.innerHTML = `<strong>Accepted file formats:</strong> ${formattedTypes} (Max: 100MB)`;
-
-                // Update the drop zone text
-                dropZoneFormatsText.textContent = `Accepted formats: ${formattedTypes} (Max: 100MB)`;
-
-                // Update the file input accept attribute
-                const acceptAttr = allowedTypes.map(type => '.' + type).join(',');
-                fileInput.setAttribute('accept', acceptAttr);
-            } catch (e) {
-                console.error('Error updating allowed formats:', e);
-                allowedFormatsAlert.classList.remove('alert-info');
-                allowedFormatsAlert.classList.add('alert-warning');
-                allowedFormatsText.innerHTML = '<strong>Error:</strong> Could not determine accepted file formats';
-            }
-        } else {
-            // No report type selected
-            allowedFormatsAlert.classList.remove('alert-info');
-            allowedFormatsAlert.classList.add('alert-warning');
-            allowedFormatsText.innerHTML = 'Please select a report type to see accepted file formats';
-            dropZoneFormatsText.textContent = 'Select a report type first';
-        }
-    }
-
-    // Function to update instructions display
-    function updateInstructionsDisplay(instructions) {
-        const instructionsSection = document.getElementById('instructions-section');
-        const instructionsContent = document.getElementById('instructions-content');
-
-        if (instructions && instructions.trim() !== '') {
-            instructionsContent.innerHTML = instructions.replace(/\n/g, '<br>');
-            instructionsSection.style.display = 'block';
-        } else {
-            instructionsSection.style.display = 'none';
-        }
-    }
-
-    // Handle submit buttons in upcoming deadlines
-    const submitButtons = document.querySelectorAll('[data-bs-target="#submitReportModal"]');
-    submitButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const reportTypeId = this.dataset.reportType;
-            const frequency = this.dataset.frequency;
-
-            // Set the frequency filter
-            frequencyFilter.value = frequency;
-            filterReportTypes();
-
-            // Set the report type
-            reportTypeSelect.value = reportTypeId;
-
-            // Trigger the change event to show appropriate fields
-            const event = new Event('change');
-            reportTypeSelect.dispatchEvent(event);
-        });
-    });
-
-    // Initial filter application
-    filterReportTypes();
-
-    // Initialize the allowed formats display
-    updateAllowedFormatsDisplay();
-
     // Handle scroll indicator for upcoming deadlines
     const deadlineList = document.querySelector('.deadline-list');
     const scrollIndicator = document.querySelector('.scroll-indicator');
@@ -1316,295 +1017,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Check if there are any report types available
-    const hasReportTypes = Array.from(reportTypeSelect.options).some(option =>
-        option.value !== '' && option.style.display !== 'none'
-    );
-
-    if (!hasReportTypes) {
-        const noOptionsMessage = document.getElementById('no-report-types-message');
-        if (noOptionsMessage) {
-            noOptionsMessage.style.display = 'block';
-            noOptionsMessage.innerHTML = `
-                <i class="fas fa-check-circle me-2"></i>
-                You have already submitted all available reports.
-            `;
-        }
-
-        // Disable the submit button if no report types are available
-        const submitBtn = document.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.classList.add('btn-secondary');
-            submitBtn.classList.remove('btn-primary');
-        }
-    }
-
-    // Enhanced Drop zone functionality
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.querySelector('.drop-zone__input');
-    const form = document.getElementById('submitReportForm');
-
-    dropZone.addEventListener('click', () => fileInput.click());
-
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.add('dragover');
-    });
-
-    ['dragleave', 'dragend'].forEach(type => {
-        dropZone.addEventListener(type, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove('dragover');
-        });
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('dragover');
-
-        if (e.dataTransfer.files.length) {
-            const file = e.dataTransfer.files[0];
-            if (validateFile(file)) {
-                fileInput.files = e.dataTransfer.files;
-                updateThumbnail(dropZone, file);
-            }
-        }
-    });
-
-    fileInput.addEventListener('change', () => {
-        if (fileInput.files.length) {
-            const file = fileInput.files[0];
-            if (validateFile(file)) {
-                updateThumbnail(dropZone, file);
-            } else {
-                fileInput.value = '';
-                resetDropZone();
-            }
-        }
-    });
-
-    function validateFile(file) {
-        // Get the selected report type to check allowed file types
-        const reportTypeSelect = document.getElementById('report_type');
-        const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
-
-        // Default to PDF if no allowed types are specified
-        let validTypes = ['pdf'];
-
-        // Check if the report type has data-allowed-types attribute
-        if (selectedOption.dataset.allowedTypes) {
-            try {
-                console.log('Raw allowed types:', selectedOption.dataset.allowedTypes);
-                validTypes = JSON.parse(selectedOption.dataset.allowedTypes);
-                console.log('Parsed allowed types:', validTypes);
-                // Remove dots from the beginning of file extensions if they exist
-                validTypes = validTypes.map(type => type.startsWith('.') ? type.substring(1) : type);
-                console.log('Processed allowed types:', validTypes);
-            } catch (e) {
-                console.error('Error parsing allowed file types:', e);
-                console.error('Raw data:', selectedOption.dataset.allowedTypes);
-            }
-        }
-
-        const maxSize = 100 * 1024 * 1024; // 100MB
-
-        // Get file extension without the dot
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-
-        // Get file MIME type
-        const fileType = file.type;
-
-        console.log('File extension:', fileExtension);
-        console.log('File MIME type:', fileType);
-        console.log('Valid types:', validTypes);
-
-        // Special handling for docx files - accept them regardless of MIME type
-        if (fileExtension === 'docx' && validTypes.includes('docx')) {
-            console.log('Accepting docx file');
-            if (file.size > maxSize) {
-                alert('File size exceeds 100MB limit.');
-                return false;
-            }
-            return true;
-        }
-
-        if (!validTypes.includes(fileExtension)) {
-            alert(`Invalid file type. Please upload one of these formats: ${validTypes.join(', ')}`);
-            return false;
-        }
-
-        if (file.size > maxSize) {
-            alert('File size exceeds 100MB limit.');
-            return false;
-        }
-
-        return true;
-    }
-
-    function resetDropZone() {
-        // Update the allowed formats display
-        updateAllowedFormatsDisplay();
-
-        // Get the selected report type to check allowed file types
-        const reportTypeSelect = document.getElementById('report_type');
-        const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
-
-        // Default message if no report type is selected
-        let message = 'Select a report type first';
-
-        // If a report type is selected, show the allowed formats
-        if (selectedOption && selectedOption.value) {
-            try {
-                // Get allowed file types
-                let allowedTypes = ['pdf']; // Default
-                if (selectedOption.dataset.allowedTypes) {
-                    allowedTypes = JSON.parse(selectedOption.dataset.allowedTypes);
-                }
-
-                // Format for display
-                const formattedTypes = allowedTypes.map(type => type.toUpperCase()).join(', ');
-                message = `Accepted formats: ${formattedTypes} (Max: 100MB)`;
-            } catch (e) {
-                console.error('Error parsing allowed file types:', e);
-                message = 'Error determining accepted file formats';
-            }
-        }
-
-        // Update the drop zone
-        dropZone.querySelector('.drop-zone__prompt').innerHTML = `
-            <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-primary"></i>
-            <p class="mb-1">Drag and drop your file here or click to browse</p>
-            <small class="text-muted" id="dropZoneFormatsText">${message}</small>
-        `;
-    }
-
-    function updateThumbnail(dropZone, file) {
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                dropZone.querySelector('.drop-zone__prompt').innerHTML = `
-                    <img src="${reader.result}" alt="${file.name}" class="drop-zone__thumb" data-label="${file.name}">
-                    <p class="mb-1 mt-2">${file.name}</p>
-                    <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
-                `;
-            };
-        } else {
-            const fileIcon = getFileIcon(file.name);
-            dropZone.querySelector('.drop-zone__prompt').innerHTML = `
-                <i class="fas ${fileIcon} fa-2x mb-2 text-primary"></i>
-                <p class="mb-1">${file.name}</p>
-                <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
-            `;
-        }
-    }
-
-    function getFileIcon(filename) {
-        const extension = filename.split('.').pop().toLowerCase();
-        switch (extension) {
-            case 'pdf':
-                return 'fa-file-pdf';
-            case 'doc':
-            case 'docx':
-                return 'fa-file-word';
-            case 'xls':
-            case 'xlsx':
-                return 'fa-file-excel';
-            case 'jpg':
-            case 'jpeg':
-            case 'png':
-            case 'gif':
-                return 'fa-file-image';
-            case 'zip':
-            case 'rar':
-                return 'fa-file-archive';
-            default:
-                return 'fa-file';
-        }
-    }
-
-    // Form submission handling
-    form.addEventListener('submit', function(e) {
-        e.preventDefault(); // Prevent default submission
-
-        // Check if there are any report types available
-        const hasReportTypes = Array.from(reportTypeSelect.options).some(option =>
-            option.value !== '' && option.style.display !== 'none'
-        );
-
-        if (!hasReportTypes) {
-            alert('You have already submitted all available reports.');
-            return;
-        }
-
-        // Check if a report type is selected
-        if (!reportTypeSelect.value) {
-            alert('Please select a report type.');
-            reportTypeSelect.focus();
-            return;
-        }
-
-        // Validate file
-        if (!fileInput.files.length) {
-            alert('Please select a file to upload.');
-            return;
-        }
-
-        const file = fileInput.files[0];
-        if (!validateFile(file)) {
-            return;
-        }
-
-        // If all validations pass, submit the form normally
-        console.log('Submitting form...');
-
-        // Show loading state
-        const submitBtn = this.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
-
-        // Submit the form normally
-        this.submit();
 
 
-    });
 
-    // Debug button
-    document.getElementById('debugBtn').addEventListener('click', function() {
-        const reportTypeSelect = document.getElementById('report_type');
-        const selectedOption = reportTypeSelect.options[reportTypeSelect.selectedIndex];
 
-        console.log('Selected report type:', selectedOption.value);
-        console.log('Selected report type name:', selectedOption.text);
-        console.log('Selected report type frequency:', selectedOption.dataset.frequency);
-        console.log('Selected report type allowed types:', selectedOption.dataset.allowedTypes);
 
-        try {
-            const allowedTypes = JSON.parse(selectedOption.dataset.allowedTypes);
-            console.log('Parsed allowed types:', allowedTypes);
-        } catch (e) {
-            console.error('Error parsing allowed types:', e);
-        }
-
-        if (fileInput.files.length) {
-            const file = fileInput.files[0];
-            console.log('Selected file:', file);
-            console.log('File name:', file.name);
-            console.log('File type:', file.type);
-            console.log('File size:', file.size);
-            console.log('File extension:', file.name.split('.').pop().toLowerCase());
-
-            // Test validation
-            const isValid = validateFile(file);
-            console.log('File validation result:', isValid);
-        } else {
-            console.log('No file selected');
-        }
-    });
 });
 </script>
 @endpush

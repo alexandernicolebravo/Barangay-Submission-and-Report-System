@@ -3,68 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="user-id" content="{{ Auth::check() ? Auth::id() : '' }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>@yield('title', 'Facilitator Panel')</title>
+    <title>@yield('title', 'Facilitator Panel') - {{ config('app.name', 'Laravel') }}</title>
+
+    <!-- DILG Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/favicondilg.ico') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16dilg.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32dilg.png') }}">
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Modern UI CSS -->
+    <link href="{{ asset('css/modern-ui.css') }}" rel="stylesheet">
     <!-- Smooth Transitions CSS -->
     <link href="{{ asset('css/smooth-transitions.css') }}" rel="stylesheet">
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
-            --primary: #3b82f6;
-            --primary-light: rgba(59, 130, 246, 0.1);
+            /* Modern Facilitator Color Palette */
+            --primary: #8b5cf6;
+            --primary-light: #c4b5fd;
+            --primary-dark: #7c3aed;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --secondary: #64748b;
-            --success: #22c55e;
-            --success-light: rgba(34, 197, 94, 0.1);
+            --success: #10b981;
+            --success-light: rgba(16, 185, 129, 0.1);
             --danger: #ef4444;
             --danger-light: rgba(239, 68, 68, 0.1);
             --warning: #f59e0b;
             --warning-light: rgba(245, 158, 11, 0.1);
-            --info: #8b5cf6;
-            --info-light: rgba(139, 92, 246, 0.1);
+            --info: #06b6d4;
+            --info-light: rgba(6, 182, 212, 0.1);
             --dark: #1e293b;
-            --gray-100: #f8fafc;
-            --gray-200: #f1f5f9;
-            --gray-300: #e2e8f0;
-            --gray-400: #cbd5e1;
-            --gray-500: #94a3b8;
-            --gray-600: #64748b;
-            --gray-700: #475569;
-            --gray-800: #334155;
-            --gray-900: #1e293b;
-            --shadow-sm: 0 2px 12px rgba(0,0,0,0.04);
-            --shadow-md: 0 5px 15px rgba(0,0,0,0.08);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
+
+            /* Enhanced Gray Scale */
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+
+            /* Modern Shadows */
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+            /* Border Radius */
+            --radius-sm: 0.5rem;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
+
+            /* Transitions */
+            --transition-fast: 0.15s ease-in-out;
+            --transition-normal: 0.3s ease-in-out;
+            --transition-slow: 0.5s ease-in-out;
         }
 
         body {
-            background-color: var(--gray-100);
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
             color: var(--gray-800);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
+            line-height: 1.6;
+            font-weight: 400;
         }
 
-        /* Sidebar Styles */
+        /* Modern Facilitator Sidebar */
         .sidebar {
-            background: white;
+            background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
             min-height: 100vh;
-            padding: 1.5rem 0;
+            padding: 2rem 0;
             position: fixed;
-            width: inherit;
-            max-width: inherit;
-            box-shadow: var(--shadow-sm);
-            z-index: 1000;
+            width: 280px;
+            box-shadow: var(--shadow-lg);
+            z-index: 1030;
+            transition: var(--transition-normal);
+            overflow-y: auto;
+            border-right: 1px solid var(--gray-200);
         }
 
         .sidebar-header {
@@ -86,29 +122,63 @@
 
         .nav-link {
             color: var(--gray-700);
-            padding: 0.75rem 1.5rem;
+            padding: 0.875rem 1.5rem;
             margin: 0.25rem 1rem;
-            border-radius: var(--radius-sm);
-            transition: all 0.2s ease;
+            border-radius: var(--radius-md);
+            transition: var(--transition-normal);
             display: flex;
             align-items: center;
             font-weight: 500;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: var(--primary-gradient);
+            transition: var(--transition-normal);
+            z-index: -1;
         }
 
         .nav-link:hover {
-            background: var(--gray-100);
+            background: linear-gradient(135deg, var(--primary-light) 0%, rgba(139, 92, 246, 0.05) 100%);
             color: var(--primary);
+            transform: translateX(4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .nav-link:hover::before {
+            width: 4px;
         }
 
         .nav-link.active {
-            background: var(--primary-light);
-            color: var(--primary);
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: var(--shadow-lg);
+            transform: translateX(4px);
+        }
+
+        .nav-link.active::before {
+            width: 4px;
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .nav-link i {
             width: 1.5rem;
             font-size: 1.1rem;
-            margin-right: 0.75rem;
+            margin-right: 0.875rem;
+            transition: var(--transition-fast);
+        }
+
+        .nav-link:hover i,
+        .nav-link.active i {
+            transform: scale(1.1);
         }
 
         /* Header Styles */
@@ -118,9 +188,9 @@
             padding: 0;
             position: fixed;
             top: 0;
-            left: 0;
+            left: 280px; /* Start after sidebar */
             right: 0;
-            width: 100%;
+            width: calc(100% - 280px); /* Adjust width to not overlap sidebar */
             height: 72px;
             z-index: 1020;
             transition: all 0.3s ease;
@@ -147,7 +217,7 @@
             align-items: center;
             height: 100%;
             padding: 0 2rem;
-            margin-left: 16.666667%; /* Account for sidebar width */
+            margin-left: 0; /* Remove margin since header already starts after sidebar */
         }
 
         .header-right {
@@ -453,9 +523,10 @@
         /* Main Content Styles */
         .main-content {
             padding: 2rem;
-            margin-left: 16.666667%;
+            margin-left: 280px;
             margin-top: 72px; /* Account for header height */
             min-height: calc(100vh - 72px);
+            transition: all 0.3s ease;
         }
 
         /* Card Styles */
@@ -675,45 +746,14 @@
                 <div class="notification-container">
                     <button class="notification-btn" id="notificationBtn">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notificationBadge">3</span>
+                        <span class="notification-badge" id="notificationBadge"></span>
                     </button>
                     <div class="notification-dropdown" id="notificationDropdown">
                         <div class="notification-header">
                             <h6>Notifications</h6>
-                            <a href="#" class="mark-all-read" id="markAllRead">Mark all as read</a>
                         </div>
                         <div class="notification-list">
-                            <!-- Sample notifications for facilitator -->
-                            <div class="notification-item unread" data-type="submission">
-                                <div class="notification-icon submission">
-                                    <i class="fas fa-file-upload"></i>
-                                </div>
-                                <div class="notification-content">
-                                    <div class="notification-title">New Report Submission</div>
-                                    <div class="notification-message">Barangay 19 submitted a weekly report</div>
-                                    <div class="notification-time">1 hour ago</div>
-                                </div>
-                            </div>
-                            <div class="notification-item unread" data-type="report">
-                                <div class="notification-icon report">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                </div>
-                                <div class="notification-content">
-                                    <div class="notification-title">Overdue Report</div>
-                                    <div class="notification-message">Barangay Singcang has an overdue monthly report</div>
-                                    <div class="notification-time">3 hours ago</div>
-                                </div>
-                            </div>
-                            <div class="notification-item" data-type="system">
-                                <div class="notification-icon system">
-                                    <i class="fas fa-info-circle"></i>
-                                </div>
-                                <div class="notification-content">
-                                    <div class="notification-title">System Update</div>
-                                    <div class="notification-message">New features available in the reporting system</div>
-                                    <div class="notification-time">1 day ago</div>
-                                </div>
-                            </div>
+                            <!-- Notifications will be populated here by JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -764,34 +804,41 @@
         </div>
     </header>
 
-    <div class="container-fluid">
-        <div class="row">
+    <div class="container-fluid p-0">
+        <div class="row g-0">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
-                <div class="sidebar-header">
-                    <h4>Facilitator Panel</h4>
-                    <small>Control Center</small>
+            <div class="col-auto">
+                <div class="sidebar">
+                    <div class="sidebar-header">
+                        <h4>Facilitator Panel</h4>
+                        <small>{{ auth()->user()->name }}</small>
+                    </div>
+                    <nav class="d-flex flex-column h-100">
+                        <div class="flex-grow-1">
+                            <a href="{{ route('facilitator.dashboard') }}" class="nav-link {{ request()->routeIs('facilitator.dashboard') ? 'active' : '' }}">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Dashboard
+                            </a>
+                            <a href="{{ route('facilitator.view-submissions') }}" class="nav-link {{ request()->routeIs('facilitator.view-submissions') ? 'active' : '' }}">
+                                <i class="fas fa-file-alt"></i>
+                                View Submissions
+                            </a>
+
+                        </div>
+
+                        <!-- Announcements Section at Bottom of Sidebar -->
+                        <div class="mt-auto">
+                            @include('components.sidebar-announcements')
+                        </div>
+                    </nav>
                 </div>
-                <nav class="nav flex-column">
-                    <a class="nav-link {{ request()->routeIs('facilitator.dashboard') ? 'active' : '' }}" href="{{ route('facilitator.dashboard') }}">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a class="nav-link {{ request()->routeIs('facilitator.view-submissions') ? 'active' : '' }}" href="{{ route('facilitator.view-submissions') }}">
-                        <i class="fas fa-inbox"></i> View Submissions
-                    </a>
-                    <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                        @csrf
-                    </form>
-                </nav>
             </div>
 
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
-                @yield('content')
+            <div class="col">
+                <div class="main-content">
+                    @yield('content')
+                </div>
             </div>
         </div>
     </div>
@@ -809,65 +856,258 @@
     <!-- Header JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Notification dropdown functionality
+            let notificationsCurrentPage = 1;
+            let notificationsLastPage = 1;
+            let notificationsLoading = false;
+            const notificationList = document.querySelector('.notification-list');
             const notificationBtn = document.getElementById('notificationBtn');
             const notificationDropdown = document.getElementById('notificationDropdown');
             const notificationBadge = document.getElementById('notificationBadge');
-            const markAllRead = document.getElementById('markAllRead');
-
-            // User profile dropdown functionality
+            const markAllReadBtn = document.getElementById('markAllRead');
             const userProfileBtn = document.getElementById('userProfileBtn');
             const userProfileDropdown = document.getElementById('userProfileDropdown');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-            // Toggle notification dropdown
+            function formatTimeAgo(timestamp) {
+                const now = new Date();
+                const past = new Date(timestamp);
+                const msPerMinute = 60 * 1000;
+                const msPerHour = msPerMinute * 60;
+                const msPerDay = msPerHour * 24;
+                const elapsed = now - past;
+
+                if (elapsed < msPerMinute) {
+                     return Math.round(elapsed/1000) + ' seconds ago';
+                } else if (elapsed < msPerHour) {
+                     return Math.round(elapsed/msPerMinute) + ' minutes ago';
+                } else if (elapsed < msPerDay ) {
+                     return Math.round(elapsed/msPerHour ) + ' hours ago';
+                } else {
+                     return past.toLocaleDateString() + ' ' + past.toLocaleTimeString();
+                }
+            }
+
+            function getNotificationIcon(type) {
+                const baseType = type.split('\\\\').pop().replace('Notification', '').toLowerCase();
+                if (baseType.includes('deadline')) return '<div class="notification-icon deadline"><i class="fas fa-clock"></i></div>';
+                if (baseType.includes('reportremarks')) return '<div class="notification-icon report"><i class="fas fa-file-alt"></i></div>';
+                if (baseType.includes('newsubmission')) return '<div class="notification-icon submission"><i class="fas fa-file-upload"></i></div>'; // submission icon for facilitator
+                return '<div class="notification-icon system"><i class="fas fa-bell"></i></div>';
+            }
+
+            function populateNotifications(data, append = false) {
+                if (!append) {
+                    notificationList.innerHTML = '';
+                }
+                if (data && data.data && data.data.length > 0) {
+                    data.data.forEach(notification => {
+                        const isUnread = !notification.read_at;
+                        const notificationData = notification.data;
+                        const message = notificationData.message || 'New notification';
+                        const redirectUrl = notificationData.redirect_url || '#';
+                        let title = 'Notification';
+                        if (notificationData.notification_type === 'report_remarks') title = 'Report Remarks Added';
+                        else if (notificationData.notification_type === 'upcoming_deadline') title = 'Upcoming Deadline';
+                        else if (notificationData.notification_type === 'new_submission_received') title = 'New Submission';
+                        else if (notificationData.full_report_title) title = notificationData.full_report_title;
+                        else if (notificationData.report_name) title = notificationData.report_name;
+
+                        const item = document.createElement('div');
+                        item.className = `notification-item ${isUnread ? 'unread' : ''}`;
+                        item.dataset.id = notification.id;
+                        item.dataset.url = redirectUrl;
+                        item.innerHTML = `
+                            ${getNotificationIcon(notification.type)}
+                            <div class="notification-content">
+                                <div class="notification-title">${title}</div>
+                                <div class="notification-message">${message}</div>
+                                <div class="notification-time">${formatTimeAgo(notification.created_at)}</div>
+                            </div>
+                        `;
+                        notificationList.appendChild(item);
+                    });
+                    notificationsLastPage = data.last_page;
+                    const loadMoreWrapper = document.getElementById('loadMoreNotificationsWrapper');
+                    if (notificationsCurrentPage >= notificationsLastPage) {
+                        if(loadMoreWrapper) loadMoreWrapper.style.display = 'none';
+                    } else {
+                        if(loadMoreWrapper) loadMoreWrapper.style.display = 'block';
+                    }
+                } else if (!append) {
+                    notificationList.innerHTML = '<div class="notification-item text-center"><small>No notifications found.</small></div>';
+                    const loadMoreWrapper = document.getElementById('loadMoreNotificationsWrapper');
+                    if(loadMoreWrapper) loadMoreWrapper.style.display = 'none';
+                }
+                updateNotificationBadgeDOM();
+            }
+
+            function fetchNotifications(page = 1, append = false) {
+                if (notificationsLoading) return Promise.resolve();
+                notificationsLoading = true;
+                
+                let loader = document.getElementById('notificationsLoader');
+                if (!loader) {
+                    loader = document.createElement('div');
+                    loader.className = 'text-center p-2 small';
+                    loader.id = 'notificationsLoader';
+                    loader.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                    notificationList.appendChild(loader);
+                }
+
+                return fetch('{{ route("notifications.index") }}?page=' + page, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}, on ${response.url}`);
+                    }
+                    return response.json();
+                })
+                .then(responseData => {
+                    populateNotifications(responseData, append);
+                    notificationsCurrentPage = responseData.current_page;
+                    notificationsLastPage = responseData.last_page;
+                    const loadMoreButton = document.getElementById('loadMoreNotificationsBtn');
+                    if (loadMoreButton) {
+                        const loadMoreWrapper = document.getElementById('loadMoreNotificationsWrapper');
+                         if (notificationsCurrentPage >= notificationsLastPage) {
+                            if(loadMoreWrapper) loadMoreWrapper.style.display = 'none';
+                        } else {
+                            if(loadMoreWrapper) loadMoreWrapper.style.display = 'block';
+                        }
+                    }
+                })
+                .finally(() => {
+                    notificationsLoading = false;
+                    if(loader) loader.remove();
+                });
+            }
+
+            function fetchUnreadCount() {
+                fetch('{{ route("notifications.unread-count") }}', {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.unread_count > 0) {
+                        notificationBadge.textContent = data.unread_count;
+                        notificationBadge.style.display = 'flex';
+                    } else {
+                        notificationBadge.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error fetching unread count:', error));
+            }
+
+            function markNotificationAsRead(notificationId, element) {
+                fetch(`/notifications/${notificationId}/mark-as-read`, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        element.classList.remove('unread');
+                        fetchUnreadCount(); 
+                    }
+                })
+                .catch(error => {
+                    console.error('Error marking notification as read:', error);
+                    alert('Error marking notification as read. Please try again.');
+                });
+            }
+
+            function markAllNotificationsAsRead() {
+                fetch('{{ route("notifications.mark-all-as-read") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelectorAll('.notification-item.unread').forEach(item => item.classList.remove('unread'));
+                        fetchUnreadCount();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error marking all notifications as read:', error);
+                    alert('Error marking all notifications as read. Please try again.');
+                });
+            }
+
+            fetchUnreadCount();
+
             notificationBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                notificationDropdown.classList.toggle('show');
                 userProfileDropdown.classList.remove('show');
-            });
+                
+                const wasHidden = !notificationDropdown.classList.contains('show');
+                notificationDropdown.classList.toggle('show');
 
-            // Toggle user profile dropdown
+                if (wasHidden && notificationDropdown.classList.contains('show')) {
+                    const currentlyUnreadInList = notificationList.querySelector('.notification-item.unread');
+                    const isListEffectivelyEmpty = notificationList.children.length === 0 ||
+                                               (notificationList.children.length === 1 && notificationList.querySelector('.text-center'));
+
+                    if (isListEffectivelyEmpty) {
+                        notificationsCurrentPage = 1;
+                        fetchNotifications(notificationsCurrentPage, false)
+                            .then(() => {
+                                if (notificationList.querySelector('.notification-item.unread')) {
+                                    markAllNotificationsAsRead();
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching notifications on bell click:', error);
+                                if (!isListEffectivelyEmpty) { // Check again, in case of race condition or partial load
+                                 notificationList.innerHTML = `<div class="notification-item text-center text-danger"><small>Error loading notifications.</small></div>`;
+                                }
+                            });
+                    } else if (currentlyUnreadInList) {
+                        markAllNotificationsAsRead();
+                    }
+                }
+            });
+            
+            if (!document.getElementById('loadMoreNotificationsWrapper')) {
+                const loadMoreWrapper = document.createElement('div');
+                loadMoreWrapper.className = 'notification-footer text-center p-2';
+                loadMoreWrapper.id = 'loadMoreNotificationsWrapper';
+                loadMoreWrapper.style.display = 'none';
+                loadMoreWrapper.innerHTML = '<button class="btn btn-link btn-sm" id="loadMoreNotificationsBtn">Load More</button>';
+                notificationList.parentNode.insertBefore(loadMoreWrapper, notificationList.nextSibling);
+                
+                document.getElementById('loadMoreNotificationsBtn').addEventListener('click', function() {
+                    if (notificationsCurrentPage < notificationsLastPage && !notificationsLoading) {
+                        notificationsCurrentPage++;
+                        fetchNotifications(notificationsCurrentPage, true);
+                    }
+                });
+            }
+
             userProfileBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
+                notificationDropdown.classList.remove('show');
                 userProfileDropdown.classList.toggle('show');
-                notificationDropdown.classList.remove('show');
             });
 
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', function() {
-                notificationDropdown.classList.remove('show');
-                userProfileDropdown.classList.remove('show');
+            notificationList.addEventListener('click', function(e) {
+                const item = e.target.closest('.notification-item');
+                if (item) {
+                    const notificationId = item.dataset.id;
+                    const redirectUrl = item.dataset.url;
+                    if (notificationId && item.classList.contains('unread')) {
+                        markNotificationAsRead(notificationId, item);
+                    }
+                    if (redirectUrl && redirectUrl !== '#') {
+                        window.location.href = redirectUrl;
+                    }
+                }
             });
 
-            // Prevent dropdown from closing when clicking inside
-            notificationDropdown.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-
-            userProfileDropdown.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-
-            // Mark all notifications as read
-            markAllRead.addEventListener('click', function(e) {
-                e.preventDefault();
-                const unreadItems = document.querySelectorAll('.notification-item.unread');
-                unreadItems.forEach(item => {
-                    item.classList.remove('unread');
-                });
-                updateNotificationBadge();
-            });
-
-            // Mark individual notification as read when clicked
-            document.querySelectorAll('.notification-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    this.classList.remove('unread');
-                    updateNotificationBadge();
-                });
-            });
-
-            // Update notification badge count
-            function updateNotificationBadge() {
+            function updateNotificationBadgeDOM() {
                 const unreadCount = document.querySelectorAll('.notification-item.unread').length;
                 if (unreadCount > 0) {
                     notificationBadge.textContent = unreadCount;
@@ -877,16 +1117,15 @@
                 }
             }
 
-            // Initialize notification badge
-            updateNotificationBadge();
-
             // Header scroll effect
             window.addEventListener('scroll', function() {
                 const header = document.querySelector('.facilitator-header');
-                if (window.scrollY > 50) {
-                    header.classList.add('scrolled');
-                } else {
-                    header.classList.remove('scrolled');
+                if (header) {
+                    if (window.scrollY > 50) {
+                        header.classList.add('scrolled');
+                    } else {
+                        header.classList.remove('scrolled');
+                    }
                 }
             });
 

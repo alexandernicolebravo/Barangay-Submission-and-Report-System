@@ -333,7 +333,7 @@
             <div class="col-md-8 announcement-side">
                 <div class="announcement-header">
                     <div class="logo-container">
-                        <img src="{{ asset('images/Assets for Alex.png') }}" alt="DILG Logo" class="logo-img">
+                        <img src="{{ asset('images/smiledilg.png') }}" alt="DILG Logo" class="logo-img">
                         <div class="logo-text-container">
                         <div class="logo-text">Department of Interior and Local Government - Bacolod City</div>
                         </div>

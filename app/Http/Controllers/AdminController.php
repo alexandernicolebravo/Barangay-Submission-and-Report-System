@@ -12,9 +12,12 @@ use App\Models\MonthlyReport;
 use App\Models\QuarterlyReport;
 use App\Models\SemestralReport;
 use App\Models\AnnualReport;
+use App\Models\ExecutiveOrder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -48,6 +51,7 @@ class AdminController extends Controller
         $mergedData['quarterlyCount'] = $allReportTypeData['quarterlyCount'];
         $mergedData['semestralCount'] = $allReportTypeData['semestralCount'];
         $mergedData['annualCount'] = $allReportTypeData['annualCount'];
+        $mergedData['executiveOrderCount'] = $allReportTypeData['executiveOrderCount'] ?? 0;
 
         // Return JSON response with all chart data
         return response()->json([
@@ -62,6 +66,7 @@ class AdminController extends Controller
                 'quarterlyCount' => $mergedData['quarterlyCount'],
                 'semestralCount' => $mergedData['semestralCount'],
                 'annualCount' => $mergedData['annualCount'],
+                'executiveOrderCount' => $mergedData['executiveOrderCount'],
                 'submissionsByMonth' => $mergedData['submissionsByMonth'],
                 'topBarangays' => $mergedData['topBarangays'],
                 'clusterSubmissions' => $mergedData['clusterSubmissions'],
@@ -90,27 +95,38 @@ class AdminController extends Controller
         $quarterlyCount = 0;
         $semestralCount = 0;
         $annualCount = 0;
+        $executiveOrderCount = 0;
 
         if (!empty($barangayIds)) {
-            // Weekly reports
+            // Weekly reports with DISTINCT to prevent counting resubmissions
             $weeklyQuery = WeeklyReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted');
+                ->where('status', 'submitted')
+                ->distinct('user_id', 'report_type_id');
 
-            // Monthly reports
+            // Monthly reports with DISTINCT to prevent counting resubmissions
             $monthlyQuery = MonthlyReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted');
+                ->where('status', 'submitted')
+                ->distinct('user_id', 'report_type_id');
 
-            // Quarterly reports
+            // Quarterly reports with DISTINCT to prevent counting resubmissions
             $quarterlyQuery = QuarterlyReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted');
+                ->where('status', 'submitted')
+                ->distinct('user_id', 'report_type_id');
 
-            // Semestral reports
+            // Semestral reports with DISTINCT to prevent counting resubmissions
             $semestralQuery = SemestralReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted');
+                ->where('status', 'submitted')
+                ->distinct('user_id', 'report_type_id');
 
-            // Annual reports
+            // Annual reports with DISTINCT to prevent counting resubmissions
             $annualQuery = AnnualReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted');
+                ->where('status', 'submitted')
+                ->distinct('user_id', 'report_type_id');
+
+            // Executive Order reports with DISTINCT to prevent counting resubmissions
+            $executiveOrderQuery = ExecutiveOrder::whereIn('user_id', $barangayIds)
+                ->where('status', 'submitted')
+                ->distinct('user_id', 'report_type_id');
 
             // No date range filter in this method
 
@@ -120,6 +136,7 @@ class AdminController extends Controller
             $quarterlyCount = $quarterlyQuery->count();
             $semestralCount = $semestralQuery->count();
             $annualCount = $annualQuery->count();
+            $executiveOrderCount = $executiveOrderQuery->count();
         }
 
         return [
@@ -127,7 +144,8 @@ class AdminController extends Controller
             'monthlyCount' => $monthlyCount,
             'quarterlyCount' => $quarterlyCount,
             'semestralCount' => $semestralCount,
-            'annualCount' => $annualCount
+            'annualCount' => $annualCount,
+            'executiveOrderCount' => $executiveOrderCount
         ];
     }
 
@@ -150,21 +168,42 @@ class AdminController extends Controller
             $submissionCount = 0;
 
             if (!empty($clusterBarangayIds)) {
-                // Create queries for each report type
-                $weeklyClusterQuery = WeeklyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                // Create queries for each report type (use DISTINCT to prevent counting resubmissions)
+                $weeklyClusterQuery = DB::table('weekly_reports')
+                    ->select('user_id', 'report_type_id')
+                    ->whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted')
+                    ->distinct();
 
-                $monthlyClusterQuery = MonthlyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                $monthlyClusterQuery = DB::table('monthly_reports')
+                    ->select('user_id', 'report_type_id')
+                    ->whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted')
+                    ->distinct();
 
-                $quarterlyClusterQuery = QuarterlyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                $quarterlyClusterQuery = DB::table('quarterly_reports')
+                    ->select('user_id', 'report_type_id')
+                    ->whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted')
+                    ->distinct();
 
-                $semestralClusterQuery = SemestralReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                $semestralClusterQuery = DB::table('semestral_reports')
+                    ->select('user_id', 'report_type_id')
+                    ->whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted')
+                    ->distinct();
 
-                $annualClusterQuery = AnnualReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                $annualClusterQuery = DB::table('annual_reports')
+                    ->select('user_id', 'report_type_id')
+                    ->whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted')
+                    ->distinct();
+
+                $executiveOrderClusterQuery = DB::table('executive_orders')
+                    ->select('user_id', 'report_type_id')
+                    ->whereIn('user_id', $clusterBarangayIds)
+                    ->where('status', 'submitted')
+                    ->distinct();
 
                 // No date range filter in this method
 
@@ -176,6 +215,7 @@ class AdminController extends Controller
                     if ($reportType != 'quarterly') $quarterlyClusterQuery->whereRaw('1=0');
                     if ($reportType != 'semestral') $semestralClusterQuery->whereRaw('1=0');
                     if ($reportType != 'annual') $annualClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'executive_order') $executiveOrderClusterQuery->whereRaw('1=0');
                 }
 
                 $submissionCount =
@@ -183,7 +223,8 @@ class AdminController extends Controller
                     $monthlyClusterQuery->count() +
                     $quarterlyClusterQuery->count() +
                     $semestralClusterQuery->count() +
-                    $annualClusterQuery->count();
+                    $annualClusterQuery->count() +
+                    $executiveOrderClusterQuery->count();
             }
 
             $clusterSubmissions["Cluster " . $cluster->id] = $submissionCount;
@@ -197,8 +238,8 @@ class AdminController extends Controller
      */
     private function getChartData($reportType, $clusterId)
     {
-        // Count total report types created by admin
-        $totalReportTypes = ReportType::count();
+        // Count total ACTIVE report types with future deadlines (consistent with barangay and facilitator dashboards)
+        $totalReportTypes = ReportType::active()->where('deadline', '>=', now())->count();
 
         // Count total barangays in the system
         $barangayQuery = User::where('user_type', 'barangay');
@@ -214,25 +255,36 @@ class AdminController extends Controller
         $totalExpectedReports = $totalReportTypes * $totalBarangays;
 
         // Get unique submitted reports (count each report type per barangay only once)
+        // Use DISTINCT to prevent counting resubmissions as separate reports
         $weeklyQuery = DB::table('weekly_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted');
+            ->where('status', 'submitted')
+            ->distinct();
 
         $monthlyQuery = DB::table('monthly_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted');
+            ->where('status', 'submitted')
+            ->distinct();
 
         $quarterlyQuery = DB::table('quarterly_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted');
+            ->where('status', 'submitted')
+            ->distinct();
 
         $semestralQuery = DB::table('semestral_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted');
+            ->where('status', 'submitted')
+            ->distinct();
 
         $annualQuery = DB::table('annual_reports')
             ->select('user_id', 'report_type_id')
-            ->where('status', 'submitted');
+            ->where('status', 'submitted')
+            ->distinct();
+
+        $executiveOrderQuery = DB::table('executive_orders')
+            ->select('user_id', 'report_type_id')
+            ->where('status', 'submitted')
+            ->distinct();
 
         // We no longer use date filters
 
@@ -249,6 +301,7 @@ class AdminController extends Controller
                 $quarterlyQuery->whereIn('user_id', $barangayIds);
                 $semestralQuery->whereIn('user_id', $barangayIds);
                 $annualQuery->whereIn('user_id', $barangayIds);
+                $executiveOrderQuery->whereIn('user_id', $barangayIds);
             }
         }
 
@@ -260,6 +313,7 @@ class AdminController extends Controller
             if ($reportType != 'quarterly') $quarterlyQuery->whereRaw('1=0');
             if ($reportType != 'semestral') $semestralQuery->whereRaw('1=0');
             if ($reportType != 'annual') $annualQuery->whereRaw('1=0');
+            if ($reportType != 'executive_order') $executiveOrderQuery->whereRaw('1=0');
         }
 
         // Execute the queries
@@ -268,9 +322,10 @@ class AdminController extends Controller
         $quarterlySubmitted = $quarterlyQuery->groupBy('user_id', 'report_type_id')->get()->count();
         $semestralSubmitted = $semestralQuery->groupBy('user_id', 'report_type_id')->get()->count();
         $annualSubmitted = $annualQuery->groupBy('user_id', 'report_type_id')->get()->count();
+        $executiveOrderSubmitted = $executiveOrderQuery->groupBy('user_id', 'report_type_id')->get()->count();
 
         // Total submitted reports (counting each report type per barangay only once)
-        $totalSubmittedReports = $weeklySubmitted + $monthlySubmitted + $quarterlySubmitted + $semestralSubmitted + $annualSubmitted;
+        $totalSubmittedReports = $weeklySubmitted + $monthlySubmitted + $quarterlySubmitted + $semestralSubmitted + $annualSubmitted + $executiveOrderSubmitted;
 
         // Calculate no submissions (expected - submitted)
         $noSubmissionReports = $totalExpectedReports - $totalSubmittedReports;
@@ -300,6 +355,11 @@ class AdminController extends Controller
             ->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
             ->where('annual_reports.created_at', '>', DB::raw('report_types.deadline'))
             ->where('annual_reports.status', 'submitted');
+
+        $executiveOrderLateQuery = DB::table('executive_orders')
+            ->join('report_types', 'executive_orders.report_type_id', '=', 'report_types.id')
+            ->where('executive_orders.created_at', '>', DB::raw('report_types.deadline'))
+            ->where('executive_orders.status', 'submitted');
 
         // We no longer use date filters
 
@@ -345,6 +405,7 @@ class AdminController extends Controller
         $quarterlyCount = $quarterlySubmitted;
         $semestralCount = $semestralSubmitted;
         $annualCount = $annualSubmitted;
+        $executiveOrderCount = $executiveOrderSubmitted;
 
         // Get monthly trend data
         $currentYear = Carbon::now()->year;
@@ -477,26 +538,31 @@ class AdminController extends Controller
             if (isset($barangaySubmissions[$barangay->name])) {
                 $completeBarangaySubmissions[$barangay->name] = $barangaySubmissions[$barangay->name];
             } else {
-                // Otherwise, count submissions for this barangay
+                // Otherwise, count unique report types submitted by this barangay (not total submissions)
                 $weeklyCount = WeeklyReport::where('user_id', $barangay->id)
                     ->where('status', 'submitted')
-                    ->count();
+                    ->distinct('report_type_id')
+                    ->count('report_type_id');
 
                 $monthlyCount = MonthlyReport::where('user_id', $barangay->id)
                     ->where('status', 'submitted')
-                    ->count();
+                    ->distinct('report_type_id')
+                    ->count('report_type_id');
 
                 $quarterlyCount = QuarterlyReport::where('user_id', $barangay->id)
                     ->where('status', 'submitted')
-                    ->count();
+                    ->distinct('report_type_id')
+                    ->count('report_type_id');
 
                 $semestralCount = SemestralReport::where('user_id', $barangay->id)
                     ->where('status', 'submitted')
-                    ->count();
+                    ->distinct('report_type_id')
+                    ->count('report_type_id');
 
                 $annualCount = AnnualReport::where('user_id', $barangay->id)
                     ->where('status', 'submitted')
-                    ->count();
+                    ->distinct('report_type_id')
+                    ->count('report_type_id');
 
                 $totalCount = $weeklyCount + $monthlyCount + $quarterlyCount + $semestralCount + $annualCount;
                 $completeBarangaySubmissions[$barangay->name] = $totalCount;
@@ -521,23 +587,28 @@ class AdminController extends Controller
         foreach ($topBarangayUsers as $barangay) {
             $weeklyCount = WeeklyReport::where('user_id', $barangay->id)
                 ->where('status', 'submitted')
-                ->count();
+                ->distinct('report_type_id')
+                ->count('report_type_id');
 
             $monthlyCount = MonthlyReport::where('user_id', $barangay->id)
                 ->where('status', 'submitted')
-                ->count();
+                ->distinct('report_type_id')
+                ->count('report_type_id');
 
             $quarterlyCount = QuarterlyReport::where('user_id', $barangay->id)
                 ->where('status', 'submitted')
-                ->count();
+                ->distinct('report_type_id')
+                ->count('report_type_id');
 
             $semestralCount = SemestralReport::where('user_id', $barangay->id)
                 ->where('status', 'submitted')
-                ->count();
+                ->distinct('report_type_id')
+                ->count('report_type_id');
 
             $annualCount = AnnualReport::where('user_id', $barangay->id)
                 ->where('status', 'submitted')
-                ->count();
+                ->distinct('report_type_id')
+                ->count('report_type_id');
 
             $barangayReportTypes[$barangay->name] = [
                 'weekly' => $weeklyCount,
@@ -573,20 +644,18 @@ class AdminController extends Controller
 
             if (!empty($clusterBarangayIds)) {
                 // Create queries for each report type
-                $weeklyClusterQuery = WeeklyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                // Count ALL reports (submitted + pending) for cluster submissions
+                $weeklyClusterQuery = WeeklyReport::whereIn('user_id', $clusterBarangayIds);
 
-                $monthlyClusterQuery = MonthlyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                $monthlyClusterQuery = MonthlyReport::whereIn('user_id', $clusterBarangayIds);
 
-                $quarterlyClusterQuery = QuarterlyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                $quarterlyClusterQuery = QuarterlyReport::whereIn('user_id', $clusterBarangayIds);
 
-                $semestralClusterQuery = SemestralReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                $semestralClusterQuery = SemestralReport::whereIn('user_id', $clusterBarangayIds);
 
-                $annualClusterQuery = AnnualReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                $annualClusterQuery = AnnualReport::whereIn('user_id', $clusterBarangayIds);
+
+                $executiveOrderClusterQuery = ExecutiveOrder::whereIn('user_id', $clusterBarangayIds);
 
                 // We no longer use date filters
 
@@ -598,6 +667,7 @@ class AdminController extends Controller
                     if ($reportType != 'quarterly') $quarterlyClusterQuery->whereRaw('1=0');
                     if ($reportType != 'semestral') $semestralClusterQuery->whereRaw('1=0');
                     if ($reportType != 'annual') $annualClusterQuery->whereRaw('1=0');
+                    if ($reportType != 'executive_order') $executiveOrderClusterQuery->whereRaw('1=0');
                 }
 
                 $submissionCount =
@@ -605,7 +675,8 @@ class AdminController extends Controller
                     $monthlyClusterQuery->count() +
                     $quarterlyClusterQuery->count() +
                     $semestralClusterQuery->count() +
-                    $annualClusterQuery->count();
+                    $annualClusterQuery->count() +
+                    $executiveOrderClusterQuery->count();
             }
 
             $clusterSubmissions["Cluster " . $cluster->id] = $submissionCount;
@@ -632,6 +703,7 @@ class AdminController extends Controller
             'quarterlyCount' => $quarterlyCount,
             'semestralCount' => $semestralCount,
             'annualCount' => $annualCount,
+            'executiveOrderCount' => $executiveOrderCount,
             'submissionsByMonth' => $submissionsByMonth,
             'topBarangays' => $topBarangays,
             'clusterSubmissions' => $clusterSubmissions,
@@ -667,6 +739,7 @@ class AdminController extends Controller
         $quarterlyCount = $chartData['quarterlyCount'];
         $semestralCount = $chartData['semestralCount'];
         $annualCount = $chartData['annualCount'];
+        $executiveOrderCount = $chartData['executiveOrderCount'] ?? 0;
         $submissionsByMonth = $chartData['submissionsByMonth'];
         $topBarangays = $chartData['topBarangays'];
         $clusterSubmissions = $chartData['clusterSubmissions'];
@@ -733,8 +806,8 @@ class AdminController extends Controller
         // Total submitted reports (counting each report type per barangay only once)
         $totalSubmittedReports = $weeklySubmitted + $monthlySubmitted + $quarterlySubmitted + $semestralSubmitted + $annualSubmitted;
 
-        // Count total report types created by admin
-        $totalReportTypes = ReportType::count();
+        // Count total ACTIVE report types with future deadlines (consistent with barangay and facilitator dashboards)
+        $totalReportTypes = ReportType::active()->where('deadline', '>=', now())->count();
 
         // Count total barangays in the system
         $barangayQuery = User::where('user_type', 'barangay');
@@ -997,21 +1070,26 @@ class AdminController extends Controller
             $submissionCount = 0;
 
             if (!empty($clusterBarangayIds)) {
-                // Create queries for each report type
+                // Create queries for each report type with DISTINCT to prevent counting resubmissions
                 $weeklyClusterQuery = WeeklyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                    ->where('status', 'submitted')
+                    ->distinct('user_id', 'report_type_id');
 
                 $monthlyClusterQuery = MonthlyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                    ->where('status', 'submitted')
+                    ->distinct('user_id', 'report_type_id');
 
                 $quarterlyClusterQuery = QuarterlyReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                    ->where('status', 'submitted')
+                    ->distinct('user_id', 'report_type_id');
 
                 $semestralClusterQuery = SemestralReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                    ->where('status', 'submitted')
+                    ->distinct('user_id', 'report_type_id');
 
                 $annualClusterQuery = AnnualReport::whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted');
+                    ->where('status', 'submitted')
+                    ->distinct('user_id', 'report_type_id');
 
                 // We no longer use date filters
 
@@ -1051,6 +1129,7 @@ class AdminController extends Controller
             'quarterlyCount',
             'semestralCount',
             'annualCount',
+            'executiveOrderCount',
             'submissionsByMonth',
             'topBarangays',
             'clusterSubmissions',
@@ -1701,5 +1780,19 @@ class AdminController extends Controller
         $user->save();
 
         return back()->with('success', 'Profile updated successfully.');
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/login')->with('success', 'You have been logged out successfully.');
+    }
+
+    public function showProfile()
+    {
+        $user = Auth::user();
+        return view('admin.profile', compact('user'));
     }
 }

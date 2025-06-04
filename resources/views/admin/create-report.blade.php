@@ -4,33 +4,79 @@
 
 @push('styles')
 <style>
+    /* Modern Admin Report Types Styles */
+    .container-fluid {
+        padding: 2rem;
+        background: transparent;
+    }
+
     .form-control:focus, .form-select:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        outline: none;
     }
 
     .form-check-input:checked {
-        background-color: var(--primary);
-        border-color: var(--primary);
+        background-color: #6366f1;
+        border-color: #6366f1;
+    }
+
+    /* Modern Table */
+    .table {
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        margin-bottom: 0;
+        background: white;
     }
 
     .table th {
-        background: var(--light);
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         font-weight: 600;
+        color: #475569;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 1rem;
+        border-bottom: 2px solid #e2e8f0;
     }
 
+    .table tbody tr {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .table tbody tr:hover {
+        background: rgba(99, 102, 241, 0.05);
+        transform: scale(1.01);
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        color: #374151;
+    }
+
+    /* Modern Badges */
     .badge {
-        padding: 0.5em 0.75em;
+        padding: 0.5rem 0.75rem;
         font-weight: 500;
+        border-radius: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.75rem;
     }
 
     .search-box {
-        border-radius: 0.375rem;
+        border-radius: 0.75rem;
+        border: 1px solid #d1d5db;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
     }
 
     .search-box:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
 
     .is-invalid {

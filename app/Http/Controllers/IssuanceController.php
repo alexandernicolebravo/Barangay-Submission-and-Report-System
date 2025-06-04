@@ -106,14 +106,15 @@ class IssuanceController extends Controller
                 'file.mimes' => 'The file must be a valid format (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, JPG, JPEG, PNG, ZIP, RAR).'
             ]);
 
-            // Delete old file
-            Storage::disk('public')->delete($issuance->file_path);
+            // Store old file path for cleanup
+            $oldFilePath = $issuance->file_path;
 
             // Upload new file
             $file = $request->file('file');
             $fileName = time() . '_' . $file->getClientOriginalName();
             $filePath = $file->storeAs('issuances', $fileName, 'public');
 
+            // Prepare update data
             $updateData = [
                 'title' => $validated['title'],
                 'file_name' => $file->getClientOriginalName(),
@@ -122,7 +123,18 @@ class IssuanceController extends Controller
                 'file_type' => $file->getClientOriginalExtension(),
             ];
 
+            // Update the issuance record
             $issuance->update($updateData);
+
+            // Delete old file after successful update
+            if ($oldFilePath && Storage::disk('public')->exists($oldFilePath)) {
+                try {
+                    Storage::disk('public')->delete($oldFilePath);
+                } catch (\Exception $e) {
+                    // Log the error but don't fail the update
+                    Log::warning('Failed to delete old issuance file: ' . $oldFilePath . '. Error: ' . $e->getMessage());
+                }
+            }
 
             return redirect()->route('admin.issuances.index')
                 ->with('success', 'Issuance reuploaded successfully.');
@@ -133,8 +145,20 @@ class IssuanceController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             Log::error('Error updating issuance: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            // Provide more specific error message
+            $errorMessage = 'Failed to update issuance. ';
+            if (str_contains($e->getMessage(), 'archived_at')) {
+                $errorMessage .= 'Database migration required. Please run: php artisan migrate';
+            } else if (str_contains($e->getMessage(), 'storage')) {
+                $errorMessage .= 'File storage error. Please check file permissions.';
+            } else {
+                $errorMessage .= 'Error: ' . $e->getMessage();
+            }
+
             return redirect()->back()
-                ->with('error', 'Failed to update issuance. Please try again.')
+                ->with('error', $errorMessage)
                 ->withInput();
         }
     }

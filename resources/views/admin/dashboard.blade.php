@@ -109,27 +109,38 @@
                             $directQuarterlyCount = 0;
                             $directSemestralCount = 0;
                             $directAnnualCount = 0;
+                            $directExecutiveOrderCount = 0;
 
                             if (!empty($barangayIds)) {
-                                // Weekly reports
+                                // Weekly reports with DISTINCT to prevent counting resubmissions
                                 $weeklyQuery = App\Models\WeeklyReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
-                                // Monthly reports
+                                // Monthly reports with DISTINCT to prevent counting resubmissions
                                 $monthlyQuery = App\Models\MonthlyReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
-                                // Quarterly reports
+                                // Quarterly reports with DISTINCT to prevent counting resubmissions
                                 $quarterlyQuery = App\Models\QuarterlyReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
-                                // Semestral reports
+                                // Semestral reports with DISTINCT to prevent counting resubmissions
                                 $semestralQuery = App\Models\SemestralReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
-                                // Annual reports
+                                // Annual reports with DISTINCT to prevent counting resubmissions
                                 $annualQuery = App\Models\AnnualReport::whereIn('user_id', $barangayIds)
-                                    ->where('status', 'submitted');
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
+
+                                // Executive Order reports with DISTINCT to prevent counting resubmissions
+                                $executiveOrderQuery = App\Models\ExecutiveOrder::whereIn('user_id', $barangayIds)
+                                    ->where('status', 'submitted')
+                                    ->distinct('user_id', 'report_type_id');
 
                                 // We no longer use date filters
 
@@ -139,6 +150,7 @@
                                 $directQuarterlyCount = $quarterlyQuery->count();
                                 $directSemestralCount = $semestralQuery->count();
                                 $directAnnualCount = $annualQuery->count();
+                                $directExecutiveOrderCount = $executiveOrderQuery->count();
                             }
                         @endphp
 
@@ -211,6 +223,20 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Executive Order Reports Card -->
+                        <div class="col-6 col-md-4 mb-3">
+                            <div class="report-type-card executive-order-card {{ request('report_type') == 'executive_order' ? 'active' : '' }}"
+                                 data-report-type="executive_order">
+                                <div class="report-type-icon">
+                                    <i class="fas fa-gavel"></i>
+                                </div>
+                                <div class="report-type-content">
+                                    <h3 class="report-type-value">{{ $directExecutiveOrderCount }}</h3>
+                                    <p class="report-type-label">Executive Orders</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -247,21 +273,30 @@
                                 $submissionCount = 0;
 
                                 if (!empty($clusterBarangayIds)) {
-                                    // Create queries for each report type and execute them immediately
+                                    // Create queries for each report type with DISTINCT to prevent counting resubmissions
                                     $weeklyQuery = App\Models\WeeklyReport::whereIn('user_id', $clusterBarangayIds)
-                                        ->where('status', 'submitted');
+                                        ->where('status', 'submitted')
+                                        ->distinct('user_id', 'report_type_id');
 
                                     $monthlyQuery = App\Models\MonthlyReport::whereIn('user_id', $clusterBarangayIds)
-                                        ->where('status', 'submitted');
+                                        ->where('status', 'submitted')
+                                        ->distinct('user_id', 'report_type_id');
 
                                     $quarterlyQuery = App\Models\QuarterlyReport::whereIn('user_id', $clusterBarangayIds)
-                                        ->where('status', 'submitted');
+                                        ->where('status', 'submitted')
+                                        ->distinct('user_id', 'report_type_id');
 
                                     $semestralQuery = App\Models\SemestralReport::whereIn('user_id', $clusterBarangayIds)
-                                        ->where('status', 'submitted');
+                                        ->where('status', 'submitted')
+                                        ->distinct('user_id', 'report_type_id');
 
                                     $annualQuery = App\Models\AnnualReport::whereIn('user_id', $clusterBarangayIds)
-                                        ->where('status', 'submitted');
+                                        ->where('status', 'submitted')
+                                        ->distinct('user_id', 'report_type_id');
+
+                                    $executiveOrderQuery = App\Models\ExecutiveOrder::whereIn('user_id', $clusterBarangayIds)
+                                        ->where('status', 'submitted')
+                                        ->distinct('user_id', 'report_type_id');
 
                                     // We no longer use date filters
 
@@ -272,6 +307,7 @@
                                         if ($reportType != 'quarterly') $quarterlyQuery->whereRaw('1=0');
                                         if ($reportType != 'semestral') $semestralQuery->whereRaw('1=0');
                                         if ($reportType != 'annual') $annualQuery->whereRaw('1=0');
+                                        if ($reportType != 'executive_order') $executiveOrderQuery->whereRaw('1=0');
                                     }
 
                                     // Execute the queries and get the counts
@@ -280,6 +316,7 @@
                                     $quarterlyCount = $quarterlyQuery->count();
                                     $semestralCount = $semestralQuery->count();
                                     $annualCount = $annualQuery->count();
+                                    $executiveOrderCount = $executiveOrderQuery->count();
 
                                     // Sum up the counts
                                     $submissionCount =
@@ -287,7 +324,8 @@
                                         $monthlyCount +
                                         $quarterlyCount +
                                         $semestralCount +
-                                        $annualCount;
+                                        $annualCount +
+                                        $executiveOrderCount;
                                 }
 
                                 $directClusterSubmissions["Cluster " . $cluster->id] = $submissionCount;
@@ -330,20 +368,7 @@
                 </div>
             </div>
 
-            <!-- Report Type Distribution Chart -->
-            <div class="chart-card">
-                <div class="card-header">
-                    <h5>
-                        <i class="fas fa-chart-pie"></i>
-                        Report Type Distribution
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="barangaySubmissionsChart"></canvas>
-                    </div>
-                </div>
-            </div>
+
         </div>
     </div>
 </div>
@@ -351,80 +376,119 @@
 
 @push('styles')
 <style>
-    /* Chart container styles */
+    /* Modern Admin Dashboard Styles */
+    .container-fluid {
+        padding: 2rem;
+        background: transparent;
+    }
+
+    /* Modern Chart Container */
     .chart-container {
         position: relative;
         height: 400px;
         width: 100%;
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+        border-radius: 1rem;
+        padding: 1rem;
     }
 
-    /* Stat card styles */
+    /* Modern Stat Cards */
     .stat-card {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: transform 0.3s, box-shadow 0.3s;
-        margin-bottom: 20px;
+        background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
         overflow: hidden;
+        position: relative;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        opacity: 0;
+        transition: all 0.3s ease;
     }
 
     .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #c4b5fd;
+    }
+
+    .stat-card:hover::before {
+        opacity: 1;
     }
 
     .stat-card .card-body {
         display: flex;
         align-items: center;
-        padding: 20px;
+        padding: 1.5rem;
+        background: white;
     }
 
+    /* Modern Stat Icons */
     .stat-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
+        width: 64px;
+        height: 64px;
+        border-radius: 1rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: 15px;
+        margin-right: 1.25rem;
         flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .stat-icon::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: inherit;
+        opacity: 0.1;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon::before {
+        opacity: 0.2;
     }
 
     .stat-icon i {
-        font-size: 24px;
-        color: #fff;
+        font-size: 1.5rem;
+        color: white;
+        z-index: 1;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon i {
+        transform: scale(1.1);
     }
 
     .primary-icon {
-        background-color: rgba(67, 97, 238, 0.2);
-    }
-
-    .primary-icon i {
-        color: #4361ee;
+        background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
     }
 
     .success-icon {
-        background-color: rgba(54, 179, 126, 0.2);
-    }
-
-    .success-icon i {
-        color: #36b37e;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     }
 
     .warning-icon {
-        background-color: rgba(255, 171, 0, 0.2);
-    }
-
-    .warning-icon i {
-        color: #ffab00;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     }
 
     .danger-icon {
-        background-color: rgba(245, 54, 92, 0.2);
-    }
-
-    .danger-icon i {
-        color: #f5365c;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     }
 
     .stat-content {
@@ -432,47 +496,85 @@
     }
 
     .stat-value {
-        font-size: 28px;
-        font-weight: 600;
+        font-size: 2rem;
+        font-weight: 700;
         margin: 0;
-        color: #2d3748;
+        color: #0f172a;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-value {
+        transform: scale(1.05);
     }
 
     .stat-label {
-        font-size: 14px;
-        color: #718096;
+        font-size: 0.875rem;
+        color: #64748b;
         margin: 0;
+        font-weight: 500;
+        margin-top: 0.25rem;
     }
 
-    /* Chart card styles */
+    /* Modern Chart Cards */
     .chart-card {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
+        background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        margin-bottom: 1.5rem;
         overflow: hidden;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .chart-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+
+    .chart-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: #c4b5fd;
+    }
+
+    .chart-card:hover::before {
+        opacity: 1;
     }
 
     .chart-card .card-header {
-        background-color: #fff;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        padding: 15px 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.5rem;
     }
 
     .chart-card .card-header h5 {
         margin: 0;
-        font-size: 16px;
+        font-size: 1.125rem;
         font-weight: 600;
-        color: #2d3748;
+        color: #0f172a;
     }
 
     .chart-card .card-header h5 i {
-        margin-right: 8px;
-        color: #4361ee;
+        margin-right: 0.5rem;
+        color: #6366f1;
+        font-size: 1rem;
     }
 
     .chart-card .card-body {
-        padding: 20px;
+        padding: 1.5rem;
+        background: white;
     }
 
     /* Report type card styles */
@@ -518,6 +620,10 @@
         background-color: rgba(245, 54, 92, 0.15);
     }
 
+    .executive-order-card.active {
+        background-color: rgba(111, 66, 193, 0.15);
+    }
+
     .report-type-icon {
         width: 45px;
         height: 45px;
@@ -552,6 +658,10 @@
 
     .annual-card .report-type-icon {
         background-color: #f5365c;
+    }
+
+    .executive-order-card .report-type-icon {
+        background-color: #6f42c1;
     }
 
     .report-type-content {
@@ -1085,77 +1195,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Create report type distribution chart
-            const barangaySubmissionsCtx = document.getElementById('barangaySubmissionsChart');
-            if (barangaySubmissionsCtx) {
-                console.log('Creating new report type distribution chart with data:', {
-                    weeklyCount: data.weeklyCount,
-                    monthlyCount: data.monthlyCount,
-                    quarterlyCount: data.quarterlyCount,
-                    semestralCount: data.semestralCount,
-                    annualCount: data.annualCount
-                });
 
-                // Destroy existing chart if it exists
-                if (window.barangaySubmissionsChart) {
-                    try {
-                        window.barangaySubmissionsChart.destroy();
-                        console.log('Destroyed existing report type distribution chart');
-                    } catch (error) {
-                        console.error('Error destroying report type distribution chart:', error);
-                    }
-                }
-
-                window.barangaySubmissionsChart = new Chart(barangaySubmissionsCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Weekly', 'Monthly', 'Quarterly', 'Semestral', 'Annual'],
-                        datasets: [{
-                            data: [
-                                data.weeklyCount || 0,
-                                data.monthlyCount || 0,
-                                data.quarterlyCount || 0,
-                                data.semestralCount || 0,
-                                data.annualCount || 0
-                            ],
-                            backgroundColor: [
-                                colors.primary,
-                                colors.success,
-                                colors.warning,
-                                colors.info,
-                                colors.danger
-                            ],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    padding: 20,
-                                    usePointStyle: true
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        const value = context.parsed || 0;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                        return `${label}: ${value} (${percentage}%)`;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-                console.log('Report type distribution chart created successfully');
-            }
 
             // Create monthly trend chart
             if (monthlyTrendCtx) {
@@ -1275,6 +1315,7 @@ document.addEventListener('DOMContentLoaded', function() {
             quarterlyCount: parseInt("{{ $quarterlyCount }}"),
             semestralCount: parseInt("{{ $semestralCount }}"),
             annualCount: parseInt("{{ $annualCount }}"),
+            executiveOrderCount: parseInt("{{ $executiveOrderCount ?? 0 }}"),
             submissionsByMonth: JSON.parse('{!! json_encode($submissionsByMonth) !!}'),
             topBarangays: JSON.parse('{!! json_encode($topBarangays) !!}'),
             barangayReportTypes: JSON.parse('{!! json_encode($barangayReportTypes) !!}')
@@ -1282,65 +1323,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-        // Create report type distribution chart
-        const barangaySubmissionsCtx = document.getElementById('barangaySubmissionsChart');
-        if (barangaySubmissionsCtx) {
-            console.log('Initializing report type distribution chart with data:', {
-                weeklyCount: initialData.weeklyCount,
-                monthlyCount: initialData.monthlyCount,
-                quarterlyCount: initialData.quarterlyCount,
-                semestralCount: initialData.semestralCount,
-                annualCount: initialData.annualCount
-            });
 
-            window.barangaySubmissionsChart = new Chart(barangaySubmissionsCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Weekly', 'Monthly', 'Quarterly', 'Semestral', 'Annual'],
-                    datasets: [{
-                        data: [
-                            initialData.weeklyCount,
-                            initialData.monthlyCount,
-                            initialData.quarterlyCount,
-                            initialData.semestralCount,
-                            initialData.annualCount
-                        ],
-                        backgroundColor: [
-                            colors.primary,
-                            colors.success,
-                            colors.warning,
-                            colors.info,
-                            colors.danger
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                    return `${label}: ${value} (${percentage}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
 
         // Create monthly trend chart
         const monthlyTrendCtx = document.getElementById('monthlyTrendChart');

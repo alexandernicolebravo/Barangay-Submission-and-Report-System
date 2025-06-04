@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\ReportType;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use App\Notifications\NewReportTypeNotification;
 
 class ReportTypeController extends Controller
 {
@@ -78,6 +80,9 @@ class ReportTypeController extends Controller
             }
 
             $reportType = ReportType::create($validated);
+
+            // Send notification to all barangay users about the new report type
+            $this->sendNewReportTypeNotification($reportType);
 
             if ($request->ajax()) {
                 return response()->json([
@@ -264,6 +269,37 @@ class ReportTypeController extends Controller
                 'success' => false,
                 'message' => 'Error getting allowed file types: ' . $e->getMessage(),
                 'allowed_types' => ['pdf', 'docx', 'xlsx'] // Default types
+            ]);
+        }
+    }
+
+    /**
+     * Send notification to all barangay users about new report type
+     */
+    private function sendNewReportTypeNotification(ReportType $reportType)
+    {
+        try {
+            // Get all active barangay users
+            $barangayUsers = User::where('user_type', 'barangay')
+                ->where('is_active', true)
+                ->get();
+
+            // Send notification to each barangay user
+            foreach ($barangayUsers as $user) {
+                $user->notify(new NewReportTypeNotification($reportType));
+            }
+
+            Log::info('New report type notifications sent', [
+                'report_type_id' => $reportType->id,
+                'report_type_name' => $reportType->name,
+                'notified_users' => $barangayUsers->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send new report type notifications', [
+                'error' => $e->getMessage(),
+                'report_type_id' => $reportType->id ?? null,
+                'report_type_name' => $reportType->name ?? 'Unknown'
             ]);
         }
     }

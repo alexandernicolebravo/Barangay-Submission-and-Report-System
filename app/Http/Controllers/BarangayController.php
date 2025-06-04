@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\{WeeklyReport, MonthlyReport, QuarterlyReport, SemestralReport, AnnualReport, ReportType};
+use App\Models\{WeeklyReport, MonthlyReport, QuarterlyReport, SemestralReport, AnnualReport, ExecutiveOrder, ReportType, User, Cluster};
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
+use App\Notifications\NewSubmissionReceivedNotification;
+use Carbon\Carbon;
 
 class BarangayController extends Controller
 {
@@ -45,8 +48,8 @@ class BarangayController extends Controller
                 ->where('user_id', $userId)
                 ->get();
 
-            // Get all report types
-            $allReportTypes = ReportType::orderBy('name')->get();
+            // Get all ACTIVE report types
+            $allReportTypes = ReportType::active()->orderBy('name')->get();
 
             // Combine all reports
             $allReports = collect()
@@ -57,8 +60,8 @@ class BarangayController extends Controller
                 ->concat($annualReports);
 
             // Calculate statistics
-            // Total reports is the count of all report types created by admin
-            $totalReports = ReportType::count();
+            // Total reports is the count of ACTIVE report types with future deadlines (consistent with facilitator dashboard)
+            $totalReports = ReportType::active()->where('deadline', '>=', now())->count();
 
             // Get unique report_type_ids that have been submitted
             $uniqueSubmittedReportTypeIds = $allReports
@@ -80,8 +83,19 @@ class BarangayController extends Controller
                 'no_submission_reports' => $noSubmissionReports
             ]);
 
-            // Get recent reports (last 5)
-            $recentReports = $allReports
+            // Get recent reports (last 5) - group by report_type_id to show only latest submission for each report type
+            $groupedReports = $allReports->groupBy('report_type_id');
+            $latestReports = collect();
+
+            foreach ($groupedReports as $group) {
+                // Get the latest submission for this report type
+                $latestReport = $group->sortByDesc('created_at')->first();
+                if ($latestReport) {
+                    $latestReports->push($latestReport);
+                }
+            }
+
+            $recentReports = $latestReports
                 ->sortByDesc('created_at')
                 ->take(5);
 
@@ -97,12 +111,13 @@ class BarangayController extends Controller
             // Log the submitted report type IDs for debugging
             Log::info('Submitted report type IDs:', ['ids' => $submittedReportTypeIds->toArray()]);
 
-            // Get all report types
-            $allReportTypes = ReportType::all();
+            // Get all ACTIVE report types
+            $allReportTypes = ReportType::active()->get();
 
             // Get upcoming deadlines and ensure they are Carbon instances
-            // Include all report types with deadlines in the future, regardless of submission status
-            $upcomingDeadlines = ReportType::where('deadline', '>=', now())
+            // Include all ACTIVE report types with deadlines in the future, regardless of submission status
+            $upcomingDeadlines = ReportType::active()
+                ->where('deadline', '>=', now())
                 ->orderBy('deadline')
                 ->take(20)
                 ->get()
@@ -117,7 +132,8 @@ class BarangayController extends Controller
             })->take(10);
 
             // Filter out already submitted report types for the dropdown menu
-            $reportTypes = ReportType::whereNotIn('id', $submittedReportTypeIds)
+            $reportTypes = ReportType::active()
+                ->whereNotIn('id', $submittedReportTypeIds)
                 ->orderBy('name')
                 ->get();
 
@@ -186,13 +202,26 @@ class BarangayController extends Controller
             ->get();
 
         // Combine all reports
-        $reports = collect()
+        $allReports = collect()
             ->concat($weeklyReports)
             ->concat($monthlyReports)
             ->concat($quarterlyReports)
             ->concat($semestralReports)
-            ->concat($annualReports)
-            ->sortByDesc('created_at');
+            ->concat($annualReports);
+
+        // Group by report_type_id to show only latest submission for each report type
+        $groupedReports = $allReports->groupBy('report_type_id');
+        $latestReports = collect();
+
+        foreach ($groupedReports as $group) {
+            // Get the latest submission for this report type
+            $latestReport = $group->sortByDesc('created_at')->first();
+            if ($latestReport) {
+                $latestReports->push($latestReport);
+            }
+        }
+
+        $reports = $latestReports->sortByDesc('created_at');
 
         // Create a new paginator instance
         $page = request()->get('page', 1);
@@ -218,12 +247,14 @@ class BarangayController extends Controller
 
             Log::info('Fetching overdue reports for user ID: ' . $userId);
 
-            // Get all report types that are past their deadline
-            $overdueReportTypes = ReportType::where('deadline', '<', now())
+            // Get all ACTIVE report types that are past their deadline
+            // Only show reports that are both active (not archived) AND have past deadlines
+            $overdueReportTypes = ReportType::active()
+                ->where('deadline', '<', now())
                 ->orderBy('deadline', 'desc')
                 ->get();
 
-            Log::info('Found ' . $overdueReportTypes->count() . ' report types with past deadlines');
+            Log::info('Found ' . $overdueReportTypes->count() . ' active report types with past deadlines');
 
             // Get all submitted reports for the current user
             $weeklyReports = WeeklyReport::where('user_id', $userId)->pluck('report_type_id');
@@ -231,6 +262,7 @@ class BarangayController extends Controller
             $quarterlyReports = QuarterlyReport::where('user_id', $userId)->pluck('report_type_id');
             $semestralReports = SemestralReport::where('user_id', $userId)->pluck('report_type_id');
             $annualReports = AnnualReport::where('user_id', $userId)->pluck('report_type_id');
+            $executiveOrderReports = ExecutiveOrder::where('user_id', $userId)->pluck('report_type_id');
 
             // Combine all submitted report type IDs
             $submittedReportTypeIds = collect()
@@ -239,6 +271,7 @@ class BarangayController extends Controller
                 ->concat($quarterlyReports)
                 ->concat($semestralReports)
                 ->concat($annualReports)
+                ->concat($executiveOrderReports)
                 ->unique();
 
             Log::info('User has submitted ' . $submittedReportTypeIds->count() . ' report types', [
@@ -246,6 +279,7 @@ class BarangayController extends Controller
             ]);
 
             // Filter out report types that have already been submitted
+            // Only show overdue reports that haven't been submitted yet
             $overdueReports = $overdueReportTypes->filter(function ($reportType) use ($submittedReportTypeIds) {
                 return !$submittedReportTypeIds->contains($reportType->id);
             });
@@ -284,8 +318,14 @@ class BarangayController extends Controller
 
         try {
             // Get all reports for the current user with their relationships
-            $weeklyReports = WeeklyReport::with('reportType')
+            // Only include reports for ACTIVE report types
+            $weeklyReports = WeeklyReport::with(['reportType' => function($query) {
+                    $query->active(); // Only active report types
+                }])
                 ->where('user_id', $userId)
+                ->whereHas('reportType', function($query) {
+                    $query->active(); // Only reports with active report types
+                })
                 ->get()
                 ->map(function ($report) {
                     $report->model_type = 'WeeklyReport';
@@ -294,8 +334,13 @@ class BarangayController extends Controller
                     return $report;
                 });
 
-            $monthlyReports = MonthlyReport::with('reportType')
+            $monthlyReports = MonthlyReport::with(['reportType' => function($query) {
+                    $query->active(); // Only active report types
+                }])
                 ->where('user_id', $userId)
+                ->whereHas('reportType', function($query) {
+                    $query->active(); // Only reports with active report types
+                })
                 ->get()
                 ->map(function ($report) {
                     $report->model_type = 'MonthlyReport';
@@ -304,8 +349,13 @@ class BarangayController extends Controller
                     return $report;
                 });
 
-            $quarterlyReports = QuarterlyReport::with('reportType')
+            $quarterlyReports = QuarterlyReport::with(['reportType' => function($query) {
+                    $query->active(); // Only active report types
+                }])
                 ->where('user_id', $userId)
+                ->whereHas('reportType', function($query) {
+                    $query->active(); // Only reports with active report types
+                })
                 ->get()
                 ->map(function ($report) {
                     $report->model_type = 'QuarterlyReport';
@@ -314,8 +364,13 @@ class BarangayController extends Controller
                     return $report;
                 });
 
-            $semestralReports = SemestralReport::with('reportType')
+            $semestralReports = SemestralReport::with(['reportType' => function($query) {
+                    $query->active(); // Only active report types
+                }])
                 ->where('user_id', $userId)
+                ->whereHas('reportType', function($query) {
+                    $query->active(); // Only reports with active report types
+                })
                 ->get()
                 ->map(function ($report) {
                     $report->model_type = 'SemestralReport';
@@ -324,8 +379,13 @@ class BarangayController extends Controller
                     return $report;
                 });
 
-            $annualReports = AnnualReport::with('reportType')
+            $annualReports = AnnualReport::with(['reportType' => function($query) {
+                    $query->active(); // Only active report types
+                }])
                 ->where('user_id', $userId)
+                ->whereHas('reportType', function($query) {
+                    $query->active(); // Only reports with active report types
+                })
                 ->get()
                 ->map(function ($report) {
                     $report->model_type = 'AnnualReport';
@@ -453,7 +513,7 @@ class BarangayController extends Controller
     {
         try {
             $userId = Auth::id();
-            $allReportTypes = ReportType::all();
+            $allReportTypes = ReportType::active()->get();
 
             // Get all reports for the current user
             $weeklyReports = WeeklyReport::where('user_id', $userId)->get();
@@ -475,8 +535,8 @@ class BarangayController extends Controller
             // Log the submitted report type IDs for debugging
             Log::info('Submit Report - Submitted report type IDs:', ['ids' => $submittedReportTypeIds->toArray()]);
 
-            // Get all report types (allowing resubmission)
-            $reportTypes = ReportType::orderBy('name')->get();
+            // Get all ACTIVE report types (allowing resubmission)
+            $reportTypes = ReportType::active()->orderBy('name')->get();
 
             // Group report types by frequency for easier filtering in the frontend
             $reportTypesByFrequency = [
@@ -691,8 +751,6 @@ class BarangayController extends Controller
             return back()->with('error', 'Failed to download file. Please try again.');
         }
     }
-
-
 
     public function deleteFile($id)
     {
@@ -941,6 +999,9 @@ class BarangayController extends Controller
             if (!$report) {
                 throw new \Exception('Failed to create report record.');
             }
+
+            // Send notification to facilitator about new submission
+            $this->sendNewSubmissionNotification($report);
 
             DB::commit();
 
@@ -1219,7 +1280,7 @@ class BarangayController extends Controller
         $validationRules = [
             'file' => 'nullable|file|mimes:' . $mimeTypesStr . '|max:102400',
             'report_type_id' => 'required|exists:report_types,id',
-            'report_type' => 'required|string|in:weekly,monthly,quarterly,semestral,annual'
+            'report_type' => 'required|string|in:weekly,monthly,quarterly,semestral,annual,executive_order'
         ];
 
         // Add specific validation rules based on report type
@@ -1228,24 +1289,24 @@ class BarangayController extends Controller
 
         if ($reportTypeLC == 'weekly') {
             $validationRules = array_merge($validationRules, [
-                'month' => 'required|string',
-                'week_number' => 'required|integer|min:1|max:52',
-                'num_of_clean_up_sites' => 'required|integer|min:0',
-                'num_of_participants' => 'required|integer|min:0',
-                'num_of_barangays' => 'required|integer|min:0',
-                'total_volume' => 'required|numeric|min:0'
+                'month' => 'nullable|string',
+                'week_number' => 'nullable|integer|min:1|max:5',
+                'num_of_clean_up_sites' => 'nullable|integer|min:0',
+                'num_of_participants' => 'nullable|integer|min:0',
+                'num_of_barangays' => 'nullable|integer|min:0',
+                'total_volume' => 'nullable|numeric|min:0'
             ]);
         } elseif ($reportTypeLC == 'monthly') {
             $validationRules = array_merge($validationRules, [
-                'month' => 'required|string'
+                'month' => 'nullable|string'
             ]);
         } elseif ($reportTypeLC == 'quarterly') {
             $validationRules = array_merge($validationRules, [
-                'quarter_number' => 'required|integer|in:1,2,3,4'
+                'quarter_number' => 'nullable|integer|in:1,2,3,4'
             ]);
         } elseif ($reportTypeLC == 'semestral') {
             $validationRules = array_merge($validationRules, [
-                'sem_number' => 'required|integer|in:1,2'
+                'sem_number' => 'nullable|integer|in:1,2'
             ]);
         } elseif ($reportTypeLC == 'annual') {
             // No additional validation rules needed for annual reports
@@ -1442,6 +1503,16 @@ class BarangayController extends Controller
                         'deadline' => $report->deadline
                     ]);
                     break;
+                case 'executive_order':
+                    $newReport = ExecutiveOrder::create([
+                        'user_id' => Auth::id(),
+                        'report_type_id' => $report->report_type_id,
+                        'file_path' => $filePath,
+                        'file_name' => $fileName,
+                        'status' => $newStatus,
+                        'deadline' => $report->deadline
+                    ]);
+                    break;
             }
 
             // Log the new report creation
@@ -1450,6 +1521,9 @@ class BarangayController extends Controller
                 'new_report_id' => $newReport->id,
                 'report_type' => $reportType
             ]);
+
+            // Send notification to facilitators about the resubmission
+            $this->sendNewSubmissionNotification($newReport);
 
             DB::commit();
 
@@ -1473,7 +1547,7 @@ class BarangayController extends Controller
                 ]);
             }
 
-            return redirect()->route('barangay.submissions');
+            return redirect()->route('barangay.submissions')->with('success', $successMessage);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -1572,6 +1646,11 @@ class BarangayController extends Controller
                             ->where('user_id', $userId)
                             ->first();
                         break;
+                    case 'executive_order':
+                        $report = ExecutiveOrder::where('id', $reportId)
+                            ->where('user_id', $userId)
+                            ->first();
+                        break;
                 }
             } else {
                 // If we don't know the table, check all tables
@@ -1599,6 +1678,12 @@ class BarangayController extends Controller
 
                 if (!$report) {
                     $report = AnnualReport::where('id', $reportId)
+                        ->where('user_id', $userId)
+                        ->first();
+                }
+
+                if (!$report) {
+                    $report = ExecutiveOrder::where('id', $reportId)
                         ->where('user_id', $userId)
                         ->first();
                 }
@@ -1680,7 +1765,10 @@ class BarangayController extends Controller
                     'Content-Type' => $mimeType,
                     'Content-Disposition' => 'inline; filename="' . $fileName . '"',
                     'Cache-Control' => 'public, max-age=0',
-                    'Accept-Ranges' => 'bytes'
+                    'Accept-Ranges' => 'bytes',
+                    'Access-Control-Allow-Origin' => '*',
+                    'Access-Control-Allow-Methods' => 'GET',
+                    'Access-Control-Allow-Headers' => 'Content-Type'
                 ]);
             }
 
@@ -1689,7 +1777,11 @@ class BarangayController extends Controller
         } catch (\Exception $e) {
             Log::error('Error in directDownloadFile', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'report_id' => $id,
+                'user_id' => $userId,
+                'request_url' => request()->fullUrl(),
+                'request_method' => request()->method()
             ]);
             return response()->json(['error' => 'Error accessing file: ' . $e->getMessage()], 500);
         }
@@ -1700,33 +1792,71 @@ class BarangayController extends Controller
      */
     public function getNotifications()
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // Get unread notifications
-        $notifications = $user->unreadNotifications()
-            ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get()
-            ->map(function ($notification) {
-                $data = $notification->data;
-                return [
-                    'id' => $notification->id,
-                    'type' => $this->getNotificationType($notification->type),
-                    'title' => $this->getNotificationTitle($notification->type, $data),
-                    'message' => $this->getNotificationMessage($notification->type, $data),
-                    'time' => $notification->created_at->diffForHumans(),
-                    'read_at' => $notification->read_at,
-                    'redirect_url' => $data['redirect_url'] ?? route('barangay.submissions'),
-                    'data' => $data
-                ];
-            });
+        if (!$user) {
+            Log::error('BarangayController@getNotifications: User not authenticated.');
+            return response()->json(['error' => 'User not authenticated.'], 401);
+        }
 
-        $unreadCount = $user->unreadNotifications()->count();
+        try {
+            // Check if notifications table exists
+            if (!Schema::hasTable('notifications')) {
+                Log::warning('BarangayController@getNotifications: Notifications table does not exist.');
+                return response()->json([
+                    'notifications' => [],
+                    'unread_count' => 0,
+                    'message' => 'Notifications system is being set up. Please contact administrator.'
+                ]);
+            }
 
-        return response()->json([
-            'notifications' => $notifications,
-            'unread_count' => $unreadCount
-        ]);
+            $notifications = $user->unreadNotifications()
+                ->orderBy('created_at', 'desc')
+                ->take(10) // Limiting for now to manage potential issues
+                ->get()
+                ->map(function ($notification) {
+                    try {
+                        $data = $notification->data; // data is already an array here
+                        return [
+                            'id' => $notification->id,
+                            'type' => $this->getNotificationType($notification->type),
+                            'title' => $this->getNotificationTitle($notification->type, $data),
+                            'message' => $this->getNotificationMessage($notification->type, $data),
+                            'time' => $notification->created_at->diffForHumans(),
+                            'read_at' => $notification->read_at,
+                            'redirect_url' => $data['redirect_url'] ?? route('barangay.submissions'),
+                            'data' => $data // Include original data for debugging if needed client-side
+                        ];
+                    } catch (\Exception $e) {
+                        Log::error('BarangayController@getNotifications: Error processing individual notification', [
+                            'notification_id' => $notification->id,
+                            'notification_type' => $notification->type,
+                            'error' => $e->getMessage(),
+                            'trace' => $e->getTraceAsString()
+                        ]);
+                        return null; // Return null for problematic notifications
+                    }
+                })
+                ->filter(); // Remove nulls from the collection
+
+            $unreadCount = $user->unreadNotifications()->count();
+
+            return response()->json([
+                'notifications' => $notifications->values(), // Re-index array after filter
+                'unread_count' => $unreadCount
+            ]);
+        } catch (\Exception $e) {
+            Log::error('BarangayController@getNotifications: Failed to fetch notifications for user ' . $user->id, [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'notifications' => [],
+                'unread_count' => 0,
+                'error' => 'Notifications system is temporarily unavailable.'
+            ], 200); // Return 200 instead of 500 to prevent JS errors
+        }
     }
 
     /**
@@ -1734,6 +1864,7 @@ class BarangayController extends Controller
      */
     public function markNotificationAsRead($id)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $notification = $user->notifications()->where('id', $id)->first();
 
@@ -1746,10 +1877,37 @@ class BarangayController extends Controller
     }
 
     /**
+     * Get unread notification count
+     */
+    public function getUnreadNotificationCount()
+    {
+        try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+
+            // Check if notifications table exists
+            if (!Schema::hasTable('notifications')) {
+                return response()->json(['unread_count' => 0]);
+            }
+
+            $unreadCount = $user->unreadNotifications()->count();
+
+            return response()->json(['unread_count' => $unreadCount]);
+        } catch (\Exception $e) {
+            Log::error('BarangayController@getUnreadNotificationCount: Error getting unread count', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            return response()->json(['unread_count' => 0]);
+        }
+    }
+
+    /**
      * Mark all notifications as read
      */
     public function markAllNotificationsAsRead()
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $user->unreadNotifications->markAsRead();
 
@@ -1765,6 +1923,14 @@ class BarangayController extends Controller
             return 'report';
         }
 
+        if (str_contains($notificationType, 'NewReportTypeNotification')) {
+            return 'new_report_type';
+        }
+
+        if (str_contains($notificationType, 'NewSubmissionReceivedNotification')) {
+            return 'new_submission';
+        }
+
         return 'general';
     }
 
@@ -1776,6 +1942,14 @@ class BarangayController extends Controller
         if (str_contains($notificationType, 'ReportRemarksNotification')) {
             $fullReportTitle = $data['full_report_title'] ?? $data['report_name'] ?? 'Report';
             return "Remarks Added: {$fullReportTitle}";
+        }
+
+        if (str_contains($notificationType, 'NewReportTypeNotification')) {
+            return $data['title'] ?? 'New Report Type Available';
+        }
+
+        if (str_contains($notificationType, 'NewSubmissionReceivedNotification')) {
+            return 'New Report Submitted';
         }
 
         return 'Notification';
@@ -1802,6 +1976,59 @@ class BarangayController extends Controller
             return $message;
         }
 
+        if (str_contains($notificationType, 'NewReportTypeNotification')) {
+            return $data['message'] ?? 'A new report type has been created. Please check your dashboard.';
+        }
+
+        if (str_contains($notificationType, 'NewSubmissionReceivedNotification')) {
+            $barangayName = $data['barangay_name'] ?? 'A barangay';
+            $reportName = $data['report_name'] ?? 'report';
+            return "{$barangayName} has submitted a new {$reportName}.";
+        }
+
         return 'You have a new notification';
+    }
+
+    /**
+     * Send notification to facilitator about new submission
+     */
+    private function sendNewSubmissionNotification($report)
+    {
+        try {
+            // Get the submitting user (barangay)
+            $submittingUser = Auth::user();
+
+            // Get facilitators assigned to this barangay's cluster
+            $facilitators = User::where('user_type', 'facilitator')
+                ->whereHas('assignedClusters', function ($query) use ($submittingUser) {
+                    $query->where('clusters.id', $submittingUser->cluster_id);
+                })
+                ->get();
+
+            // Also notify admin users
+            $admins = User::where('user_type', 'admin')->get();
+
+            // Combine facilitators and admins
+            $notifiableUsers = $facilitators->merge($admins);
+
+            // Send notification to each user
+            foreach ($notifiableUsers as $user) {
+                $user->notify(new NewSubmissionReceivedNotification($report, $submittingUser));
+            }
+
+            Log::info('New submission notifications sent', [
+                'report_id' => $report->id,
+                'report_type' => get_class($report),
+                'submitting_user' => $submittingUser->name,
+                'notified_users' => $notifiableUsers->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to send new submission notification', [
+                'error' => $e->getMessage(),
+                'report_id' => $report->id ?? null,
+                'submitting_user' => Auth::user()->name ?? 'Unknown'
+            ]);
+        }
     }
 }

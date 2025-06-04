@@ -4,64 +4,99 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="user-id" content="{{ auth()->id() }}">
     <title>@yield('title', 'Barangay Portal')</title>
+
+    <!-- DILG Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/favicondilg.ico') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16dilg.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32dilg.png') }}">
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Modern UI CSS -->
+    <link href="{{ asset('css/modern-ui.css') }}" rel="stylesheet">
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
-            --primary: #3b82f6;
-            --primary-light: rgba(59, 130, 246, 0.1);
+            /* Modern Color Palette */
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --secondary: #64748b;
-            --success: #22c55e;
-            --success-light: rgba(34, 197, 94, 0.1);
+            --success: #10b981;
+            --success-light: rgba(16, 185, 129, 0.1);
             --danger: #ef4444;
             --danger-light: rgba(239, 68, 68, 0.1);
             --warning: #f59e0b;
             --warning-light: rgba(245, 158, 11, 0.1);
-            --info: #8b5cf6;
-            --info-light: rgba(139, 92, 246, 0.1);
+            --info: #06b6d4;
+            --info-light: rgba(6, 182, 212, 0.1);
             --dark: #1e293b;
-            --gray-100: #f8fafc;
-            --gray-200: #f1f5f9;
-            --gray-300: #e2e8f0;
-            --gray-400: #cbd5e1;
-            --gray-500: #94a3b8;
-            --gray-600: #64748b;
-            --gray-700: #475569;
-            --gray-800: #334155;
-            --gray-900: #1e293b;
-            --shadow-sm: 0 2px 12px rgba(0,0,0,0.04);
-            --shadow-md: 0 5px 15px rgba(0,0,0,0.08);
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
+
+            /* Enhanced Gray Scale */
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+
+            /* Modern Shadows */
+            --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+            /* Border Radius */
+            --radius-sm: 0.5rem;
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
+
+            /* Transitions */
+            --transition-fast: 0.15s ease-in-out;
+            --transition-normal: 0.3s ease-in-out;
+            --transition-slow: 0.5s ease-in-out;
         }
 
         body {
-            background-color: var(--gray-100);
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
             color: var(--gray-800);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
             overflow-x: hidden;
+            line-height: 1.6;
+            font-weight: 400;
         }
 
-        /* Sidebar Styles */
+        /* Modern Sidebar Styles */
         .sidebar {
-            background: white;
+            background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
             min-height: 100vh;
-            padding: 1.5rem 0;
+            padding: 2rem 0;
             position: fixed;
             width: 280px;
-            box-shadow: var(--shadow-sm);
-            z-index: 1000;
-            transition: all 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            z-index: 1030;
+            transition: var(--transition-normal);
             overflow-y: auto;
+            border-right: 1px solid var(--gray-200);
         }
 
         .sidebar-header {
@@ -83,30 +118,63 @@
 
         .nav-link {
             color: var(--gray-700);
-            padding: 0.75rem 1.5rem;
+            padding: 0.875rem 1.5rem;
             margin: 0.25rem 1rem;
-            border-radius: var(--radius-sm);
-            transition: all 0.2s ease;
+            border-radius: var(--radius-md);
+            transition: var(--transition-normal);
             display: flex;
             align-items: center;
             font-weight: 500;
             text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: var(--primary-gradient);
+            transition: var(--transition-normal);
+            z-index: -1;
         }
 
         .nav-link:hover {
-            background: var(--gray-100);
+            background: linear-gradient(135deg, var(--primary-light) 0%, rgba(79, 70, 229, 0.05) 100%);
             color: var(--primary);
+            transform: translateX(4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .nav-link:hover::before {
+            width: 4px;
         }
 
         .nav-link.active {
-            background: var(--primary-light);
-            color: var(--primary);
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: var(--shadow-lg);
+            transform: translateX(4px);
+        }
+
+        .nav-link.active::before {
+            width: 4px;
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .nav-link i {
             width: 1.5rem;
             font-size: 1.1rem;
-            margin-right: 0.75rem;
+            margin-right: 0.875rem;
+            transition: var(--transition-fast);
+        }
+
+        .nav-link:hover i,
+        .nav-link.active i {
+            transform: scale(1.1);
         }
 
         /* Font Sizes */
@@ -123,35 +191,58 @@
             transition: all 0.3s ease;
         }
 
-        /* Card Styles */
+        /* Modern Card Styles */
         .card {
-            background: white;
-            border: none;
-            border-radius: var(--radius-md);
+            background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
             box-shadow: var(--shadow-sm);
-            transition: all 0.3s ease;
+            transition: var(--transition-normal);
             margin-bottom: 1.5rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: var(--transition-normal);
         }
 
         .card:hover {
-            box-shadow: var(--shadow-md);
+            box-shadow: var(--shadow-xl);
+            transform: translateY(-2px);
+            border-color: var(--primary-light);
+        }
+
+        .card:hover::before {
+            opacity: 1;
         }
 
         .card-header {
-            background: white;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             border-bottom: 1px solid var(--gray-200);
-            padding: 1.25rem;
-            border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+            padding: 1.5rem;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+            position: relative;
         }
 
         .card-header h5 {
-            color: var(--dark);
+            color: var(--gray-900);
             font-weight: 600;
             margin: 0;
+            font-size: 1.125rem;
         }
 
         .card-body {
             padding: 1.5rem;
+            background: white;
         }
 
         /* Form Styles */
@@ -181,31 +272,80 @@
             color: var(--gray-600);
         }
 
-        /* Button Styles */
+        /* Modern Button Styles */
         .btn {
-            padding: 0.625rem 1.25rem;
+            padding: 0.75rem 1.5rem;
             font-weight: 500;
-            border-radius: var(--radius-sm);
-            transition: all 0.2s ease;
+            border-radius: var(--radius-md);
+            transition: var(--transition-normal);
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             border: none;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: var(--transition-normal);
+        }
+
+        .btn:hover::before {
+            left: 100%;
         }
 
         .btn-primary {
-            background: var(--primary);
+            background: var(--primary-gradient);
             color: white;
+            box-shadow: var(--shadow-md);
         }
 
         .btn-primary:hover {
-            background: #2563eb;
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1px solid var(--gray-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
             transform: translateY(-1px);
         }
 
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+        }
+
         .btn-sm {
-            padding: 0.4rem 0.8rem;
+            padding: 0.5rem 1rem;
             font-size: 0.875rem;
+        }
+
+        .btn-lg {
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
         }
 
         /* Table Styles */
@@ -273,9 +413,9 @@
             padding: 0;
             position: fixed;
             top: 0;
-            left: 0;
+            left: 280px; /* Start after sidebar */
             right: 0;
-            width: 100%;
+            width: calc(100% - 280px); /* Adjust width to not overlap sidebar */
             height: 72px;
             z-index: 1020;
             transition: all 0.3s ease;
@@ -296,13 +436,113 @@
             z-index: 1020 !important;
         }
 
+        /* Fix modal z-index and backdrop issues - Simplified */
+        .modal {
+            z-index: 1055 !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            outline: 0;
+        }
+
+        .modal-backdrop {
+            z-index: 1050 !important;
+            background-color: rgba(0, 0, 0, 0.5) !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+
+        .modal.show {
+            display: block !important;
+        }
+
+        .modal-dialog {
+            margin: 1.75rem auto !important;
+            max-width: 500px !important;
+            position: relative !important;
+            width: auto !important;
+            pointer-events: none !important;
+        }
+
+        .modal-lg {
+            max-width: 800px !important;
+        }
+
+        /* Disable all transitions that cause conflicts */
+        .modal.fade .modal-dialog {
+            transition: none !important;
+            transform: none !important;
+        }
+
+        .modal.show .modal-dialog {
+            transform: none !important;
+        }
+
+        /* Fix any overlay conflicts */
+        body.modal-open {
+            overflow: hidden !important;
+            padding-right: 0 !important;
+        }
+
+        /* Ensure modals appear above everything - Simplified */
+        .modal-content {
+            position: relative !important;
+            z-index: 1056 !important;
+            background-color: #fff !important;
+            border: 1px solid rgba(0, 0, 0, 0.2) !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+            pointer-events: auto !important;
+            outline: 0 !important;
+        }
+
+        /* Disable hover effects on modal elements */
+        .modal * {
+            pointer-events: auto !important;
+        }
+
+        /* Prevent any card hover effects when modal is open */
+        body.modal-open .card:hover {
+            transform: none !important;
+            box-shadow: var(--shadow-sm) !important;
+        }
+
+        /* File preview styling */
+        .file-preview-container {
+            min-height: 200px;
+            max-height: 600px;
+            overflow: auto;
+        }
+
+        .file-preview-container iframe {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+
+        .file-preview-container img {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .pdf-preview, .image-preview {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.375rem;
+        }
+
         .header-content {
             display: flex;
             justify-content: flex-end;
             align-items: center;
             height: 100%;
             padding: 0 2rem;
-            margin-left: 280px; /* Account for sidebar width */
+            margin-left: 0; /* Remove margin since header already starts after sidebar */
         }
 
         .header-right {
@@ -322,13 +562,14 @@
             width: 44px;
             height: 44px;
             border-radius: 10px;
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             position: relative;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
             transition: all 0.2s ease;
+            z-index: 1000;
         }
 
         .notification-btn:hover {
@@ -347,11 +588,12 @@
             width: 20px;
             height: 20px;
             font-size: 0.75rem;
-            display: flex;
+            display: none; /* Hidden by default, shown when there are notifications */
             align-items: center;
             justify-content: center;
             font-weight: 600;
             border: 2px solid white;
+            z-index: 1001;
         }
 
         .notification-dropdown {
@@ -792,12 +1034,11 @@
                 <div class="notification-container">
                     <button class="notification-btn" id="notificationBtn">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notificationBadge">2</span>
+                        <span class="notification-badge" id="notificationBadge"></span>
                     </button>
                     <div class="notification-dropdown" id="notificationDropdown">
                         <div class="notification-header">
                             <h6>Notifications</h6>
-                            <a href="#" class="mark-all-read" id="markAllRead">Mark all as read</a>
                         </div>
                         <div class="notification-list" id="notificationList">
                             <!-- Notifications will be loaded here via JavaScript -->
@@ -864,34 +1105,34 @@
                         <h4>Barangay Portal</h4>
                         <small>{{ auth()->user()->name }}</small>
                     </div>
-                    <nav>
-                        <a href="{{ route('barangay.dashboard') }}" class="nav-link {{ request()->routeIs('barangay.dashboard') ? 'active' : '' }}">
-                            <i class="fas fa-tachometer-alt"></i>
-                            Dashboard
-                        </a>
-                        <a href="{{ route('barangay.submissions') }}" class="nav-link {{ request()->routeIs('barangay.submissions') ? 'active' : '' }}">
-                            <i class="fas fa-list"></i>
-                            My Submissions
-                        </a>
-                        <a href="{{ route('barangay.view-reports') }}" class="nav-link {{ request()->routeIs('barangay.view-reports') ? 'active' : '' }}">
-                            <i class="fas fa-file-alt"></i>
-                            View Reports
-                        </a>
-                        <a href="{{ route('barangay.overdue-reports') }}" class="nav-link {{ request()->routeIs('barangay.overdue-reports') ? 'active' : '' }}">
-                            <i class="fas fa-exclamation-circle"></i>
-                            Overdue Reports
-                        </a>
-                        <a href="{{ route('barangay.issuances.index') }}" class="nav-link {{ request()->routeIs('barangay.issuances.*') ? 'active' : '' }}">
-                            <i class="fas fa-file-alt"></i>
-                            Issuances
-                        </a>
-                        <form action="{{ route('logout') }}" method="POST" class="mt-4">
-                            @csrf
-                            <button type="submit" class="nav-link text-danger w-100 text-start border-0 bg-transparent">
-                                <i class="fas fa-sign-out-alt"></i>
-                                Logout
-                            </button>
-                        </form>
+                    <nav class="d-flex flex-column h-100">
+                        <div class="flex-grow-1">
+                            <a href="{{ route('barangay.dashboard') }}" class="nav-link {{ request()->routeIs('barangay.dashboard') ? 'active' : '' }}">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Dashboard
+                            </a>
+                            <a href="{{ route('barangay.submissions') }}" class="nav-link {{ request()->routeIs('barangay.submissions') ? 'active' : '' }}">
+                                <i class="fas fa-list"></i>
+                                My Submissions
+                            </a>
+                            <a href="{{ route('barangay.view-reports') }}" class="nav-link {{ request()->routeIs('barangay.view-reports') ? 'active' : '' }}">
+                                <i class="fas fa-file-alt"></i>
+                                View Reports
+                            </a>
+                            <a href="{{ route('barangay.overdue-reports') }}" class="nav-link {{ request()->routeIs('barangay.overdue-reports') ? 'active' : '' }}">
+                                <i class="fas fa-exclamation-circle"></i>
+                                Overdue Reports
+                            </a>
+                            <a href="{{ route('barangay.issuances.index') }}" class="nav-link {{ request()->routeIs('barangay.issuances.*') ? 'active' : '' }}">
+                                <i class="fas fa-file-alt"></i>
+                                Issuances
+                            </a>
+                        </div>
+
+                        <!-- Announcements Section at Bottom of Sidebar -->
+                        <div class="mt-auto">
+                            @include('components.sidebar-announcements')
+                        </div>
                     </nav>
                 </div>
             </div>
@@ -906,8 +1147,6 @@
         </div>
     </div>
 
-                        @include('components.sidebar-announcements')
-
     <!-- Hidden logout form for header -->
     <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
         @csrf
@@ -916,6 +1155,13 @@
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- AJAX Form Handling -->
+    <script src="{{ asset('js/ajax-forms.js') }}"></script>
+
+    <!-- Vite Assets for Real-time Notifications -->
+    {{-- @vite(['resources/js/app.js']) --}}
+    <!-- Note: Vite disabled for now. Using polling-based notifications instead. -->
+
     <!-- Header JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -923,7 +1169,7 @@
             const notificationBtn = document.getElementById('notificationBtn');
             const notificationDropdown = document.getElementById('notificationDropdown');
             const notificationBadge = document.getElementById('notificationBadge');
-            const markAllRead = document.getElementById('markAllRead');
+            const notificationList = document.getElementById('notificationList');
 
             // User profile dropdown functionality
             const userProfileBtn = document.getElementById('userProfileBtn');
@@ -932,8 +1178,17 @@
             // Toggle notification dropdown
             notificationBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
+                const wasHidden = !notificationDropdown.classList.contains('show');
                 notificationDropdown.classList.toggle('show');
                 userProfileDropdown.classList.remove('show');
+
+                if (wasHidden && notificationDropdown.classList.contains('show')) {
+                    // If dropdown was just opened, check for unread notifications
+                    const unreadItems = notificationList.querySelectorAll('.notification-item.unread');
+                    if (unreadItems.length > 0) {
+                        markAllNotificationsAsRead();
+                    }
+                }
             });
 
             // Toggle user profile dropdown
@@ -958,55 +1213,103 @@
                 e.stopPropagation();
             });
 
+            // TEMPORARILY DISABLED FOR MODAL DEBUGGING
             // Load notifications when page loads
-            loadNotifications();
+            // loadNotifications();
 
-            // Mark all notifications as read
-            markAllRead.addEventListener('click', function(e) {
-                e.preventDefault();
-                markAllNotificationsAsRead();
-            });
+            // Refresh notifications every 30 seconds
+            // setInterval(loadNotifications, 30000);
 
             // Load notifications from server
             function loadNotifications() {
-                fetch('{{ route("barangay.notifications.get") }}')
-                    .then(response => response.json())
+                console.log('Loading notifications from:', "{{ route('barangay.notifications.get') }}"); // Debug log
+
+                fetch("{{ route('barangay.notifications.get') }}")
+                    .then(response => {
+                        console.log('Response received:', response); // Debug log
+
+                        if (!response.ok) {
+                            // Log the response text even for non-ok responses before throwing error
+                            response.text().then(text => {
+                                console.error('Error loading notifications: Network response was not ok.', {
+                                    status: response.status,
+                                    statusText: response.statusText,
+                                    responseBody: text
+                                });
+                            }).catch(err => {
+                                console.error('Error reading response text for non-ok response:', err);
+                            });
+                            throw new Error('Network response was not ok: ' + response.status + ' ' + response.statusText);
+                        }
+                        // Check content type before trying to parse as JSON
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            return response.json();
+                        } else {
+                            // If not JSON, log the response and throw an error
+                            return response.text().then(text => {
+                                console.error('Error loading notifications: Expected JSON, got ' + contentType, text);
+                                throw new TypeError("Expected JSON, got " + contentType + ". Response body: " + text.substring(0, 200) + "...");
+                            });
+                        }
+                    })
                     .then(data => {
-                        displayNotifications(data.notifications);
-                        updateNotificationBadge(data.unread_count);
+                        console.log('Notification data received:', data); // Debug log
+                        updateNotificationUI(data.notifications, data.unread_count);
                     })
                     .catch(error => {
-                        console.error('Error loading notifications:', error);
-                        document.getElementById('notificationList').innerHTML =
-                            '<div class="notification-empty">Failed to load notifications</div>';
+                        console.error('Error loading notifications (catch block):', error);
+                        if (notificationList) {
+                            notificationList.innerHTML = '<li class="notification-item">Failed to load notifications. Check console.</li>';
+                        }
+                        if (notificationBadge) {
+                            notificationBadge.style.display = 'none';
+                        }
                     });
+            }
+
+            // Update notification UI with fetched data
+            function updateNotificationUI(notifications, unreadCount) {
+                displayNotifications(notifications);
+                updateNotificationBadge(unreadCount);
             }
 
             // Display notifications in the dropdown
             function displayNotifications(notifications) {
                 const notificationList = document.getElementById('notificationList');
 
-                if (notifications.length === 0) {
+                console.log('Displaying notifications:', notifications); // Debug log
+
+                if (!notifications || notifications.length === 0) {
                     notificationList.innerHTML = '<div class="notification-empty">No notifications</div>';
                     return;
                 }
 
                 let html = '';
                 notifications.forEach(notification => {
+                    console.log('Processing notification:', notification); // Debug log
+
                     const iconClass = getNotificationIcon(notification.type);
                     const unreadClass = notification.read_at ? '' : 'unread';
 
+                    // Handle different data structures
+                    const title = notification.title || notification.data?.title || 'Notification';
+                    const message = notification.message || notification.data?.message || 'You have a new notification';
+                    const time = notification.time || notification.created_at || 'Recently';
+                    const redirectUrl = notification.redirect_url || notification.data?.redirect_url || '#';
+                    const canUpdate = notification.data?.can_update || false;
+
                     html += `
-                        <div class="notification-item ${unreadClass}" data-id="${notification.id}" data-type="${notification.type}" data-redirect-url="${notification.redirect_url}">
+                        <div class="notification-item ${unreadClass}" data-id="${notification.id}" data-type="${notification.type}" data-redirect-url="${redirectUrl}">
                             <div class="notification-icon ${notification.type}">
                                 <i class="fas ${iconClass}"></i>
                             </div>
                             <div class="notification-content">
-                                <div class="notification-title">${notification.title}</div>
-                                <div class="notification-message">${notification.message}</div>
+                                <div class="notification-title">${title}</div>
+                                <div class="notification-message">${message}</div>
                                 <div class="notification-meta">
-                                    <span class="notification-time">${notification.time}</span>
-                                    ${notification.data.can_update ? '<span class="notification-badge">Action Required</span>' : ''}
+                                    <span class="notification-time">${time}</span>
+                                    ${canUpdate ? '<span class="notification-badge">Action Required</span>' : ''}
                                 </div>
                             </div>
                         </div>
@@ -1015,24 +1318,25 @@
 
                 notificationList.innerHTML = html;
 
+                // TEMPORARILY DISABLED FOR MODAL DEBUGGING
                 // Add click event listeners to notification items
-                document.querySelectorAll('.notification-item').forEach(item => {
-                    item.addEventListener('click', function() {
-                        const notificationId = this.getAttribute('data-id');
-                        const redirectUrl = this.getAttribute('data-redirect-url');
+                // document.querySelectorAll('.notification-item').forEach(item => {
+                //     item.addEventListener('click', function() {
+                //         const notificationId = this.getAttribute('data-id');
+                //         const redirectUrl = this.getAttribute('data-redirect-url');
 
-                        if (this.classList.contains('unread')) {
-                            markNotificationAsRead(notificationId, this);
-                        }
+                //         if (this.classList.contains('unread')) {
+                //             markNotificationAsRead(notificationId, this);
+                //         }
 
-                        // Redirect to the notification's target page
-                        if (redirectUrl) {
-                            setTimeout(() => {
-                                window.location.href = redirectUrl;
-                            }, 100); // Small delay to allow the read status to update
-                        }
-                    });
-                });
+                //         // Redirect to the notification's target page
+                //         if (redirectUrl && redirectUrl !== '#') {
+                //             setTimeout(() => {
+                //                 window.location.href = redirectUrl;
+                //             }, 100); // Small delay to allow the read status to update
+                //         }
+                //     });
+                // });
             }
 
             // Get icon class based on notification type
@@ -1040,6 +1344,10 @@
                 switch(type) {
                     case 'report':
                         return 'fa-file-alt';
+                    case 'new_report_type':
+                        return 'fa-plus-circle';
+                    case 'new_submission':
+                        return 'fa-upload';
                     case 'announcement':
                         return 'fa-bullhorn';
                     case 'user':
@@ -1112,6 +1420,79 @@
                 const unreadCount = document.querySelectorAll('.notification-item.unread').length;
                 updateNotificationBadge(unreadCount);
             }
+
+            // Make fetchUnreadCount globally available for app.js
+            window.fetchUnreadCount = function() {
+                fetch("{{ route('barangay.notifications.unread-count') }}")
+                    .then(response => response.json())
+                    .then(data => {
+                        updateNotificationBadge(data.unread_count);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching unread count:', error);
+                    });
+            };
+
+            // Add click event listener for dynamically added notifications
+            function addNotificationClickHandler(item) {
+                item.addEventListener('click', function() {
+                    const notificationId = this.getAttribute('data-id');
+                    const redirectUrl = this.getAttribute('data-redirect-url');
+
+                    if (this.classList.contains('unread')) {
+                        markNotificationAsRead(notificationId, this);
+                    }
+
+                    // Redirect to the notification's target page
+                    if (redirectUrl && redirectUrl !== '#') {
+                        setTimeout(() => {
+                            window.location.href = redirectUrl;
+                        }, 100); // Small delay to allow the read status to update
+                    }
+                });
+            }
+
+            // Enhanced function to add new notifications from real-time updates
+            window.addNewNotificationToBarangayUI = function(notification) {
+                const notificationList = document.getElementById('notificationList');
+                if (!notificationList) return;
+
+                // Remove "No notifications" message if present
+                const noNotificationsMsg = notificationList.querySelector('.notification-empty');
+                if (noNotificationsMsg) {
+                    notificationList.innerHTML = '';
+                }
+
+                const iconClass = getNotificationIcon(notification.notification_type || 'general');
+                const unreadClass = 'unread';
+
+                const html = `
+                    <div class="notification-item ${unreadClass}" data-id="${notification.id || 'temp-' + Date.now()}" data-type="${notification.notification_type || 'general'}" data-redirect-url="${notification.redirect_url || '#'}">
+                        <div class="notification-icon ${notification.notification_type || 'system'}">
+                            <i class="fas ${iconClass}"></i>
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title">${notification.full_report_title || notification.title || 'New Notification'}</div>
+                            <div class="notification-message">${notification.message || 'You have a new notification'}</div>
+                            <div class="notification-meta">
+                                <span class="notification-time">Just now</span>
+                                ${notification.can_update ? '<span class="notification-badge">Action Required</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                notificationList.insertAdjacentHTML('afterbegin', html);
+
+                // Add click handler to the new notification
+                const newItem = notificationList.firstElementChild;
+                addNotificationClickHandler(newItem);
+
+                // Update badge count
+                if (typeof window.fetchUnreadCount === 'function') {
+                    window.fetchUnreadCount();
+                }
+            };
 
             // Header scroll effect
             window.addEventListener('scroll', function() {

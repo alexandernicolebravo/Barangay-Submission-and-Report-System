@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="user-id" content="{{ Auth::check() ? Auth::id() : '' }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>@yield('title', 'Admin Panel')</title>
+    <title>@yield('title', 'Admin Panel') - {{ config('app.name', 'Laravel') }}</title>
+
+    <!-- DILG Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('images/favicondilg.ico') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16dilg.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32dilg.png') }}">
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -334,9 +341,9 @@
             padding: 0;
             position: fixed;
             top: 0;
-            left: 0;
+            left: 16.666667%; /* Start after sidebar (col-md-3 col-lg-2) */
             right: 0;
-            width: 100%;
+            width: calc(100% - 16.666667%); /* Adjust width to not overlap sidebar */
             height: 72px;
             z-index: 1020;
             transition: all 0.3s ease;
@@ -868,51 +875,14 @@
                 <div class="notification-container">
                     <button class="notification-btn" id="notificationBtn">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge" id="notificationBadge">3</span>
+                        <span class="notification-badge" id="notificationBadge"></span>
                     </button>
                     <div class="notification-dropdown" id="notificationDropdown">
                         <div class="notification-header">
                             <h6>Notifications</h6>
-                            <a href="#" class="mark-all-read" id="markAllRead">Mark all as read</a>
                         </div>
                         <div class="notification-list">
-                            <!-- Sample notifications -->
-                            <div class="notification-item unread" data-type="system">
-                                <div class="notification-icon system">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                </div>
-                                <div class="notification-content">
-                                    <div class="notification-message">System maintenance scheduled for tonight at 2:00 AM</div>
-                                    <div class="notification-time">2 hours ago</div>
-                                </div>
-                            </div>
-                            <div class="notification-item unread" data-type="report">
-                                <div class="notification-icon report">
-                                    <i class="fas fa-file-alt"></i>
-                                </div>
-                                <div class="notification-content">
-                                    <div class="notification-message">New report submitted by Barangay San Jose</div>
-                                    <div class="notification-time">4 hours ago</div>
-                                </div>
-                            </div>
-                            <div class="notification-item unread" data-type="deadline">
-                                <div class="notification-icon deadline">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="notification-content">
-                                    <div class="notification-message">Monthly report deadline approaching in 2 days</div>
-                                    <div class="notification-time">1 day ago</div>
-                                </div>
-                            </div>
-                            <div class="notification-item" data-type="user">
-                                <div class="notification-icon user">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="notification-content">
-                                    <div class="notification-message">New user registration: Maria Santos</div>
-                                    <div class="notification-time">2 days ago</div>
-                                </div>
-                            </div>
+                            <!-- Notifications will be populated here by JavaScript -->
                         </div>
                         <div class="notification-footer">
                             <a href="#" class="view-all-notifications">View all notifications</a>
@@ -1010,10 +980,6 @@
                         <a class="nav-link {{ request()->routeIs('admin.issuances.*') ? 'active' : '' }}" href="{{ route('admin.issuances.index') }}">
                             <i class="fas fa-file-alt"></i> Issuances
                         </a>
-                        <a class="nav-link" href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
-                        </a>
                         <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
                             @csrf
                         </form>
@@ -1048,19 +1014,221 @@
     <!-- Header Dropdown Functionality -->
     <script>
         $(document).ready(function() {
+            let notificationsCurrentPage = 1;
+            let notificationsLastPage = 1;
+            let notificationsLoading = false;
+            const notificationList = $('.notification-list');
+
+            function formatTimeAgo(timestamp) {
+                const now = new Date();
+                const past = new Date(timestamp);
+                const msPerMinute = 60 * 1000;
+                const msPerHour = msPerMinute * 60;
+                const msPerDay = msPerHour * 24;
+                const elapsed = now - past;
+
+                if (elapsed < msPerMinute) {
+                     return Math.round(elapsed/1000) + ' seconds ago';
+                } else if (elapsed < msPerHour) {
+                     return Math.round(elapsed/msPerMinute) + ' minutes ago';
+                } else if (elapsed < msPerDay ) {
+                     return Math.round(elapsed/msPerHour ) + ' hours ago';
+                } else {
+                     return past.toLocaleDateString() + ' ' + past.toLocaleTimeString();
+                }
+            }
+
+            function getNotificationIcon(type) {
+                // Extract the base type, e.g., 'report_remarks' from 'App\\Notifications\\ReportRemarksNotification'
+                const baseType = type.split('\\\\').pop().replace('Notification', '').toLowerCase();
+                if (baseType.includes('deadline')) return '<div class="notification-icon deadline"><i class="fas fa-clock"></i></div>';
+                if (baseType.includes('reportremarks')) return '<div class="notification-icon report"><i class="fas fa-file-alt"></i></div>';
+                if (baseType.includes('newsubmission')) return '<div class="notification-icon report"><i class="fas fa-file-upload"></i></div>';
+                return '<div class="notification-icon system"><i class="fas fa-bell"></i></div>'; // Default
+            }
+
+            function populateNotifications(data, append = false) {
+                if (!append) {
+                    notificationList.empty();
+                }
+                if (data && data.data && data.data.length > 0) {
+                    data.data.forEach(notification => {
+                        const isUnread = !notification.read_at;
+                        const notificationData = notification.data; // Notification payload
+                        const message = notificationData.message || 'New notification';
+                        const redirectUrl = notificationData.redirect_url || '#';
+
+                        let title = 'Notification';
+                        if (notificationData.notification_type === 'report_remarks') {
+                            title = 'Report Remarks Added';
+                        } else if (notificationData.notification_type === 'upcoming_deadline') {
+                            title = 'Upcoming Deadline';
+                        } else if (notificationData.notification_type === 'new_submission_received') {
+                            title = 'New Submission';
+                        } else if (notificationData.full_report_title) {
+                            title = notificationData.full_report_title;
+                        } else if (notificationData.report_name) { // Fallback for other types like NewSubmission
+                            title = notificationData.report_name;
+                        } else if (notificationData.report_type_name) { // Fallback for UpcomingDeadline
+                            title = notificationData.report_type_name;
+                        }
+
+                        const item = `
+                            <div class="notification-item ${isUnread ? 'unread' : ''}" data-id="${notification.id}" data-url="${redirectUrl}">
+                                ${getNotificationIcon(notification.type)}
+                                <div class="notification-content">
+                                    <div class="notification-message"><strong>${title}</strong>: ${message}</div>
+                                    <div class="notification-time">${formatTimeAgo(notification.created_at)}</div>
+                                </div>
+                            </div>
+                        `;
+                        notificationList.append(item);
+                    });
+                    notificationsLastPage = data.last_page;
+                    if (notificationsCurrentPage >= notificationsLastPage) {
+                        $('#loadMoreNotificationsWrapper').hide();
+                    } else {
+                        $('#loadMoreNotificationsWrapper').show();
+                    }
+                } else if (!append) {
+                    notificationList.html('<div class="notification-item text-center"><small>No notifications found.</small></div>');
+                    $('#loadMoreNotificationsWrapper').hide();
+                }
+                 updateNotificationBadge(); // Update badge after populating
+            }
+
+            function fetchNotifications(page = 1, append = false, callback) {
+                if (notificationsLoading) return;
+                notificationsLoading = true;
+                notificationList.append('<div class="text-center p-2 small" id="notificationsLoader"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+
+                $.ajax({
+                    url: '{{ route("notifications.index") }}?page=' + page,
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        populateNotifications(response, append);
+                        notificationsCurrentPage = response.current_page;
+                        notificationsLastPage = response.last_page;
+                         if (notificationsCurrentPage >= notificationsLastPage) {
+                            $('#loadMoreNotificationsWrapper').hide();
+                        } else {
+                            $('#loadMoreNotificationsWrapper').show();
+                        }
+                        if (typeof callback === 'function') {
+                            callback();
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error loading notifications:', xhr.responseText);
+                        const errorMsg = 'Error loading notifications. Check console.';
+                        if (!append) notificationList.html(`<div class="notification-item text-center text-danger"><small>${errorMsg}</small></div>`);
+                         $('#loadMoreNotificationsBtn').remove();
+                    },
+                    complete: function() {
+                        notificationsLoading = false;
+                        $('#notificationsLoader').remove();
+                    }
+                });
+            }
+
+            function fetchUnreadCount() {
+                $.ajax({
+                    url: '{{ route("notifications.unread-count") }}',
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        const badge = $('#notificationBadge');
+                        if (response.unread_count > 0) {
+                            badge.text(response.unread_count).show();
+                        } else {
+                            badge.hide();
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error fetching unread count:', xhr.responseText);
+                    }
+                });
+            }
+
+            function markNotificationAsRead(notificationId, element) {
+                $.ajax({
+                    url: `/notifications/${notificationId}/mark-as-read`, // Using template literal for URL
+                    method: 'POST',
+                    data: { _token: '{{ csrf_token() }}' },
+                    dataType: 'json',
+                    success: function() {
+                        $(element).removeClass('unread');
+                        fetchUnreadCount(); // Update badge
+                        // No redirection here, just mark as read
+                    },
+                    error: function(xhr) {
+                        console.error('Error marking notification as read:', xhr.responseText);
+                        alert('Error marking notification as read. Please try again.');
+                    }
+                });
+            }
+
+            function markAllNotificationsAsRead() {
+                $.ajax({
+                    url: '{{ route("notifications.mark-all-as-read") }}',
+                    method: 'POST',
+                    data: { _token: '{{ csrf_token() }}' },
+                    dataType: 'json',
+                    success: function() {
+                        notificationList.find('.notification-item.unread').removeClass('unread');
+                        fetchUnreadCount(); // Update badge
+                    },
+                    error: function(xhr) {
+                        console.error('Error marking all notifications as read:', xhr.responseText);
+                        alert('Error marking all notifications as read. Please try again.');
+                    }
+                });
+            }
+
+            // Initial fetch
+            fetchUnreadCount();
+
             // Notification dropdown functionality
             $('#notificationBtn').on('click', function(e) {
                 e.stopPropagation();
                 const dropdown = $('#notificationDropdown');
                 const userDropdown = $('#userProfileDropdown');
 
-                // Close user dropdown if open
                 userDropdown.removeClass('show');
                 $('#userProfileBtn').removeClass('show');
-
-                // Toggle notification dropdown
+                
+                const wasHidden = !dropdown.hasClass('show');
                 dropdown.toggleClass('show');
                 $(this).toggleClass('show');
+
+                if (wasHidden && dropdown.hasClass('show')) {
+                    const currentlyUnreadInList = notificationList.find('.notification-item.unread').length > 0;
+                    const isListEffectivelyEmpty = notificationList.children().length === 0 || 
+                                               (notificationList.children().length === 1 && notificationList.find('.text-center').length > 0);
+
+                    if (isListEffectivelyEmpty) {
+                        notificationsCurrentPage = 1; 
+                        fetchNotifications(notificationsCurrentPage, false, function() {
+                            if (notificationList.find('.notification-item.unread').length > 0) {
+                                markAllNotificationsAsRead();
+                            }
+                        });
+                    } else if (currentlyUnreadInList) {
+                        markAllNotificationsAsRead();
+                    }
+                }
+            });
+            
+            // Ensure Load More button wrapper exists (changed logic slightly)
+            if ($('#loadMoreNotificationsWrapper').length === 0) {
+                notificationList.after('<div class="notification-footer text-center p-2" style="display:none;" id="loadMoreNotificationsWrapper"><button class="btn btn-link btn-sm" id="loadMoreNotificationsBtn">Load More</button></div>');
+            }
+            $('#loadMoreNotificationsBtn').off('click').on('click', function() { // Use .off().on() to avoid multiple bindings
+                if (notificationsCurrentPage < notificationsLastPage && !notificationsLoading) {
+                    notificationsCurrentPage++;
+                    fetchNotifications(notificationsCurrentPage, true);
+                }
             });
 
             // User profile dropdown functionality
@@ -1086,33 +1254,36 @@
                 }
             });
 
-            // Mark all notifications as read
-            $('#markAllRead').on('click', function(e) {
-                e.preventDefault();
-                $('.notification-item.unread').removeClass('unread');
-                updateNotificationBadge();
+            // Mark individual notification as read when clicked AND redirect
+            notificationList.on('click', '.notification-item', function() {
+                const notificationId = $(this).data('id');
+                const redirectUrl = $(this).data('url');
+
+                if (notificationId && $(this).hasClass('unread')) {
+                    markNotificationAsRead(notificationId, this);
+                    // markNotificationAsRead handles updating UI and unread count
+                }
+                // Redirect after attempting to mark as read (or if already read)
+                if (redirectUrl && redirectUrl !== '#') {
+                    window.location.href = redirectUrl;
+                }
             });
 
-            // Mark individual notification as read when clicked
-            $('.notification-item').on('click', function() {
-                $(this).removeClass('unread');
-                updateNotificationBadge();
-            });
-
-            // Update notification badge count
+            // Update notification badge count (this function is now primarily driven by fetchUnreadCount)
             function updateNotificationBadge() {
+                 // fetchUnreadCount will update the badge based on server data.
+                 // This local version can be simplified or removed if fetchUnreadCount is always called.
                 const unreadCount = $('.notification-item.unread').length;
                 const badge = $('#notificationBadge');
-
                 if (unreadCount > 0) {
                     badge.text(unreadCount).show();
                 } else {
                     badge.hide();
                 }
             }
-
-            // Initialize notification badge
-            updateNotificationBadge();
+            
+            // Call initially if you want to populate badge from current DOM state (though server fetch is better)
+            // updateNotificationBadge();
 
             // Header scroll effect
             $(window).on('scroll', function() {
