@@ -401,6 +401,116 @@
     </div>
 @endforeach
 
+<!-- Submit Modals for Overdue Deadlines -->
+@foreach($overdueDeadlines as $deadline)
+    <div class="modal fade" id="submitModalOverdue{{ $deadline->id }}" tabindex="-1" aria-labelledby="submitModalOverdueLabel{{ $deadline->id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="submitModalOverdueLabel{{ $deadline->id }}">
+                        Submit {{ $deadline->name }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('barangay.submissions.store') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="report_type_id" value="{{ $deadline->id }}">
+                    <input type="hidden" name="report_type" value="{{ $deadline->frequency }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="fileOverdue{{ $deadline->id }}" class="form-label">Upload Report File</label>
+                            <input type="file"
+                                   class="form-control"
+                                   id="fileOverdue{{ $deadline->id }}"
+                                   name="file"
+                                   accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png"
+                                   required>
+                            <div class="form-text">Accepted formats: PDF, DOCX, XLSX, JPG, PNG (Max: 25MB)</div>
+                        </div>
+                        @if($deadline->frequency === 'weekly')
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Month <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="month" required>
+                                        <option value="">Select Month</option>
+                                        @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
+                                            <option value="{{ $month }}">{{ $month }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Week Number <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="week_number" required>
+                                        <option value="">Select Week</option>
+                                        @for($i = 1; $i <= 5; $i++)
+                                            <option value="{{ $i }}">Week {{ $i }}</option>
+                                        @endfor
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Number of Clean-up Sites <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
+                                <small class="form-text text-muted">Number of sites cleaned during the week</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Number of Participants (excluding officials) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="num_of_participants" min="0" required>
+                                <small class="form-text text-muted">Total participants excluding barangay officials</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Number of Officials <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="num_of_barangays" min="0" required>
+                                <small class="form-text text-muted">Number of barangay officials who participated</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Total Volume (kg) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
+                                <small class="form-text text-muted">Total waste volume collected in kilograms</small>
+                            </div>
+                        @elseif($deadline->frequency === 'monthly')
+                            <div class="mb-3">
+                                <label class="form-label">Month</label>
+                                <select class="form-select" name="month" required>
+                                    <option value="">Select Month</option>
+                                    @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
+                                        <option value="{{ $month }}">{{ $month }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @elseif($deadline->frequency === 'quarterly')
+                            <div class="mb-3">
+                                <label class="form-label">Quarter</label>
+                                <select class="form-select" name="quarter_number" required>
+                                    <option value="1">First Quarter</option>
+                                    <option value="2">Second Quarter</option>
+                                    <option value="3">Third Quarter</option>
+                                    <option value="4">Fourth Quarter</option>
+                                </select>
+                            </div>
+                        @elseif($deadline->frequency === 'semestral')
+                            <div class="mb-3">
+                                <label class="form-label">Semester</label>
+                                <select class="form-select" name="sem_number" required>
+                                    <option value="1">First Semester</option>
+                                    <option value="2">Second Semester</option>
+                                </select>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i>
+                            Submit Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
+
 <style>
 /* Modern Barangay Dashboard Styles */
 :root {

@@ -762,6 +762,25 @@
         margin-right: auto;
     }
 
+    .recent-submissions-responsive {
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 0;
+        padding-right: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    @media (min-width: 992px) {
+        .recent-submissions-responsive {
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 0;
+            padding-right: 0;
+            width: 100%;
+            max-width: 900px;
+        }
+    }
 </style>
 @endpush
 
@@ -1371,105 +1390,34 @@
     <!-- Recent Submissions Table -->
     <div class="row">
         <div class="col-12">
-            <div class="chart-card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-clock text-primary"></i>
-                        Recent Submissions
-                    </h5>
-                    <a href="{{ route('facilitator.view-submissions') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-list me-1"></i> View All
-                    </a>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="border-0 fw-semibold">Report</th>
-                                    <th class="border-0 fw-semibold">Barangay</th>
-                                    <th class="border-0 fw-semibold">Date</th>
-                                    <th class="border-0 fw-semibold">Status</th>
-                                    <th class="border-0 fw-semibold text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($recentReports as $report)
-                                <tr class="border-bottom">
-                                    <td class="py-3">
-                                        <div class="d-flex align-items-center">
-                                            <div class="file-icon me-3">
-                                                @php
-                                                    $extension = strtolower(pathinfo($report->file_path ?? '', PATHINFO_EXTENSION));
-                                                    $iconData = match($extension) {
-                                                        'pdf' => ['icon' => 'fa-file-pdf', 'color' => '#dc3545'],
-                                                        'doc', 'docx' => ['icon' => 'fa-file-word', 'color' => '#0d6efd'],
-                                                        'xls', 'xlsx' => ['icon' => 'fa-file-excel', 'color' => '#198754'],
-                                                        'jpg', 'jpeg', 'png', 'gif' => ['icon' => 'fa-file-image', 'color' => '#fd7e14'],
-                                                        'txt' => ['icon' => 'fa-file-alt', 'color' => '#6c757d'],
-                                                        default => ['icon' => 'fa-file', 'color' => '#6f42c1']
-                                                    };
-                                                @endphp
-                                                <i class="fas {{ $iconData['icon'] }}" style="color: {{ $iconData['color'] }}; font-size: 1.5rem;"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-semibold text-dark">{{ $report->report_name }}</div>
-                                                <small class="text-muted">{{ ucfirst($report->type) }} Report</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="py-3">
-                                        <div class="d-flex align-items-center">
-                                            <div class="barangay-avatar-sm me-2">
-                                                {{ substr($report->barangay_name, 0, 2) }}
-                                            </div>
-                                            <span class="fw-medium">{{ $report->barangay_name }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="py-3">
-                                        <div class="text-dark">{{ \Carbon\Carbon::parse($report->created_at)->format('M d, Y') }}</div>
-                                        <small class="text-muted">{{ \Carbon\Carbon::parse($report->created_at)->format('h:i A') }}</small>
-                                    </td>
-                                    <td class="py-3">
-                                        @php
-                                            $statusConfig = match($report->status) {
-                                                'submitted' => ['icon' => 'fa-check-circle', 'class' => 'success', 'text' => 'Submitted'],
-                                                'no submission' => ['icon' => 'fa-times-circle', 'class' => 'danger', 'text' => 'No Submission'],
-                                                'pending' => ['icon' => 'fa-clock', 'class' => 'warning', 'text' => 'Pending'],
-                                                'approved' => ['icon' => 'fa-thumbs-up', 'class' => 'info', 'text' => 'Approved'],
-                                                'rejected' => ['icon' => 'fa-thumbs-down', 'class' => 'danger', 'text' => 'Rejected'],
-                                                default => ['icon' => 'fa-info-circle', 'class' => 'secondary', 'text' => ucfirst($report->status)]
-                                            };
-                                        @endphp
-                                        <span class="badge bg-{{ $statusConfig['class'] }} d-inline-flex align-items-center">
-                                            <i class="fas {{ $statusConfig['icon'] }} me-1"></i>
-                                            {{ $statusConfig['text'] }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3 text-center">
-                                        <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-outline-primary btn-sm" title="View Report">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" title="Download">
-                                                <i class="fas fa-download"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="5" class="text-center py-5">
-                                        <div class="empty-state">
-                                            <i class="fas fa-inbox text-muted mb-3" style="font-size: 3rem;"></i>
-                                            <h6 class="text-muted">No recent submissions found</h6>
-                                            <p class="text-muted small mb-0">Recent submissions will appear here once barangays start submitting reports.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+            <div class="recent-submissions-responsive">
+                <div class="chart-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clock text-primary"></i>
+                            Recent Submissions
+                        </h5>
+                        <a href="{{ route('facilitator.view-submissions') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-list me-1"></i> View All
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="border-0 fw-semibold">Report</th>
+                                        <th class="border-0 fw-semibold">Barangay</th>
+                                        <th class="border-0 fw-semibold">Date</th>
+                                        <th class="border-0 fw-semibold">Status</th>
+                                        <th class="border-0 fw-semibold text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @include('facilitator.partials.submissions-table', ['reports' => $recentReports])
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1898,6 +1846,26 @@
     .empty-state.success i {
         color: #10b981;
         opacity: 0.8;
+    }
+
+    .recent-submissions-responsive {
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 0;
+        padding-right: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    @media (min-width: 992px) {
+        .recent-submissions-responsive {
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 0;
+            padding-right: 0;
+            width: 100%;
+            max-width: 900px;
+        }
     }
 </style>
 @endpush
