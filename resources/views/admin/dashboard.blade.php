@@ -429,19 +429,19 @@
     .stat-card .card-body {
         display: flex;
         align-items: center;
-        padding: 1.5rem;
+        padding: 1rem;
         background: white;
     }
 
     /* Modern Stat Icons */
     .stat-icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 1rem;
+        width: 48px;
+        height: 48px;
+        border-radius: 0.75rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: 1.25rem;
+        margin-right: 1rem;
         flex-shrink: 0;
         position: relative;
         overflow: hidden;
@@ -465,7 +465,7 @@
     }
 
     .stat-icon i {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         color: white;
         z-index: 1;
         transition: all 0.3s ease;
@@ -496,7 +496,7 @@
     }
 
     .stat-value {
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 700;
         margin: 0;
         color: #0f172a;
@@ -512,7 +512,7 @@
     }
 
     .stat-label {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         color: #64748b;
         margin: 0;
         font-weight: 500;

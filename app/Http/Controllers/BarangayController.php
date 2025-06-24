@@ -60,8 +60,8 @@ class BarangayController extends Controller
                 ->concat($annualReports);
 
             // Calculate statistics
-            // Total reports is the count of ACTIVE report types with future deadlines (consistent with facilitator dashboard)
-            $totalReports = ReportType::active()->where('deadline', '>=', now())->count();
+            // Total reports is the count of ALL ACTIVE report types (regardless of deadline)
+            $totalReports = ReportType::active()->count();
 
             // Get unique report_type_ids that have been submitted
             $uniqueSubmittedReportTypeIds = $allReports
@@ -174,6 +174,14 @@ class BarangayController extends Controller
 
             Log::info('Available report type counts:', $availableReportTypeCounts);
 
+            // Get overdue deadlines (active report types with past deadlines, not yet submitted)
+            $overdueDeadlines = ReportType::active()
+                ->where('deadline', '<', now())
+                ->get()
+                ->filter(function ($reportType) use ($submittedReportTypeIds) {
+                    return !$submittedReportTypeIds->contains($reportType->id);
+                });
+
             return view('barangay.dashboard', compact(
                 'totalReports',
                 'submittedReports',
@@ -184,7 +192,8 @@ class BarangayController extends Controller
                 'reportTypesByFrequency',
                 'submittedReportTypeIds',
                 'allReportTypes',
-                'availableReportTypeCounts'
+                'availableReportTypeCounts',
+                'overdueDeadlines' // pass to view
             ));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'An error occurred while loading the dashboard: ' . $e->getMessage());
@@ -909,13 +918,15 @@ class BarangayController extends Controller
 
             $validationRules = [
                 'report_type_id' => 'required|exists:report_types,id',
-                'file' => 'required|file|mimes:' . $fileExtensionsStr . '|max:102400'
+                'file' => 'required|file|mimes:' . $fileExtensionsStr . '|max:25600'
             ];
 
             // Add validation rules based on report type
             switch ($reportType->frequency) {
                 case 'weekly':
                     $validationRules = array_merge($validationRules, [
+                        'month' => 'required|string|in:January,February,March,April,May,June,July,August,September,October,November,December',
+                        'week_number' => 'required|integer|min:1|max:5',
                         'num_of_clean_up_sites' => 'required|integer|min:0',
                         'num_of_participants' => 'required|integer|min:0',
                         'num_of_barangays' => 'required|integer|min:0',
@@ -1310,7 +1321,7 @@ class BarangayController extends Controller
         Log::info('MIME types for validation (resubmit): ' . $mimeTypesStr);
 
         $validationRules = [
-            'file' => 'nullable|file|mimes:' . $mimeTypesStr . '|max:102400',
+            'file' => 'nullable|file|mimes:' . $mimeTypesStr . '|max:25600',
             'report_type_id' => 'required|exists:report_types,id',
             'report_type' => 'required|string|in:weekly,monthly,quarterly,semestral,annual,executive_order'
         ];
@@ -2062,5 +2073,22 @@ class BarangayController extends Controller
                 'submitting_user' => Auth::user()->name ?? 'Unknown'
             ]);
         }
+    }
+
+    public function profile()
+    {
+        $user = Auth::user();
+        return view('barangay.profile', compact('user'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = \App\Models\User::find(Auth::id());
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+        $user->password = $request->password; // Will be hashed by model
+        $user->save();
+        return redirect()->route('barangay.profile')->with('success', 'Password updated successfully.');
     }
 }

@@ -917,27 +917,6 @@
                                 <i class="fas fa-user"></i>
                                 <span>My Profile</span>
                             </a>
-                            <a href="#" class="user-profile-item">
-                                <i class="fas fa-cog"></i>
-                                <span>Account Settings</span>
-                            </a>
-                            <a href="#" class="user-profile-item">
-                                <i class="fas fa-bell"></i>
-                                <span>Notification Settings</span>
-                            </a>
-                            <a href="#" class="user-profile-item">
-                                <i class="fas fa-palette"></i>
-                                <span>Appearance</span>
-                            </a>
-                            <div class="user-profile-divider"></div>
-                            <a href="{{ route('admin.dashboard') }}" class="user-profile-item">
-                                <i class="fas fa-chart-bar"></i>
-                                <span>My Dashboard</span>
-                            </a>
-                            <a href="{{ route('admin.view.submissions') }}" class="user-profile-item">
-                                <i class="fas fa-file-alt"></i>
-                                <span>View Reports</span>
-                            </a>
                             <div class="user-profile-divider"></div>
                             <a href="{{ route('logout') }}" class="user-profile-item logout"
                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">

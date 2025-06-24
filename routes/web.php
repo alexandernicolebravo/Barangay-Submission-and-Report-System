@@ -278,6 +278,75 @@ Route::get('/test-granada-lupon-notification', function() {
     }
 });
 
+// Test Notification Check Route
+Route::get('/test-notification-check', function () {
+    try {
+        // Check facilitator notifications
+        $facilitator = \App\Models\User::where('user_type', 'facilitator')->first();
+        if (!$facilitator) {
+            return 'No facilitator found';
+        }
+
+        $notificationCount = $facilitator->notifications()->count();
+        $recentNotifications = $facilitator->notifications()->latest()->take(5)->get();
+
+        $output = "Facilitator: {$facilitator->name} ({$facilitator->email})<br>";
+        $output .= "Total notifications: {$notificationCount}<br><br>";
+
+        if ($recentNotifications->count() > 0) {
+            $output .= "Recent notifications:<br>";
+            foreach ($recentNotifications as $notification) {
+                $data = $notification->data;
+                $output .= "- Type: {$notification->type}<br>";
+                $output .= "- Message: " . ($data['message'] ?? 'No message') . "<br>";
+                $output .= "- Created: {$notification->created_at}<br>";
+                $output .= "- Read: " . ($notification->read_at ? 'Yes' : 'No') . "<br><br>";
+            }
+        } else {
+            $output .= "No notifications found.<br>";
+        }
+
+        return $output;
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+});
+
+// Test New Submission Notification Route
+Route::get('/test-new-submission-notification', function () {
+    try {
+        // Get a barangay user
+        $barangayUser = \App\Models\User::where('user_type', 'barangay')->first();
+        if (!$barangayUser) {
+            return 'No barangay user found';
+        }
+
+        // Get a report to use for testing
+        $report = \App\Models\WeeklyReport::with('reportType')->where('user_id', $barangayUser->id)->first();
+        if (!$report) {
+            $report = \App\Models\MonthlyReport::with('reportType')->where('user_id', $barangayUser->id)->first();
+        }
+        if (!$report) {
+            return 'No report found for testing';
+        }
+
+        // Get facilitators
+        $facilitators = \App\Models\User::where('user_type', 'facilitator')->get();
+        if ($facilitators->isEmpty()) {
+            return 'No facilitators found';
+        }
+
+        // Send notification to facilitators
+        foreach ($facilitators as $facilitator) {
+            $facilitator->notify(new \App\Notifications\NewSubmissionReceivedNotification($report, $barangayUser));
+        }
+
+        return "New submission notification sent to " . $facilitators->count() . " facilitator(s) for report: " . $report->reportType->name . " from " . $barangayUser->name;
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage() . '<br><pre>' . $e->getTraceAsString() . '</pre>';
+    }
+});
+
 // Test Facilitator Remarks Notification Route
 Route::get('/test-facilitator-notification', function() {
     try {
@@ -710,6 +779,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/notifications/unread-count', [BarangayController::class, 'getUnreadNotificationCount'])->name('notifications.unread-count');
         Route::post('/notifications/{id}/read', [BarangayController::class, 'markNotificationAsRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [BarangayController::class, 'markAllNotificationsAsRead'])->name('notifications.read-all');
+
+        // Profile Routes
+        Route::get('/profile', [BarangayController::class, 'profile'])->name('profile');
+        Route::post('/profile', [BarangayController::class, 'updateProfile'])->name('profile.update');
     });
 
     // Facilitator Routes
@@ -718,12 +791,21 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [FacilitatorController::class, 'dashboard'])->name('dashboard');
         Route::get('/dashboard/chart-data', [FacilitatorController::class, 'getDashboardChartData'])->name('dashboard.chart-data');
 
+        // Profile Routes
+        Route::get('/profile', [FacilitatorController::class, 'profile'])->name('profile');
+        Route::post('/profile', [FacilitatorController::class, 'updateProfile'])->name('profile.update');
+
         // Report Viewing
         Route::get('/view-submissions', [FacilitatorController::class, 'viewSubmissions'])->name('view-submissions');
         Route::put('/reports/{id}/remarks', [FacilitatorController::class, 'addRemarks'])->name('reports.add-remarks');
 
         // File Download
         Route::get('/files/{id}', [FacilitatorController::class, 'downloadFile'])->name('files.download');
+
+        // Notification Routes
+        Route::get('/notifications', [FacilitatorController::class, 'getNotifications'])->name('notifications');
+        Route::post('/notifications/{id}/read', [FacilitatorController::class, 'markNotificationAsRead'])->name('notifications.read');
+        Route::post('/notifications/read-all', [FacilitatorController::class, 'markAllNotificationsAsRead'])->name('notifications.read-all');
     });
 });
 
@@ -1042,12 +1124,63 @@ Route::get('/run-issuance-migration', function () {
     }
 });
 
+// Route to clear cache and check issuance table
+Route::get('/clear-cache-check-issuance', function () {
+    $output = "=== CLEARING CACHE AND CHECKING ISSUANCE TABLE ===\n\n";
+
+    try {
+        // Clear all caches
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+        \Illuminate\Support\Facades\Artisan::call('view:clear');
+        \Illuminate\Support\Facades\Artisan::call('route:clear');
+
+        $output .= "✅ All caches cleared\n\n";
+
+        // Check table structure
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('issuances');
+        $output .= "Current issuances table columns:\n";
+        foreach ($columns as $column) {
+            $output .= "  - {$column}\n";
+        }
+
+        $output .= "\n";
+
+        // Test if archived_at column works
+        try {
+            $count = \Illuminate\Support\Facades\DB::table('issuances')->whereNull('archived_at')->count();
+            $output .= "✅ archived_at column works! Found {$count} non-archived issuances\n";
+        } catch (\Exception $e) {
+            $output .= "❌ archived_at column error: " . $e->getMessage() . "\n";
+        }
+
+        // Test Issuance model
+        try {
+            $issuances = \App\Models\Issuance::active()->count();
+            $output .= "✅ Issuance model active() scope works! Found {$issuances} active issuances\n";
+        } catch (\Exception $e) {
+            $output .= "❌ Issuance model error: " . $e->getMessage() . "\n";
+        }
+
+    } catch (\Exception $e) {
+        $output .= "❌ ERROR: " . $e->getMessage() . "\n";
+    }
+
+    return response($output)->header('Content-Type', 'text/plain');
+});
+
 // Route to fix issuance table structure
 Route::get('/fix-issuance-table', function () {
     $output = "=== FIXING ISSUANCE TABLE ===\n\n";
 
     try {
+        // Clear schema cache first
+        \Illuminate\Support\Facades\Artisan::call('config:clear');
+        \Illuminate\Support\Facades\Artisan::call('cache:clear');
+
         $columns = \Illuminate\Support\Facades\Schema::getColumnListing('issuances');
+        $output .= "Current columns: " . implode(', ', $columns) . "\n\n";
+
         $missing = [];
         $added = [];
 
@@ -1066,6 +1199,12 @@ Route::get('/fix-issuance-table', function () {
                 $table->string('file_type')->nullable()->after('file_size');
                 $missing[] = 'file_type';
                 $added[] = 'file_type';
+            }
+            // Don't try to add archived_at if it already exists
+            if (!in_array('archived_at', $columns)) {
+                $table->timestamp('archived_at')->nullable()->after('updated_at');
+                $missing[] = 'archived_at';
+                $added[] = 'archived_at';
             }
             if (!in_array('uploaded_by', $columns)) {
                 $table->foreignId('uploaded_by')->nullable()->constrained('users')->onDelete('set null')->after('file_type');

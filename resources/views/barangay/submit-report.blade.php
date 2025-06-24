@@ -214,8 +214,9 @@
                                     </h6>
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Month</label>
+                                            <label class="form-label">Month <span class="text-danger">*</span></label>
                                             <select class="form-select" name="month" required>
+                                                <option value="">Select Month</option>
                                                 @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
                                                     <option value="{{ $month }}">{{ $month }}</option>
                                                 @endforeach
@@ -227,8 +228,16 @@
                                             @enderror
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Week Number</label>
-                                            <input type="number" class="form-control" name="week_number" min="1" max="52" required>
+                                            <label class="form-label">Week Number <span class="text-danger">*</span></label>
+                                            <select class="form-select" name="week_number" required>
+                                                <option value="">Select Week</option>
+                                                <option value="1">Week 1</option>
+                                                <option value="2">Week 2</option>
+                                                <option value="3">Week 3</option>
+                                                <option value="4">Week 4</option>
+                                                <option value="5">Week 5</option>
+                                            </select>
+                                            <small class="form-text text-muted">Choose week or type custom week number (limit: 5 weeks)</small>
                                             @error('week_number')
                                                 <div class="invalid-feedback d-block">
                                                     {{ $errors->first('week_number') }}
@@ -242,16 +251,13 @@
                             <div class="card bg-light mb-4">
                                 <div class="card-body">
                                     <h6 class="card-title mb-4">
-                                        <i class="fas fa-chart-bar me-2"></i>
-                                        Report Details
+                                        <i class="fas fa-broom me-2"></i>
+                                        Clean-up Activity Details
                                     </h6>
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Number of Clean-up Sites</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
-                                                <span class="input-group-text">sites</span>
-                                            </div>
+                                            <label class="form-label">Number of Clean-up Sites <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
                                             @error('num_of_clean_up_sites')
                                                 <div class="invalid-feedback d-block">
                                                     {{ $errors->first('num_of_clean_up_sites') }}
@@ -259,23 +265,20 @@
                                             @enderror
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Number of Participants</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="num_of_participants" min="0" required>
-                                                <span class="input-group-text">people</span>
-                                            </div>
+                                            <label class="form-label">Number of Participants <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" name="num_of_participants" min="0" required>
+                                            <small class="form-text text-muted">Do NOT include barangay officials and staff</small>
                                             @error('num_of_participants')
                                                 <div class="invalid-feedback d-block">
                                                     {{ $errors->first('num_of_participants') }}
                                                 </div>
                                             @enderror
                                         </div>
+                                    </div>
+                                    <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Number of Barangays</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="num_of_barangays" min="0" required>
-                                                <span class="input-group-text">barangays</span>
-                                            </div>
+                                            <label class="form-label">Number of Barangay and/or LGU Officials Participated <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" name="num_of_barangays" min="0" required>
                                             @error('num_of_barangays')
                                                 <div class="invalid-feedback d-block">
                                                     {{ $errors->first('num_of_barangays') }}
@@ -283,11 +286,8 @@
                                             @enderror
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Total Volume</label>
-                                            <div class="input-group">
-                                                <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
-                                                <span class="input-group-text">m³</span>
-                                            </div>
+                                            <label class="form-label">Total Volume of Wastes Collected (in Kilograms) <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
                                             @error('total_volume')
                                                 <div class="invalid-feedback d-block">
                                                     {{ $errors->first('total_volume') }}
@@ -297,6 +297,8 @@
                                     </div>
                                 </div>
                             </div>
+
+
                         </div>
 
                         <!-- Monthly Report Fields -->

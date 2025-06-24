@@ -47,8 +47,6 @@
         </div>
     </div>
 
-
-
     <!-- Main Content -->
     <div class="row g-4">
         <!-- Recent Reports -->
@@ -214,6 +212,79 @@
                 </div>
             </div>
         </div>
+
+        <!-- Overdue Deadlines -->
+        <div class="col-md-6">
+            <div class="card h-100 overdue-deadlines-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+                        <h5 class="card-title mb-0">Overdue Deadlines</h5>
+                    </div>
+                    <a href="{{ route('barangay.overdue-reports') }}" class="btn-view-all">
+                        View All
+                        <i class="fas fa-chevron-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    @if($overdueDeadlines->isEmpty())
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-calendar-times"></i>
+                            </div>
+                            <p>No overdue deadlines</p>
+                            <span class="text-muted mt-1 small">Great job! No overdue reports.</span>
+                        </div>
+                    @else
+                        <div class="deadline-list-container">
+                            <div class="deadline-list">
+                                @foreach($overdueDeadlines as $deadline)
+                                    <div class="deadline-item">
+                                        <div class="deadline-info">
+                                            <div class="deadline-icon">
+                                                @php
+                                                    $iconClass = match($deadline->frequency) {
+                                                        'weekly' => 'fa-calendar-week text-info',
+                                                        'monthly' => 'fa-calendar-alt text-primary',
+                                                        'quarterly' => 'fa-calendar-check text-success',
+                                                        'semestral' => 'fa-calendar-plus text-warning',
+                                                        'annual' => 'fa-calendar text-danger',
+                                                        default => 'fa-calendar-day text-secondary'
+                                                    };
+                                                @endphp
+                                                <i class="fas {{ $iconClass }}"></i>
+                                            </div>
+                                            <div class="deadline-content">
+                                                <h6 class="deadline-title">{{ $deadline->name }}</h6>
+                                                <div class="deadline-meta">
+                                                    <span class="deadline-date">
+                                                        <i class="far fa-clock me-1"></i>
+                                                        Due: {{ \Carbon\Carbon::parse($deadline->deadline)->format('M d, Y') }}
+                                                    </span>
+                                                    <span class="deadline-frequency frequency-{{ $deadline->frequency }}">
+                                                        {{ ucfirst($deadline->frequency) }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="deadline-actions">
+                                            <button type="button"
+                                                    class="btn btn-warning btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#submitModalOverdue{{ $deadline->id }}"
+                                                    title="Submit {{ $deadline->name }}">
+                                                <i class="fas fa-upload me-1"></i>
+                                                Submit
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -239,27 +310,54 @@
                                    class="form-control"
                                    id="file{{ $deadline->id }}"
                                    name="file"
-                                   accept=".pdf,.docx,.xlsx"
+                                   accept=".pdf,.docx,.xlsx,.jpg,.jpeg,.png"
                                    required>
-                            <div class="form-text">Accepted formats: PDF, DOCX, XLSX (Max: 2MB)</div>
+                            <div class="form-text">Accepted formats: PDF, DOCX, XLSX, JPG, PNG (Max: 25MB)</div>
                         </div>
 
                         @if($deadline->frequency === 'weekly')
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Month <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="month" required>
+                                        <option value="">Select Month</option>
+                                        @foreach(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as $month)
+                                            <option value="{{ $month }}">{{ $month }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Week Number <span class="text-danger">*</span></label>
+                                    <select class="form-select" name="week_number" required>
+                                        <option value="">Select Week</option>
+                                        <option value="1">Week 1</option>
+                                        <option value="2">Week 2</option>
+                                        <option value="3">Week 3</option>
+                                        <option value="4">Week 4</option>
+                                        <option value="5">Week 5</option>
+                                    </select>
+                                    <small class="form-text text-muted">Choose week or type custom week number (limit: 5 weeks)</small>
+                                </div>
+                            </div>
                             <div class="mb-3">
-                                <label class="form-label">Number of Clean-up Sites</label>
+                                <label class="form-label">Number of Clean-up Sites <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" required>
+                                <small class="form-text text-muted">Number of sites cleaned during the week</small>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Number of Participants</label>
+                                <label class="form-label">Number of Participants (excluding officials) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" name="num_of_participants" min="0" required>
+                                <small class="form-text text-muted">Total participants excluding barangay officials</small>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Number of Barangays</label>
+                                <label class="form-label">Number of Officials <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" name="num_of_barangays" min="0" required>
+                                <small class="form-text text-muted">Number of barangay officials who participated</small>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Total Volume</label>
+                                <label class="form-label">Total Volume (kg) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control" name="total_volume" min="0" step="0.01" required>
+                                <small class="form-text text-muted">Total waste volume collected in kilograms</small>
                             </div>
                         @elseif($deadline->frequency === 'monthly')
                             <div class="mb-3">
@@ -349,7 +447,7 @@
     background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
     border: 1px solid #e2e8f0;
     border-radius: 1rem;
-    padding: 1.5rem;
+    padding: 1rem;
     display: flex;
     align-items: center;
     gap: 1.25rem;
@@ -383,9 +481,9 @@
 }
 
 .stat-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 1rem;
+    width: 48px;
+    height: 48px;
+    border-radius: 0.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -440,7 +538,7 @@
 }
 
 .stat-value {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 700;
     margin: 0;
     line-height: 1.2;
@@ -458,7 +556,7 @@
 .stat-label {
     color: #64748b;
     margin: 0;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     margin-top: 0.25rem;
 }
@@ -1057,10 +1155,6 @@
 }
 </style>
 
-
-
-
-
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1079,12 +1173,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-
-
-
-
-
 });
 </script>
 @endpush

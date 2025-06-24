@@ -107,8 +107,14 @@
                                         </select>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Week Number</label>
-                                        <input type="number" class="form-control" name="week_number" min="1" max="52" value="{{ $report->week_number ?? '' }}" required>
+                                        <label class="form-label">Week Number <span class="text-danger">*</span></label>
+                                        <select class="form-select" name="week_number" required>
+                                            <option value="">Select Week</option>
+                                            @for($i = 1; $i <= 5; $i++)
+                                                <option value="{{ $i }}" {{ (($report->week_number ?? '') == $i) ? 'selected' : '' }}>Week {{ $i }}</option>
+                                            @endfor
+                                        </select>
+                                        <small class="form-text text-muted">Choose week or type custom week number (limit: 5 weeks)</small>
                                     </div>
                                 </div>
                             </div>
@@ -122,32 +128,21 @@
                                 </h6>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Clean-up Sites</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" value="{{ $report->num_of_clean_up_sites ?? '' }}" required>
-                                            <span class="input-group-text">sites</span>
-                                        </div>
+                                        <label class="form-label">Number of Clean-up Sites <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" name="num_of_clean_up_sites" min="0" value="{{ $report->num_of_clean_up_sites ?? '' }}" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Participants</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" name="num_of_participants" min="0" value="{{ $report->num_of_participants ?? '' }}" required>
-                                            <span class="input-group-text">people</span>
-                                        </div>
+                                        <label class="form-label">Number of Participants <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" name="num_of_participants" min="0" value="{{ $report->num_of_participants ?? '' }}" required>
+                                        <small class="form-text text-muted">Do NOT include barangay officials and staff</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Number of Barangays</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" name="num_of_barangays" min="0" value="{{ $report->num_of_barangays ?? '' }}" required>
-                                            <span class="input-group-text">barangays</span>
-                                        </div>
+                                        <label class="form-label">Number of Barangay and/or LGU Officials Participated <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" name="num_of_barangays" min="0" value="{{ $report->num_of_barangays ?? '' }}" required>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Total Volume</label>
-                                        <div class="input-group">
-                                            <input type="number" class="form-control" name="total_volume" min="0" step="0.01" value="{{ $report->total_volume ?? '' }}" required>
-                                            <span class="input-group-text">m³</span>
-                                        </div>
+                                        <label class="form-label">Total Volume of Wastes Collected (in Kilograms) <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control" name="total_volume" min="0" step="0.01" value="{{ $report->total_volume ?? '' }}" required>
                                     </div>
                                 </div>
                             </div>
@@ -260,7 +255,7 @@
                     <div class="mb-3">
                         <label for="file" class="form-label">Upload New Report File</label>
                         <input type="file" class="form-control" id="file" name="file" required>
-                        <div class="form-text">Accepted formats: PDF, DOC, DOCX, XLSX (Max size: 2MB)</div>
+                        <div class="form-text">Accepted formats: PDF, DOC, DOCX, XLSX, JPG, PNG (Max size: 25MB)</div>
                     </div>
 
                     <div class="d-flex justify-content-between">

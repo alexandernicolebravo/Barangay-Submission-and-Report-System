@@ -490,6 +490,49 @@
                 padding: 1rem;
             }
         }
+
+        @media (max-width: 991.98px) {
+            .sidebar {
+                position: relative !important;
+                width: 100% !important;
+                min-height: auto !important;
+                box-shadow: none !important;
+                border-right: none !important;
+                padding: 1rem 0.5rem !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                padding: 1rem !important;
+            }
+            .admin-header {
+                left: 0 !important;
+                width: 100% !important;
+            }
+            .card {
+                margin-bottom: 1rem !important;
+            }
+            .table {
+                font-size: 0.95rem;
+            }
+        }
+        @media (max-width: 575.98px) {
+            .main-content {
+                padding: 0.5rem !important;
+            }
+            .card-header, .card-body {
+                padding: 0.75rem !important;
+            }
+            .form-section {
+                padding: 0.75rem !important;
+            }
+            .btn, .btn-primary {
+                padding: 0.5rem 1rem !important;
+                font-size: 1rem !important;
+            }
+            .sidebar-header h4 {
+                font-size: 1.1rem !important;
+            }
+        }
     </style>
     @stack('styles')
 </head>

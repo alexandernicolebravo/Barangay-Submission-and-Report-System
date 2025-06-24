@@ -273,8 +273,14 @@
                                                                                 </select>
                                                                             </div>
                                                                             <div class="col-md-6 mb-3">
-                                                                                <label class="form-label">Week Number</label>
-                                                                                <input type="number" class="form-control" name="week_number" min="1" max="52" value="{{ $report->week_number ?? '' }}" required>
+                                                                                <label class="form-label">Week Number <span class="text-danger">*</span></label>
+                                                                                <select class="form-select" name="week_number" required>
+                                                                                    <option value="">Select Week</option>
+                                                                                    @for($i = 1; $i <= 5; $i++)
+                                                                                        <option value="{{ $i }}" {{ (($report->week_number ?? '') == $i) ? 'selected' : '' }}>Week {{ $i }}</option>
+                                                                                    @endfor
+                                                                                </select>
+                                                                                <small class="form-text text-muted">Choose week or type custom week number (limit: 5 weeks)</small>
                                                                             </div>
                                                                         </div>
                                                                         <div class="row">

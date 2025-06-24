@@ -135,7 +135,9 @@
         </div>
         
         <div class="mt-4 d-flex justify-content-center">
-            {{ $announcements->links() }}
+            <nav>
+                {{ $announcements->onEachSide(1)->links('vendor.pagination.bootstrap-5') }}
+            </nav>
         </div>
     </div>
 </div>

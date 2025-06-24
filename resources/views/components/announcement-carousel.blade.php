@@ -25,58 +25,21 @@
                         <!-- This div will push the content overlay down -->
                         <div style="flex-grow: 1;"></div>
                     
-                        <!-- Body -->
-                        @if($announcement->title || $announcement->content)
+                        <!-- Body - Only show button if available, no text overlay for images -->
+                        @if($announcement->button_text && $announcement->button_link)
                         <div class="announcement-content-overlay" style="
                             background: rgba(0, 0, 0, 0.2);
-                            padding: 25px 30px 10px 30px;
+                            padding: 15px 30px;
                             backdrop-filter: blur(3px);
                             max-width: 77%;
                             margin-left: auto;
                             margin-right: auto;
                         ">
-                            <div class="container">
-                                @if($announcement->title && $announcement->category)
-                                @if($announcement->category == 'recognition')
-                                        <div class="announcement-badge badge-recognition" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
-                                        <i class="fas fa-award me-2"></i> Recognition
-                                    </div>
-                                @elseif($announcement->category == 'important_update')
-                                        <div class="announcement-badge badge-important_update" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
-                                        <i class="fas fa-bell me-2"></i> Important Update
-                                    </div>
-                                @elseif($announcement->category == 'upcoming_event')
-                                        <div class="announcement-badge badge-upcoming_event" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
-                                        <i class="fas fa-calendar me-2"></i> Upcoming Event
-                                    </div>
-                                @else
-                                        <div class="announcement-badge badge-announcement" style="font-size: 12px; padding: 4px 10px; margin-bottom: 10px;">
-                                        <i class="fas fa-info-circle me-2"></i> Announcement
-                                    </div>
-                                    @endif
-                                @endif
-                                @if($announcement->title)
-                                    <h2 class="announcement-title mb-2" style="font-size: 18px;">{{ $announcement->title }}</h2>
-                                @endif
-                                @if($announcement->content)
-                                <div class="announcement-text mb-3" style="
-                                    font-size: 14px;
-                                    line-height: 1.5;
-                                    color: #fff;
-                                    max-height: 60px; /* Limit height */
-                                    overflow-y: auto; /* Allow vertical scroll */
-                                    padding-right: 5px; /* Space for scrollbar */
-                                    text-shadow: -1px -1px 1px #000, 1px -1px 1px #000, -1px 1px 1px #000, 1px 1px 1px #000;
-                                ">
-                                    {!! $announcement->content !!}
-                                </div>
-                                @endif
-                                @if($announcement->button_text && $announcement->button_link)
-                                    <a href="{{ $announcement->button_link }}" class="btn btn-light mt-2 px-4" target="_blank" rel="noopener noreferrer">
-                                        {{ $announcement->button_text }}
-                                        <i class="fas fa-arrow-right ms-2"></i>
-                                    </a>
-                                @endif
+                            <div class="container text-center">
+                                <a href="{{ $announcement->button_link }}" class="btn btn-light mt-2 px-4" target="_blank" rel="noopener noreferrer">
+                                    {{ $announcement->button_text }}
+                                    <i class="fas fa-arrow-right ms-2"></i>
+                                </a>
                             </div>
                         </div>
                         @endif

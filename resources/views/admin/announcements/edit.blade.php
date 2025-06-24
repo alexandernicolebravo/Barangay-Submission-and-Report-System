@@ -113,20 +113,25 @@
                         <label for="image" class="form-label">Image</label>
                         <input type="file" class="form-control @error('image') is-invalid @enderror" id="image" name="image" accept="image/*">
                         <small class="text-muted">Leave empty to keep current image. Recommended size: 800x600 pixels. Max size: 25MB.</small>
+                        <div class="alert alert-info mt-2" style="font-size: 0.875rem;">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Note:</strong> If you upload an image, the title, category, and content fields will be disabled since the image contains the content.
+                        </div>
                         @error('image')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                         
-                        @if($announcement->image_path)
-                            <div class="mt-2">
-                                <img id="image-preview" src="{{ asset('storage/' . $announcement->image_path) }}" alt="{{ $announcement->title }}">
+                        <div id="image-preview-container" style="{{ $announcement->image_path ? 'display: inline-block; position: relative; margin-top: 1rem;' : 'display: none; position: relative; margin-top: 1rem; display: inline-block;' }}">
+                            <img id="image-preview" src="{{ $announcement->image_path ? asset('storage/' . $announcement->image_path) : '#' }}" alt="Image Preview" style="max-width: 100%; max-height: 300px; border-radius: 8px; display: block;">
+                            <button type="button" id="remove-image" class="btn btn-danger btn-sm" style="position: absolute; top: 8px; right: 8px; border-radius: 50%; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                                <i class="fas fa-times" style="font-size: 12px;"></i>
+                            </button>
+                            @if($announcement->image_path)
                                 <div class="mt-1">
                                     <small class="text-muted">Current image</small>
                                 </div>
-                            </div>
-                        @else
-                            <img id="image-preview" src="#" alt="Image Preview" style="display: none;">
-                        @endif
+                            @endif
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -215,16 +220,81 @@
             allowInput: true
         });
         
-        // Image preview
-        $('#image').change(function() {
-            const file = this.files[0];
+        // Check if announcement already has an image and disable fields accordingly
+        const hasExistingImage = {{ $announcement->image_path ? 'true' : 'false' }};
+        if (hasExistingImage) {
+            // Disable text overlay fields if image exists
+            $('#title').prop('disabled', true);
+            $('#category').prop('disabled', true);
+            $('#content').summernote('disable');
+
+            // Update labels to show they're disabled
+            $('label[for="title"]').html('Title <small class="text-muted">(disabled - image contains content)</small>');
+            $('label[for="category"]').html('Category <small class="text-muted">(disabled - image contains content)</small>');
+            $('label[for="content"]').html('Content <small class="text-muted">(disabled - image contains content)</small>');
+        }
+
+        // Image preview and field management
+        function handleImageChange() {
+            const file = $('#image')[0].files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    $('#image-preview').attr('src', e.target.result).show();
+                    $('#image-preview').attr('src', e.target.result);
+                    $('#image-preview-container').show();
                 }
                 reader.readAsDataURL(file);
+
+                // Disable text overlay fields when image is uploaded
+                $('#title').prop('disabled', true).removeClass('is-invalid');
+                $('#category').prop('disabled', true).removeClass('is-invalid');
+                $('#content').summernote('disable');
+
+                // Update labels to show they're disabled
+                $('label[for="title"]').html('Title <small class="text-muted">(disabled - image contains content)</small>');
+                $('label[for="category"]').html('Category <small class="text-muted">(disabled - image contains content)</small>');
+                $('label[for="content"]').html('Content <small class="text-muted">(disabled - image contains content)</small>');
+
+                // Clear any validation errors for these fields
+                $('#title, #category').next('.invalid-feedback').hide();
+                $('#content').next('.invalid-feedback').hide();
+            } else if (!hasExistingImage) {
+                $('#image-preview-container').hide();
+
+                // Only enable fields if there's no existing image
+                $('#title').prop('disabled', false);
+                $('#category').prop('disabled', false);
+                $('#content').summernote('enable');
+
+                // Restore original labels
+                $('label[for="title"]').html('Title');
+                $('label[for="category"]').html('Category');
+                $('label[for="content"]').html('Content');
             }
+        }
+
+        $('#image').change(handleImageChange);
+
+        // Remove image functionality
+        $('#remove-image').click(function() {
+            // Clear the file input
+            $('#image').val('');
+
+            // Hide preview
+            $('#image-preview-container').hide();
+
+            // Enable text overlay fields
+            $('#title').prop('disabled', false);
+            $('#category').prop('disabled', false);
+            $('#content').summernote('enable');
+
+            // Restore original labels
+            $('label[for="title"]').html('Title');
+            $('label[for="category"]').html('Category');
+            $('label[for="content"]').html('Content');
+
+            // Mark that we no longer have an existing image
+            hasExistingImage = false;
         });
         
         // Color picker

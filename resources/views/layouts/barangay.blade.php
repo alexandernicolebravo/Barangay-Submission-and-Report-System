@@ -991,20 +991,46 @@
         }
 
         /* Responsive Design */
-        @media (max-width: 768px) {
+        @media (max-width: 991.98px) {
             .sidebar {
-                width: 100%;
-                position: relative;
-                min-height: auto;
+                position: relative !important;
+                width: 100% !important;
+                min-height: auto !important;
+                box-shadow: none !important;
+                border-right: none !important;
+                padding: 1rem 0.5rem !important;
             }
-
             .main-content {
-                margin-left: 0;
-                padding: 1rem;
+                margin-left: 0 !important;
+                padding: 1rem !important;
             }
-
-            .table-responsive {
-                margin: 0 -1rem;
+            .barangay-header {
+                left: 0 !important;
+                width: 100% !important;
+            }
+            .card {
+                margin-bottom: 1rem !important;
+            }
+            .table {
+                font-size: 0.95rem;
+            }
+        }
+        @media (max-width: 575.98px) {
+            .main-content {
+                padding: 0.5rem !important;
+            }
+            .card-header, .card-body {
+                padding: 0.75rem !important;
+            }
+            .form-section {
+                padding: 0.75rem !important;
+            }
+            .btn, .btn-primary {
+                padding: 0.5rem 1rem !important;
+                font-size: 1rem !important;
+            }
+            .sidebar-header h4 {
+                font-size: 1.1rem !important;
             }
         }
 
@@ -1073,17 +1099,9 @@
                             </div>
                         </div>
                         <div class="user-profile-menu">
-                            <a href="#" onclick="alert('Profile settings coming soon!')">
+                            <a href="{{ route('barangay.profile') }}">
                                 <i class="fas fa-user"></i>
                                 Profile Settings
-                            </a>
-                            <a href="#" onclick="alert('Account settings coming soon!')">
-                                <i class="fas fa-cog"></i>
-                                Account Settings
-                            </a>
-                            <a href="#" onclick="alert('Help center coming soon!')">
-                                <i class="fas fa-question-circle"></i>
-                                Help Center
                             </a>
                             <a href="#" class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                 <i class="fas fa-sign-out-alt"></i>
@@ -1115,10 +1133,6 @@
                             <a href="{{ route('barangay.submissions') }}" class="nav-link {{ request()->routeIs('barangay.submissions') ? 'active' : '' }}">
                                 <i class="fas fa-list"></i>
                                 My Submissions
-                            </a>
-                            <a href="{{ route('barangay.view-reports') }}" class="nav-link {{ request()->routeIs('barangay.view-reports') ? 'active' : '' }}">
-                                <i class="fas fa-file-alt"></i>
-                                View Reports
                             </a>
                             <a href="{{ route('barangay.overdue-reports') }}" class="nav-link {{ request()->routeIs('barangay.overdue-reports') ? 'active' : '' }}">
                                 <i class="fas fa-exclamation-circle"></i>
@@ -1217,12 +1231,11 @@
                 e.stopPropagation();
             });
 
-            // TEMPORARILY DISABLED FOR MODAL DEBUGGING
-            // Load notifications when page loads
-            // loadNotifications();
+            // Load notifications when page loads (Manual Refresh System)
+            loadNotifications();
 
-            // Refresh notifications every 30 seconds
-            // setInterval(loadNotifications, 30000);
+            // Refresh notifications every 30 seconds for manual refresh system
+            setInterval(loadNotifications, 30000);
 
             // Load notifications from server
             function loadNotifications() {
@@ -1322,25 +1335,24 @@
 
                 notificationList.innerHTML = html;
 
-                // TEMPORARILY DISABLED FOR MODAL DEBUGGING
                 // Add click event listeners to notification items
-                // document.querySelectorAll('.notification-item').forEach(item => {
-                //     item.addEventListener('click', function() {
-                //         const notificationId = this.getAttribute('data-id');
-                //         const redirectUrl = this.getAttribute('data-redirect-url');
+                document.querySelectorAll('.notification-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const notificationId = this.getAttribute('data-id');
+                        const redirectUrl = this.getAttribute('data-redirect-url');
 
-                //         if (this.classList.contains('unread')) {
-                //             markNotificationAsRead(notificationId, this);
-                //         }
+                        if (this.classList.contains('unread')) {
+                            markNotificationAsRead(notificationId, this);
+                        }
 
-                //         // Redirect to the notification's target page
-                //         if (redirectUrl && redirectUrl !== '#') {
-                //             setTimeout(() => {
-                //                 window.location.href = redirectUrl;
-                //             }, 100); // Small delay to allow the read status to update
-                //         }
-                //     });
-                // });
+                        // Redirect to the notification's target page
+                        if (redirectUrl && redirectUrl !== '#') {
+                            setTimeout(() => {
+                                window.location.href = redirectUrl;
+                            }, 100); // Small delay to allow the read status to update
+                        }
+                    });
+                });
             }
 
             // Get icon class based on notification type

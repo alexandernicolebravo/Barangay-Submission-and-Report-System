@@ -459,5 +459,42 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    @media (max-width: 991.98px) {
+        .login-container {
+            flex-direction: column !important;
+            height: auto !important;
+            min-height: 100vh !important;
+        }
+        .announcement-side, .login-side {
+            width: 100% !important;
+            min-height: 300px !important;
+            padding: 1rem !important;
+        }
+        .login-form {
+            max-width: 100% !important;
+            padding: 1.5rem !important;
+        }
+        .logo-img {
+            width: 120px !important;
+            height: 120px !important;
+        }
+    }
+    @media (max-width: 575.98px) {
+        .login-form {
+            padding: 1rem !important;
+        }
+        .logo-img {
+            width: 80px !important;
+            height: 80px !important;
+        }
+        .login-title {
+            font-size: 1.2rem !important;
+        }
+        .login-btn {
+            font-size: 1rem !important;
+            padding: 0.5rem 1rem !important;
+        }
+    }
 </body>
 </html>

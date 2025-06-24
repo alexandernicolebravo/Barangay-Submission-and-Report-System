@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use App\Notifications\ReportRemarksNotification;
 
 class FacilitatorController extends Controller
@@ -63,7 +64,7 @@ class FacilitatorController extends Controller
             $filteredClusterIds = [$clusterId];
         }
 
-        // Get barangays in those clusters
+        // Get barangays in those clusters (for submissions and reports)
         $barangays = User::where('user_type', 'barangay')
             ->whereIn('cluster_id', $filteredClusterIds)
             ->where('is_active', true)
@@ -71,9 +72,14 @@ class FacilitatorController extends Controller
 
         $barangayIds = $barangays->pluck('id')->toArray();
 
+        // Get ALL barangays for barangay summary (facilitators have privilege to see all)
+        $allBarangays = User::where('user_type', 'barangay')
+            ->where('is_active', true)
+            ->get();
+
         // Calculate statistics like admin dashboard
-        // Count total ACTIVE report types with future deadlines (like barangay dashboard)
-        $totalReportTypes = ReportType::active()->where('deadline', '>=', now())->count();
+        // Count total ACTIVE report types
+        $totalReportTypes = ReportType::active()->count();
 
         // Get unique submitted reports (count each report type per barangay only once)
         // Use DISTINCT to prevent counting resubmissions as separate reports
@@ -100,16 +106,6 @@ class FacilitatorController extends Controller
         $executiveOrderQuery = DB::table('executive_orders')
             ->select('executive_orders.user_id', 'executive_orders.report_type_id')
             ->distinct();
-
-        // Add joins only when we need to check timeliness
-        if ($timeliness === 'late') {
-            $weeklyQuery->join('report_types', 'weekly_reports.report_type_id', '=', 'report_types.id');
-            $monthlyQuery->join('report_types', 'monthly_reports.report_type_id', '=', 'report_types.id');
-            $quarterlyQuery->join('report_types', 'quarterly_reports.report_type_id', '=', 'report_types.id');
-            $semestralQuery->join('report_types', 'semestral_reports.report_type_id', '=', 'report_types.id');
-            $annualQuery->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id');
-            $executiveOrderQuery->join('report_types', 'executive_orders.report_type_id', '=', 'report_types.id');
-        }
 
         // Apply status filter
         if ($status === 'submitted') {
@@ -164,8 +160,6 @@ class FacilitatorController extends Controller
             $annualQuery->whereRaw('1=0');
             $executiveOrderQuery->whereRaw('1=0');
         }
-
-
 
         // Apply report type filter if specified
         if ($reportType) {
@@ -240,8 +234,6 @@ class FacilitatorController extends Controller
             $annualLateQuery->whereRaw('1=0');
         }
 
-
-
         // Apply report type filter if specified
         if ($reportType) {
             // Only count the specified report type
@@ -303,8 +295,15 @@ class FacilitatorController extends Controller
             $assignedClusters = $facilitator->assignedClusters()->get();
         }
 
-        // Get barangay summary data
-        $barangaySummary = $this->getBarangaySummary($barangays);
+        // Get barangay summary data with percentages (using ALL barangays for facilitator privilege)
+        $barangaySummary = $this->getBarangaySummary($allBarangays);
+
+        // Calculate overall statistics
+        $totalBarangays = $allBarangays->count();
+        $overallStats = $this->calculateOverallStats($barangaySummary);
+
+        // Get top 10 performers
+        $topPerformers = $this->getTopPerformers($barangaySummary);
 
         // Get categorized barangays for submission lists
         $submissionCategories = $this->getSubmissionCategories($barangays);
@@ -326,6 +325,9 @@ class FacilitatorController extends Controller
             'clusterSubmissions',
             'assignedClusters',
             'barangaySummary',
+            'totalBarangays',
+            'overallStats',
+            'topPerformers',
             'onTimeBarangays',
             'lateBarangays',
             'noSubmissionBarangays'
@@ -393,17 +395,25 @@ class FacilitatorController extends Controller
             $monthlyTotal = 0;
 
             if (!empty($barangayIds)) {
-                // Create queries for each report type
+                // Create queries for each report type with DISTINCT to prevent counting resubmissions
                 $weeklyMonthQuery = WeeklyReport::whereBetween('created_at', [$monthStartDate, $monthEndDate])
-                    ->whereIn('user_id', $barangayIds);
+                    ->whereIn('user_id', $barangayIds)
+                    ->distinct('user_id', 'report_type_id');
                 $monthlyMonthQuery = MonthlyReport::whereBetween('created_at', [$monthStartDate, $monthEndDate])
-                    ->whereIn('user_id', $barangayIds);
+                    ->whereIn('user_id', $barangayIds)
+                    ->distinct('user_id', 'report_type_id');
                 $quarterlyMonthQuery = QuarterlyReport::whereBetween('created_at', [$monthStartDate, $monthEndDate])
-                    ->whereIn('user_id', $barangayIds);
+                    ->whereIn('user_id', $barangayIds)
+                    ->distinct('user_id', 'report_type_id');
                 $semestralMonthQuery = SemestralReport::whereBetween('created_at', [$monthStartDate, $monthEndDate])
-                    ->whereIn('user_id', $barangayIds);
+                    ->whereIn('user_id', $barangayIds)
+                    ->distinct('user_id', 'report_type_id');
                 $annualMonthQuery = AnnualReport::whereBetween('created_at', [$monthStartDate, $monthEndDate])
-                    ->whereIn('user_id', $barangayIds);
+                    ->whereIn('user_id', $barangayIds)
+                    ->distinct('user_id', 'report_type_id');
+                $executiveOrderMonthQuery = ExecutiveOrder::whereBetween('created_at', [$monthStartDate, $monthEndDate])
+                    ->whereIn('user_id', $barangayIds)
+                    ->distinct('user_id', 'report_type_id');
 
                 // Apply status filter
                 if ($status === 'submitted') {
@@ -412,6 +422,7 @@ class FacilitatorController extends Controller
                     $quarterlyMonthQuery->where('status', 'submitted');
                     $semestralMonthQuery->where('status', 'submitted');
                     $annualMonthQuery->where('status', 'submitted');
+                    $executiveOrderMonthQuery->where('status', 'submitted');
                 } elseif ($status !== 'no_submission') {
                     // Default: only show submitted reports
                     $weeklyMonthQuery->where('status', 'submitted');
@@ -419,6 +430,7 @@ class FacilitatorController extends Controller
                     $quarterlyMonthQuery->where('status', 'submitted');
                     $semestralMonthQuery->where('status', 'submitted');
                     $annualMonthQuery->where('status', 'submitted');
+                    $executiveOrderMonthQuery->where('status', 'submitted');
                 }
 
                 // Apply timeliness filter
@@ -433,6 +445,8 @@ class FacilitatorController extends Controller
                         ->whereRaw('semestral_reports.created_at > report_types.deadline');
                     $annualMonthQuery->join('report_types', 'annual_reports.report_type_id', '=', 'report_types.id')
                         ->whereRaw('annual_reports.created_at > report_types.deadline');
+                    $executiveOrderMonthQuery->join('report_types', 'executive_orders.report_type_id', '=', 'report_types.id')
+                        ->whereRaw('executive_orders.created_at > report_types.deadline');
                 }
 
                 // Apply report type filter
@@ -442,13 +456,15 @@ class FacilitatorController extends Controller
                     if ($reportType != 'quarterly') $quarterlyMonthQuery->whereRaw('1=0');
                     if ($reportType != 'semestral') $semestralMonthQuery->whereRaw('1=0');
                     if ($reportType != 'annual') $annualMonthQuery->whereRaw('1=0');
+                    if ($reportType != 'executive_order') $executiveOrderMonthQuery->whereRaw('1=0');
                 }
 
                 $monthlyTotal = $weeklyMonthQuery->count() +
                                $monthlyMonthQuery->count() +
                                $quarterlyMonthQuery->count() +
                                $semestralMonthQuery->count() +
-                               $annualMonthQuery->count();
+                               $annualMonthQuery->count() +
+                               $executiveOrderMonthQuery->count();
             }
 
             $submissionsByMonth[] = $monthlyTotal;
@@ -668,11 +684,16 @@ class FacilitatorController extends Controller
             // Calculate expected reports vs actual submissions
             // Count unique report types that have been submitted (not total submissions)
             $uniqueSubmittedReportTypes = $allReports->pluck('report_type_id')->unique()->count();
-            $totalReportTypes = ReportType::active()->where('deadline', '>=', now())->count();
+            $totalReportTypes = ReportType::active()->count();
             $noSubmission = max(0, $totalReportTypes - $uniqueSubmittedReportTypes);
 
             // Get cluster information
             $cluster = Cluster::find($barangay->cluster_id);
+
+            // Calculate percentage: (On-time + Late) / (On-time + Late + No Submission) × 100
+            $totalSubmitted = $onTime + $late;
+            $totalExpected = $totalSubmitted + $noSubmission;
+            $percentage = $totalExpected > 0 ? round(($totalSubmitted / $totalExpected) * 100, 1) : 0;
 
             $summary[] = [
                 'id' => $barangay->id,
@@ -684,11 +705,49 @@ class FacilitatorController extends Controller
                 'on_time' => $onTime,
                 'late' => $late,
                 'no_submission' => $noSubmission,
-                'pending_submissions' => $noSubmission  // Add the new key for consistency
+                'pending_submissions' => $noSubmission,  // Add the new key for consistency
+                'total_submitted' => $totalSubmitted,
+                'total_expected' => $totalExpected,
+                'percentage' => $percentage
             ];
         }
 
         return $summary;
+    }
+
+    /**
+     * Calculate overall statistics from barangay summary
+     */
+    private function calculateOverallStats($barangaySummary)
+    {
+        $totalBarangays = count($barangaySummary);
+        $totalOnTime = array_sum(array_column($barangaySummary, 'on_time'));
+        $totalLate = array_sum(array_column($barangaySummary, 'late'));
+        $totalNoSubmission = array_sum(array_column($barangaySummary, 'no_submission'));
+
+        $totalSubmitted = $totalOnTime + $totalLate;
+        $totalExpected = $totalSubmitted + $totalNoSubmission;
+        $overallPercentage = $totalExpected > 0 ? round(($totalSubmitted / $totalExpected) * 100, 1) : 0;
+
+        return [
+            'total_barangays' => $totalBarangays,
+            'total_on_time' => $totalOnTime,
+            'total_late' => $totalLate,
+            'total_no_submission' => $totalNoSubmission,
+            'total_submitted' => $totalSubmitted,
+            'total_expected' => $totalExpected,
+            'overall_percentage' => $overallPercentage
+        ];
+    }
+
+    /**
+     * Get top 10 performing barangays based on submission percentage
+     */
+    private function getTopPerformers($barangaySummary)
+    {
+        // Sort by percentage in descending order and take top 10
+        $sorted = collect($barangaySummary)->sortByDesc('percentage');
+        return $sorted->take(10)->values()->toArray();
     }
 
     /**
@@ -751,7 +810,7 @@ class FacilitatorController extends Controller
 
             // Calculate pending submissions (how many report types with future deadlines this barangay hasn't submitted)
             $uniqueSubmittedReportTypes = $allReports->pluck('report_type_id')->unique()->count();
-            $totalReportTypes = ReportType::active()->where('deadline', '>=', now())->count();
+            $totalReportTypes = ReportType::active()->count();
             $pendingSubmissions = max(0, $totalReportTypes - $uniqueSubmittedReportTypes);
 
             $barangayData = [
@@ -925,8 +984,6 @@ class FacilitatorController extends Controller
 
         return $deadline;
     }
-
-
 
     /**
      * Show the view submissions page.
@@ -1436,5 +1493,100 @@ class FacilitatorController extends Controller
             ]);
             return response()->json(['error' => 'Error accessing file: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Get notifications for the facilitator
+     */
+    public function getNotifications(Request $request)
+    {
+        try {
+            $facilitator = Auth::user();
+
+            // Get all notifications with pagination
+            $perPage = 10;
+            $page = $request->get('page', 1);
+
+            $notifications = $facilitator->notifications()
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            // Format notifications for frontend
+            $formattedNotifications = $notifications->map(function($notification) {
+                return [
+                    'id' => $notification->id,
+                    'type' => $notification->type,
+                    'data' => $notification->data,
+                    'created_at' => $notification->created_at->diffForHumans(),
+                    'read_at' => $notification->read_at
+                ];
+            });
+
+            // Get unread count
+            $unreadCount = $facilitator->unreadNotifications()->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => $formattedNotifications,
+                'current_page' => $notifications->currentPage(),
+                'last_page' => $notifications->lastPage(),
+                'total' => $notifications->total(),
+                'unread_count' => $unreadCount
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting facilitator notifications: ' . $e->getMessage());
+            return response()->json(['error' => 'Error getting notifications'], 500);
+        }
+    }
+
+    /**
+     * Mark notification as read
+     */
+    public function markNotificationAsRead($id)
+    {
+        try {
+            $facilitator = Auth::user();
+
+            $notification = $facilitator->notifications()->where('id', $id)->first();
+
+            if ($notification) {
+                $notification->markAsRead();
+                return response()->json(['success' => true]);
+            }
+
+            return response()->json(['error' => 'Notification not found'], 404);
+        } catch (\Exception $e) {
+            Log::error('Error marking facilitator notification as read: ' . $e->getMessage());
+            return response()->json(['error' => 'Error marking notification as read'], 500);
+        }
+    }
+
+    /**
+     * Mark all notifications as read
+     */
+    public function markAllNotificationsAsRead()
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $user->unreadNotifications->markAsRead();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function profile()
+    {
+        $user = Auth::user();
+        return view('facilitator.profile', compact('user'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = User::find(Auth::id());
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+        $user->password = $request->password; // Hashed by model
+        $user->save();
+        return redirect()->route('facilitator.profile')->with('success', 'Password updated successfully.');
     }
 }

@@ -198,8 +198,6 @@
 
         .facilitator-header.scrolled {
             background: rgba(255, 255, 255, 0.95);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
             backdrop-filter: blur(20px);
         }
 
@@ -524,7 +522,7 @@
         .main-content {
             padding: 2rem;
             margin-left: 280px;
-            margin-top: 72px; /* Account for header height */
+            margin-top: 72px;
             min-height: calc(100vh - 72px);
             transition: all 0.3s ease;
         }
@@ -734,6 +732,57 @@
                 padding: 1rem;
             }
         }
+
+        @media (max-width: 991.98px) {
+            .sidebar {
+                position: relative !important;
+                width: 100% !important;
+                min-height: auto !important;
+                box-shadow: none !important;
+                border-right: none !important;
+                padding: 1rem 0.5rem !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+                padding: 1rem !important;
+            }
+            .facilitator-header {
+                left: 0 !important;
+                width: 100% !important;
+            }
+            .card {
+                margin-bottom: 1rem !important;
+            }
+            .table {
+                font-size: 0.95rem;
+            }
+        }
+        @media (max-width: 575.98px) {
+            .main-content {
+                padding: 0.5rem !important;
+            }
+            .card-header, .card-body {
+                padding: 0.75rem !important;
+            }
+            .form-section {
+                padding: 0.75rem !important;
+            }
+            .btn, .btn-primary {
+                padding: 0.5rem 1rem !important;
+                font-size: 1rem !important;
+            }
+            .sidebar-header h4 {
+                font-size: 1.1rem !important;
+            }
+        }
+
+        .announcement-card-sm img {
+            width: 100%;
+            height: 150px; /* Or a suitable fixed height */
+            object-fit: cover; /* This is the key property */
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.75rem;
+        }
     </style>
     @stack('styles')
 </head>
@@ -781,17 +830,9 @@
                             </div>
                         </div>
                         <div class="user-profile-menu">
-                            <a href="#" onclick="alert('Profile settings coming soon!')">
+                            <a href="{{ route('facilitator.profile') }}">
                                 <i class="fas fa-user"></i>
                                 Profile Settings
-                            </a>
-                            <a href="#" onclick="alert('Account settings coming soon!')">
-                                <i class="fas fa-cog"></i>
-                                Account Settings
-                            </a>
-                            <a href="#" onclick="alert('Help center coming soon!')">
-                                <i class="fas fa-question-circle"></i>
-                                Help Center
                             </a>
                             <a href="#" class="logout-btn" onclick="event.preventDefault(); document.getElementById('logout-form-header').submit();">
                                 <i class="fas fa-sign-out-alt"></i>
@@ -957,7 +998,7 @@
                     notificationList.appendChild(loader);
                 }
 
-                return fetch('{{ route("notifications.index") }}?page=' + page, {
+                return fetch('{{ route("facilitator.notifications") }}?page=' + page, {
                     method: 'GET',
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                 })
@@ -988,7 +1029,7 @@
             }
 
             function fetchUnreadCount() {
-                fetch('{{ route("notifications.unread-count") }}', {
+                fetch('{{ route("facilitator.notifications") }}', {
                     method: 'GET',
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                 })
@@ -1005,7 +1046,7 @@
             }
 
             function markNotificationAsRead(notificationId, element) {
-                fetch(`/notifications/${notificationId}/mark-as-read`, {
+                fetch(`{{ route('facilitator.notifications.read', '') }}/${notificationId}`, {
                     method: 'POST',
                     headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 })
@@ -1023,7 +1064,7 @@
             }
 
             function markAllNotificationsAsRead() {
-                fetch('{{ route("notifications.mark-all-as-read") }}', {
+                fetch('{{ route("facilitator.notifications.read-all") }}', {
                     method: 'POST',
                     headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 })
@@ -1040,7 +1081,11 @@
                 });
             }
 
+            // Load notifications on page load for manual refresh system
             fetchUnreadCount();
+
+            // Refresh notifications every 30 seconds for manual refresh system
+            setInterval(fetchUnreadCount, 30000);
 
             notificationBtn.addEventListener('click', function(e) {
                 e.stopPropagation();

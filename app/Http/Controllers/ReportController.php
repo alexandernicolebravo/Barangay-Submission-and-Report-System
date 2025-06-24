@@ -524,7 +524,7 @@ class ReportController extends Controller
 
             $validated = $request->validate([
                 'report_type_id' => 'required|exists:report_types,id',
-                'file' => 'required|file|mimes:' . $mimeTypesStr . '|max:102400',
+                'file' => 'required|file|mimes:' . $mimeTypesStr . '|max:25600',
                 'type' => 'required|in:weekly,monthly,quarterly,semestral,annual'
             ]);
 
@@ -714,7 +714,7 @@ class ReportController extends Controller
         Log::info('MIME types for validation (ReportController resubmit): ' . $mimeTypesStr);
 
         $request->validate([
-            'file' => 'required|file|mimes:' . $mimeTypesStr . '|max:102400',
+            'file' => 'required|file|mimes:' . $mimeTypesStr . '|max:25600',
         ]);
 
         $file = $request->file('file');

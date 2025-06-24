@@ -52,13 +52,12 @@ class NewSubmissionReceivedNotification extends Notification implements ShouldQu
         $reportName = $this->reportModel->reportType ? $this->reportModel->reportType->name : 'a report';
         $message = "New Submission: {$this->submittingUser->name} (Barangay) has submitted {$reportName}.";
         
-        // Determine a redirect URL - this might vary based on your admin/facilitator panel structure
-        // Example: Link to a general submissions page, or directly to the report if possible
-        $redirectUrl = route('admin.reports.index'); // Placeholder - adjust for facilitator view
+        // Determine a redirect URL based on user type
+        $redirectUrl = '#'; // Default fallback
         if ($notifiable->user_type === 'facilitator') {
-            // Attempt to build a URL specific to the facilitator's view if possible
-            // This might involve querying the report's cluster and checking against facilitator's clusters
-            $redirectUrl = route('facilitator.submissions.view'); // More generic facilitator link
+            $redirectUrl = route('facilitator.view-submissions');
+        } elseif ($notifiable->user_type === 'admin') {
+            $redirectUrl = route('admin.reports.index');
         }
         // Append report ID if available and useful for highlighting
         // $redirectUrl .= '?report_id=' . $this->reportModel->id; 
@@ -68,10 +67,13 @@ class NewSubmissionReceivedNotification extends Notification implements ShouldQu
             'report_name' => $reportName,
             'submitting_user_id' => $this->submittingUser->id,
             'submitting_user_name' => $this->submittingUser->name,
+            'barangay_name' => $this->submittingUser->name,
             'message' => $message,
             'timestamp' => now()->toIso8601String(),
-            'redirect_url' => $redirectUrl, 
+            'redirect_url' => $redirectUrl,
             'notification_type' => 'new_submission_received',
+            'title' => 'New Report Submission',
+            'full_report_title' => "New {$reportName} from {$this->submittingUser->name}",
         ];
     }
 

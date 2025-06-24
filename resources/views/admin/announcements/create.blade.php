@@ -6,12 +6,54 @@
 <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
 <style>
+    #image-preview-container {
+        display: none;
+        position: relative;
+        margin-top: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        background: #fff;
+        overflow: hidden;
+        transition: box-shadow 0.2s;
+        max-width: 100%;
+    }
+    #image-preview-container.active {
+        display: inline-block;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.16);
+    }
     #image-preview {
         max-width: 100%;
-        max-height: 300px;
-        border-radius: 8px;
-        display: none;
-        margin-top: 1rem;
+        max-height: 260px;
+        border-radius: 12px 12px 0 0;
+        display: block;
+        background: #f8fafc;
+        object-fit: contain;
+        transition: filter 0.2s;
+    }
+    #remove-image {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        background: #fff;
+        color: #e3342f;
+        border: none;
+        font-size: 18px;
+        transition: background 0.2s, color 0.2s;
+        cursor: pointer;
+    }
+    #remove-image:hover, #remove-image:focus {
+        background: #e3342f;
+        color: #fff;
+        outline: none;
     }
     .note-editor {
         border-radius: var(--radius-sm);
@@ -109,10 +151,19 @@
                         <label for="image" class="form-label">Image</label>
                         <input type="file" class="form-control @error('image') is-invalid @enderror" id="image" name="image" accept="image/*">
                         <small class="text-muted">Recommended size: 800x600 pixels. Max size: 25MB.</small>
+                        <div class="alert alert-info mt-2" style="font-size: 0.875rem;">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Note:</strong> If you upload an image, the title, category, and content fields will be disabled since the image contains the content.
+                        </div>
                         @error('image')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <img id="image-preview" src="#" alt="Image Preview">
+                        <div id="image-preview-container" aria-live="polite">
+                            <img id="image-preview" src="#" alt="Image Preview" style="display:none;">
+                            <button type="button" id="remove-image" title="Remove image preview" aria-label="Remove image preview" tabindex="0" style="display:none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -201,18 +252,83 @@
             allowInput: true
         });
         
-        // Image preview
-        $('#image').change(function() {
-            const file = this.files[0];
+        // Modern image preview and field management
+        function handleImageChange() {
+            const file = $('#image')[0].files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     $('#image-preview').attr('src', e.target.result).show();
+                    $('#image-preview-container').addClass('active');
+                    $('#remove-image').show();
                 }
                 reader.readAsDataURL(file);
+
+                // Disable text overlay fields when image is uploaded
+                $('#title').prop('disabled', true).removeClass('is-invalid').val('');
+                $('#category').prop('disabled', true).removeClass('is-invalid').val('');
+                $('#content').summernote('code', '').summernote('disable');
+                $('#content').next('.note-editor').find('.note-editable').attr('contenteditable', 'false');
+                // Also disable the Summernote toolbar for clarity
+                $('.note-toolbar').css('pointer-events', 'none').css('opacity', '0.5');
+                // Add a visual overlay to the content field
+                if ($('#content-disabled-overlay').length === 0) {
+                    $('#content').next('.note-editor').append('<div id="content-disabled-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.6);z-index:20;cursor:not-allowed;"></div>');
+                }
+
+                // Update labels to show they're disabled
+                $('label[for="title"]').html('Title <small class="text-muted">(disabled - image contains content)</small>');
+                $('label[for="category"]').html('Category <small class="text-muted">(disabled - image contains content)</small>');
+                $('label[for="content"]').html('Content <small class="text-muted">(disabled - image contains content)</small>');
+
+                // Clear any validation errors for these fields
+                $('#title, #category').next('.invalid-feedback').hide();
+                $('#content').next('.invalid-feedback').hide();
             } else {
                 $('#image-preview').hide();
+                $('#image-preview-container').removeClass('active');
+                $('#remove-image').hide();
+
+                // Enable text overlay fields when no image
+                $('#title').prop('disabled', false);
+                $('#category').prop('disabled', false);
+                $('#content').summernote('enable');
+                $('#content').next('.note-editor').find('.note-editable').attr('contenteditable', 'true');
+                // Restore Summernote toolbar
+                $('.note-toolbar').css('pointer-events', '').css('opacity', '');
+                // Remove the overlay if present
+                $('#content-disabled-overlay').remove();
+
+                // Restore original labels
+                $('label[for="title"]').html('Title');
+                $('label[for="category"]').html('Category');
+                $('label[for="content"]').html('Content');
             }
+        }
+
+        $('#image').change(handleImageChange);
+
+        // Remove image functionality
+        $('#remove-image').click(function() {
+            // Clear the file input
+            $('#image').val('');
+            // Hide preview
+            $('#image-preview').hide();
+            $('#image-preview-container').removeClass('active');
+            $('#remove-image').hide();
+            // Enable text overlay fields
+            $('#title').prop('disabled', false);
+            $('#category').prop('disabled', false);
+            $('#content').summernote('enable');
+            $('#content').next('.note-editor').find('.note-editable').attr('contenteditable', 'true');
+            // Restore Summernote toolbar
+            $('.note-toolbar').css('pointer-events', '').css('opacity', '');
+            // Remove the overlay if present
+            $('#content-disabled-overlay').remove();
+            // Restore original labels
+            $('label[for="title"]').html('Title');
+            $('label[for="category"]').html('Category');
+            $('label[for="content"]').html('Content');
         });
         
         // Color picker

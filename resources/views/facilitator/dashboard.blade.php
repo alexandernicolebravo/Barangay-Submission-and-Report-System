@@ -81,19 +81,19 @@
     .stat-card .card-body {
         display: flex;
         align-items: center;
-        padding: 1.5rem;
+        padding: 1rem;
         background: white;
     }
 
     /* Modern Stat Icons */
     .stat-icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 1rem;
+        width: 48px;
+        height: 48px;
+        border-radius: 0.75rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: 1.25rem;
+        margin-right: 1rem;
         flex-shrink: 0;
         position: relative;
         overflow: hidden;
@@ -117,7 +117,7 @@
     }
 
     .stat-icon i {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         color: white;
         z-index: 1;
         transition: all 0.3s ease;
@@ -148,7 +148,7 @@
     }
 
     .stat-value {
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 700;
         margin: 0;
         color: #0f172a;
@@ -164,7 +164,7 @@
     }
 
     .stat-label {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         color: #64748b;
         margin: 0;
         font-weight: 500;
@@ -235,7 +235,7 @@
         background-color: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        padding: 15px;
+        padding: 12px;
         display: flex;
         align-items: center;
         transition: transform 0.3s, box-shadow 0.3s;
@@ -278,18 +278,18 @@
     }
 
     .report-type-icon {
-        width: 45px;
-        height: 45px;
+        width: 40px;
+        height: 40px;
         border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: 15px;
+        margin-right: 12px;
         flex-shrink: 0;
     }
 
     .report-type-icon i {
-        font-size: 20px;
+        font-size: 18px;
         color: #fff;
     }
 
@@ -322,18 +322,445 @@
     }
 
     .report-type-value {
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 600;
         margin: 0;
         color: #2d3748;
     }
 
     .report-type-label {
-        font-size: 12px;
+        font-size: 11px;
         color: #718096;
         margin: 0;
     }
 
+    /* Overall Statistics Cards */
+    .stat-summary-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .stat-summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-summary-card.overall {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .stat-summary-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.75rem;
+        font-size: 1.25rem;
+    }
+
+    .stat-summary-icon.success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .stat-summary-icon.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .stat-summary-icon.danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .stat-summary-icon.primary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .stat-summary-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .stat-summary-label {
+        font-size: 0.875rem;
+        margin: 0;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    /* Top Performers Styles */
+    .top-performers-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .performer-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+    }
+
+    .performer-item:hover {
+        background: #f1f5f9;
+        transform: translateX(2px);
+    }
+
+    .performer-item.top-three {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-color: #f59e0b;
+    }
+
+    .performer-rank {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .rank-number {
+        font-weight: 600;
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .performer-info {
+        flex-grow: 1;
+        min-width: 0;
+    }
+
+    .performer-name {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .performer-cluster {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.125rem;
+    }
+
+    .performer-percentage {
+        text-align: right;
+        min-width: 60px;
+    }
+
+    .percentage-value {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.875rem;
+    }
+
+    .percentage-bar {
+        width: 50px;
+        height: 4px;
+        background: #e5e7eb;
+        border-radius: 2px;
+        margin-top: 0.25rem;
+        overflow: hidden;
+    }
+
+    .percentage-fill {
+        height: 100%;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 2px;
+        transition: width 0.3s ease;
+    }
+
+    /* Mini Progress Bars for Table */
+    .progress-bar-mini {
+        width: 60px;
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill-mini {
+        height: 100%;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    .percentage-text {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #1f2937;
+        min-width: 40px;
+    }
+
+    /* Scrollable Table Styles */
+    .table-responsive {
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .table-responsive::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    }
+
+    /* Sticky table header */
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa !important;
+        z-index: 10;
+        border-bottom: 2px solid #dee2e6 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Improved table styling */
+    .table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8fafc;
+        transform: translateX(2px);
+    }
+
+    /* Cluster badge styles */
+    .cluster-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-weight: 600;
+    }
+
+    /* Submission Cards Styles */
+    .submission-card {
+        background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        position: relative;
+        height: 100%;
+    }
+
+    .submission-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .submission-header {
+        padding: 1.25rem;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .submission-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.25rem;
+    }
+
+    .on-time-card .submission-icon {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+
+    .late-card .submission-icon {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+    }
+
+    .no-submission-card .submission-icon {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+    }
+
+    .submission-title h6 {
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+
+    .submission-count {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .submission-body {
+        padding: 1rem;
+        background: white;
+    }
+
+    .submission-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .submission-item {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+    }
+
+    .submission-item:hover {
+        background: #f1f5f9;
+        transform: translateX(2px);
+    }
+
+    .barangay-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .barangay-avatar.success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+
+    .barangay-avatar.warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+    }
+
+    .barangay-avatar.danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+    }
+
+    .barangay-name {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.875rem;
+    }
+
+    .cluster-name {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.125rem;
+    }
+
+    .submission-badge {
+        min-width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: white;
+    }
+
+    .submission-badge.success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .submission-badge.warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .submission-badge.danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .empty-state.success {
+        color: #10b981;
+    }
+
+    .empty-state.success i {
+        color: #10b981;
+        opacity: 1;
+    }
+
+    .btn-view-all {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-view-all:hover {
+        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        color: white;
+        transform: scale(1.05);
+    }
+
+    .recent-submissions-card {
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
 
 </style>
 @endpush
@@ -751,45 +1178,141 @@
             </div>
     </div>
 
-    <!-- Barangay Summary - Full Width -->
+    <!-- Overall Statistics Row -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="chart-card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header">
+                    <h5>
+                        <i class="fas fa-chart-pie"></i>
+                        Overall Statistics
+                        <span class="badge bg-primary ms-2">{{ $totalBarangays }} Total Barangays</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="stat-summary-card">
+                                <div class="stat-summary-icon success">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-summary-content">
+                                    <h4 class="stat-summary-value">{{ $overallStats['total_on_time'] }}</h4>
+                                    <p class="stat-summary-label">On Time Submissions</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-summary-card">
+                                <div class="stat-summary-icon warning">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-summary-content">
+                                    <h4 class="stat-summary-value">{{ $overallStats['total_late'] }}</h4>
+                                    <p class="stat-summary-label">Late Submissions</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-summary-card">
+                                <div class="stat-summary-icon danger">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div class="stat-summary-content">
+                                    <h4 class="stat-summary-value">{{ $overallStats['total_no_submission'] }}</h4>
+                                    <p class="stat-summary-label">No Submissions</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-summary-card overall">
+                                <div class="stat-summary-icon primary">
+                                    <i class="fas fa-percentage"></i>
+                                </div>
+                                <div class="stat-summary-content">
+                                    <h4 class="stat-summary-value">{{ $overallStats['overall_percentage'] }}%</h4>
+                                    <p class="stat-summary-label">Overall Completion Rate</p>
+                                    <small class="text-muted">{{ $overallStats['total_submitted'] }}/{{ $overallStats['total_expected'] }} Reports</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Performers and Barangay Summary Row -->
+    <div class="row mb-4">
+        <!-- Top 10 Performers -->
+        <div class="col-md-4">
+            <div class="chart-card">
+                <div class="card-header">
+                    <h5>
+                        <i class="fas fa-trophy"></i>
+                        Top 10 Performers
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="top-performers-list">
+                        @forelse($topPerformers as $index => $performer)
+                        <div class="performer-item {{ $index < 3 ? 'top-three' : '' }}">
+                            <div class="performer-rank">
+                                @if($index === 0)
+                                    <i class="fas fa-crown text-warning"></i>
+                                @elseif($index === 1)
+                                    <i class="fas fa-medal text-secondary"></i>
+                                @elseif($index === 2)
+                                    <i class="fas fa-award text-warning"></i>
+                                @else
+                                    <span class="rank-number">{{ $index + 1 }}</span>
+                                @endif
+                            </div>
+                            <div class="performer-info">
+                                <div class="performer-name">{{ $performer['name'] }}</div>
+                                <div class="performer-cluster">{{ $performer['cluster_name'] }}</div>
+                            </div>
+                            <div class="performer-percentage">
+                                <span class="percentage-value">{{ $performer['percentage'] }}%</span>
+                                <div class="percentage-bar">
+                                    <div class="percentage-fill" style="width: {{ $performer['percentage'] }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="empty-state">
+                            <i class="fas fa-trophy text-muted"></i>
+                            <p class="text-muted">No performance data available</p>
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barangay Summary Table -->
+        <div class="col-md-8">
+            <div class="chart-card">
+                <div class="card-header">
                     <h5>
                         <i class="fas fa-users"></i>
                         Barangay Summary
+                        <span class="badge bg-primary ms-2">{{ count($barangaySummary ?? []) }} Barangays</span>
                     </h5>
-                    <div class="filter-controls">
-                        <select id="clusterFilter" class="form-select form-select-sm me-2" style="width: auto; display: inline-block;">
-                            <option value="">All Clusters</option>
-                            @foreach($assignedClusters ?? [] as $cluster)
-                                <option value="{{ $cluster->id }}">{{ $cluster->name }}</option>
-                            @endforeach
-                        </select>
-                        <select id="reportTypeFilter" class="form-select form-select-sm" style="width: auto; display: inline-block;">
-                            <option value="">All Report Types</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="quarterly">Quarterly</option>
-                            <option value="semestral">Semestral</option>
-                            <option value="annual">Annual</option>
-                            <option value="executive_order">Executive Order</option>
-                        </select>
-                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
                         <table class="table table-hover" id="barangayTable">
-                            <thead>
+                            <thead class="sticky-top">
                                 <tr>
-                                    <th>Barangay</th>
-                                    <th>Cluster</th>
-                                    <th>Total Reports</th>
-                                    <th>On Time</th>
-                                    <th>Late</th>
-                                    <th>No Submission</th>
-                                    <th>Actions</th>
+                                    <th style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">Barangay</th>
+                                    <th style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">Cluster</th>
+                                    <th style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">Total Reports</th>
+                                    <th style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">On Time</th>
+                                    <th style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">Late</th>
+                                    <th style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">No Submission</th>
+                                    <th style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">Completion %</th>
+                                    <th style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -797,7 +1320,7 @@
                                 <tr data-cluster="{{ $barangay['cluster_id'] }}">
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="barangay-avatar me-2">
+                                            <div class="barangay-avatar me-2" style="width: 32px; height: 32px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600;">
                                                 {{ substr($barangay['name'], 0, 2) }}
                                             </div>
                                             <div>
@@ -807,11 +1330,11 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="cluster-badge cluster-{{ $barangay['cluster_id'] }}">
+                                        <span class="badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
                                             {{ $barangay['cluster_name'] }}
                                         </span>
                                     </td>
-                                    <td>{{ $barangay['total_reports'] }}</td>
+                                    <td><span class="fw-semibold">{{ $barangay['total_reports'] }}</span></td>
                                     <td>
                                         <span class="badge bg-success">{{ $barangay['on_time'] }}</span>
                                     </td>
@@ -820,6 +1343,14 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-danger">{{ $barangay['pending_submissions'] ?? $barangay['no_submission'] ?? 0 }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="percentage-text me-2 fw-semibold">{{ $barangay['percentage'] }}%</span>
+                                            <div class="progress-bar-mini">
+                                                <div class="progress-fill-mini" style="width: {{ $barangay['percentage'] }}%"></div>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewBarangayDetails({{ $barangay['id'] }})">
@@ -834,6 +1365,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Recent Submissions Table -->
@@ -1690,33 +2222,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     }
 
-    // Filter functionality for Barangay Summary table
-    const clusterFilter = document.getElementById('clusterFilter');
-    const reportTypeFilter = document.getElementById('reportTypeFilter');
+    // Simple table enhancement for better UX
     const barangayTable = document.getElementById('barangayTable');
-
-    if (clusterFilter && reportTypeFilter && barangayTable) {
-        function filterTable() {
-            const clusterValue = clusterFilter.value;
-            const reportTypeValue = reportTypeFilter.value;
-            const rows = barangayTable.querySelectorAll('tbody tr');
-
-            rows.forEach(row => {
-                const clusterData = row.getAttribute('data-cluster');
-                let showRow = true;
-
-                // Filter by cluster
-                if (clusterValue && clusterData !== clusterValue) {
-                    showRow = false;
-                }
-
-                // Show/hide row
-                row.style.display = showRow ? '' : 'none';
-            });
+    if (barangayTable) {
+        // Add smooth scrolling behavior
+        const tableContainer = barangayTable.closest('.table-responsive');
+        if (tableContainer) {
+            tableContainer.style.scrollBehavior = 'smooth';
         }
 
-        clusterFilter.addEventListener('change', filterTable);
-        reportTypeFilter.addEventListener('change', filterTable);
+        // Add row hover effects
+        const rows = barangayTable.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8fafc';
+            });
+
+            row.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+        });
     }
 
     // View Barangay Details function

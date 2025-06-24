@@ -79,65 +79,13 @@ class AdminController extends Controller
      */
     private function getAllReportTypeData($clusterId)
     {
-        // Get all barangay users
-        $barangayQuery = User::where('user_type', 'barangay');
-
-        // Apply cluster filter if specified
-        if ($clusterId) {
-            $barangayQuery->where('cluster_id', $clusterId);
-        }
-
-        $barangayIds = $barangayQuery->pluck('id')->toArray();
-
-        // Initialize counts
-        $weeklyCount = 0;
-        $monthlyCount = 0;
-        $quarterlyCount = 0;
-        $semestralCount = 0;
-        $annualCount = 0;
-        $executiveOrderCount = 0;
-
-        if (!empty($barangayIds)) {
-            // Weekly reports with DISTINCT to prevent counting resubmissions
-            $weeklyQuery = WeeklyReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted')
-                ->distinct('user_id', 'report_type_id');
-
-            // Monthly reports with DISTINCT to prevent counting resubmissions
-            $monthlyQuery = MonthlyReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted')
-                ->distinct('user_id', 'report_type_id');
-
-            // Quarterly reports with DISTINCT to prevent counting resubmissions
-            $quarterlyQuery = QuarterlyReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted')
-                ->distinct('user_id', 'report_type_id');
-
-            // Semestral reports with DISTINCT to prevent counting resubmissions
-            $semestralQuery = SemestralReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted')
-                ->distinct('user_id', 'report_type_id');
-
-            // Annual reports with DISTINCT to prevent counting resubmissions
-            $annualQuery = AnnualReport::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted')
-                ->distinct('user_id', 'report_type_id');
-
-            // Executive Order reports with DISTINCT to prevent counting resubmissions
-            $executiveOrderQuery = ExecutiveOrder::whereIn('user_id', $barangayIds)
-                ->where('status', 'submitted')
-                ->distinct('user_id', 'report_type_id');
-
-            // No date range filter in this method
-
-            // Execute the queries and get the counts
-            $weeklyCount = $weeklyQuery->count();
-            $monthlyCount = $monthlyQuery->count();
-            $quarterlyCount = $quarterlyQuery->count();
-            $semestralCount = $semestralQuery->count();
-            $annualCount = $annualQuery->count();
-            $executiveOrderCount = $executiveOrderQuery->count();
-        }
+        // Count active report types per frequency
+        $weeklyCount = ReportType::active()->where('frequency', 'weekly')->count();
+        $monthlyCount = ReportType::active()->where('frequency', 'monthly')->count();
+        $quarterlyCount = ReportType::active()->where('frequency', 'quarterly')->count();
+        $semestralCount = ReportType::active()->where('frequency', 'semestral')->count();
+        $annualCount = ReportType::active()->where('frequency', 'annual')->count();
+        $executiveOrderCount = ReportType::active()->where('frequency', 'executive_order')->count();
 
         return [
             'weeklyCount' => $weeklyCount,
@@ -156,80 +104,35 @@ class AdminController extends Controller
     {
         $clusterSubmissions = [];
         $allClusters = Cluster::all();
-
+        $activeReportTypes = ReportType::active();
+        if ($reportType) {
+            $activeReportTypes = $activeReportTypes->where('frequency', $reportType);
+        }
+        $activeReportTypes = $activeReportTypes->get();
         foreach ($allClusters as $cluster) {
             // Get all barangays in this cluster
             $clusterBarangays = User::where('cluster_id', $cluster->id)
                 ->where('user_type', 'barangay');
-
-
-
             $clusterBarangayIds = $clusterBarangays->pluck('id')->toArray();
-            $submissionCount = 0;
-
-            if (!empty($clusterBarangayIds)) {
-                // Create queries for each report type (use DISTINCT to prevent counting resubmissions)
-                $weeklyClusterQuery = DB::table('weekly_reports')
-                    ->select('user_id', 'report_type_id')
-                    ->whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted')
-                    ->distinct();
-
-                $monthlyClusterQuery = DB::table('monthly_reports')
-                    ->select('user_id', 'report_type_id')
-                    ->whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted')
-                    ->distinct();
-
-                $quarterlyClusterQuery = DB::table('quarterly_reports')
-                    ->select('user_id', 'report_type_id')
-                    ->whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted')
-                    ->distinct();
-
-                $semestralClusterQuery = DB::table('semestral_reports')
-                    ->select('user_id', 'report_type_id')
-                    ->whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted')
-                    ->distinct();
-
-                $annualClusterQuery = DB::table('annual_reports')
-                    ->select('user_id', 'report_type_id')
-                    ->whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted')
-                    ->distinct();
-
-                $executiveOrderClusterQuery = DB::table('executive_orders')
-                    ->select('user_id', 'report_type_id')
-                    ->whereIn('user_id', $clusterBarangayIds)
-                    ->where('status', 'submitted')
-                    ->distinct();
-
-                // No date range filter in this method
-
-                // Apply report type filter if specified
-                if ($reportType) {
-                    // Only count the specified report type
-                    if ($reportType != 'weekly') $weeklyClusterQuery->whereRaw('1=0');
-                    if ($reportType != 'monthly') $monthlyClusterQuery->whereRaw('1=0');
-                    if ($reportType != 'quarterly') $quarterlyClusterQuery->whereRaw('1=0');
-                    if ($reportType != 'semestral') $semestralClusterQuery->whereRaw('1=0');
-                    if ($reportType != 'annual') $annualClusterQuery->whereRaw('1=0');
-                    if ($reportType != 'executive_order') $executiveOrderClusterQuery->whereRaw('1=0');
+            $barangayCount = count($clusterBarangayIds);
+            $expected = $barangayCount * $activeReportTypes->count();
+            $submitted = 0;
+            if (!empty($clusterBarangayIds) && $activeReportTypes->count() > 0) {
+                // For each report type, count unique submissions per barangay
+                foreach ($activeReportTypes as $type) {
+                    $table = $type->frequency . '_reports';
+                    if ($type->frequency === 'executive_order') $table = 'executive_orders';
+                    $count = DB::table($table)
+                        ->whereIn('user_id', $clusterBarangayIds)
+                        ->where('report_type_id', $type->id)
+                        ->where('status', 'submitted')
+                        ->distinct('user_id', 'report_type_id')
+                        ->count();
+                    $submitted += $count;
                 }
-
-                $submissionCount =
-                    $weeklyClusterQuery->count() +
-                    $monthlyClusterQuery->count() +
-                    $quarterlyClusterQuery->count() +
-                    $semestralClusterQuery->count() +
-                    $annualClusterQuery->count() +
-                    $executiveOrderClusterQuery->count();
             }
-
-            $clusterSubmissions["Cluster " . $cluster->id] = $submissionCount;
+            $clusterSubmissions["Cluster " . $cluster->id] = "$submitted/$expected";
         }
-
         return $clusterSubmissions;
     }
 
@@ -238,8 +141,8 @@ class AdminController extends Controller
      */
     private function getChartData($reportType, $clusterId)
     {
-        // Count total ACTIVE report types with future deadlines (consistent with barangay and facilitator dashboards)
-        $totalReportTypes = ReportType::active()->where('deadline', '>=', now())->count();
+        // Count total ACTIVE report types
+        $totalReportTypes = ReportType::active()->count();
 
         // Count total barangays in the system
         $barangayQuery = User::where('user_type', 'barangay');
@@ -806,8 +709,8 @@ class AdminController extends Controller
         // Total submitted reports (counting each report type per barangay only once)
         $totalSubmittedReports = $weeklySubmitted + $monthlySubmitted + $quarterlySubmitted + $semestralSubmitted + $annualSubmitted;
 
-        // Count total ACTIVE report types with future deadlines (consistent with barangay and facilitator dashboards)
-        $totalReportTypes = ReportType::active()->where('deadline', '>=', now())->count();
+        // Count total ACTIVE report types
+        $totalReportTypes = ReportType::active()->count();
 
         // Count total barangays in the system
         $barangayQuery = User::where('user_type', 'barangay');
@@ -1788,11 +1691,5 @@ class AdminController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/login')->with('success', 'You have been logged out successfully.');
-    }
-
-    public function showProfile()
-    {
-        $user = Auth::user();
-        return view('admin.profile', compact('user'));
     }
 }

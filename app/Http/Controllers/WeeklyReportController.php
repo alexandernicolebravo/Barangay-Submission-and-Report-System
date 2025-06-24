@@ -21,13 +21,13 @@ class WeeklyReportController extends Controller
         $reportType = ReportType::where('name', 'weekly')->firstOrFail(); // Get Report Type ID
 
         $request->validate([
-            'month' => 'required|string',
+            'month' => 'required|string|in:January,February,March,April,May,June,July,August,September,October,November,December',
             'week_number' => 'required|integer|min:1|max:5',
             'num_of_clean_up_sites' => 'required|integer|min:0',
             'num_of_participants' => 'required|integer|min:0',
             'num_of_barangays' => 'required|integer|min:0',
-            'total_volume' => 'required|integer|min:0',
-            'file' => 'required|file|mimes:pdf,docx|max:2048',
+            'total_volume' => 'required|numeric|min:0',
+            'file' => 'required|file|mimes:pdf,docx,xlsx,xls,jpg,jpeg,png|max:25600',
         ]);
 
         // Handle File Upload

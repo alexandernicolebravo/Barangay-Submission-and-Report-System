@@ -198,32 +198,34 @@
                 @foreach($announcements as $index => $announcement)
                     <div class="sidebar-announcement" data-index="{{ $index }}" style="display: {{ $index == 0 ? 'block' : 'none' }};" onclick="openAnnouncementModal({{ $announcement->id }})">
                         <div class="announcement-content-wrapper">
-                            <div class="announcement-category">
-                                @if($announcement->category == 'recognition')
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-award"></i>
-                                    </span>
-                                @elseif($announcement->category == 'important_update')
-                                    <span class="badge bg-danger">
-                                        <i class="fas fa-bell"></i>
-                                    </span>
-                                @elseif($announcement->category == 'upcoming_event')
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-calendar"></i>
-                                    </span>
-                                @else
-                                    <span class="badge bg-secondary">
-                                        <i class="fas fa-info-circle"></i>
-                                    </span>
-                                @endif
-                            </div>
-                            
-                            <div class="announcement-title">{{ $announcement->title }}</div>
-                            
                             @if($announcement->image_path)
-                                <img src="{{ asset('storage/' . $announcement->image_path) }}" 
-                                     alt="{{ $announcement->title }}"
+                                <!-- Image-only announcement - no text overlay -->
+                                <img src="{{ asset('storage/' . $announcement->image_path) }}"
+                                     alt="Announcement Image"
                                      class="announcement-image">
+                            @else
+                                <!-- Text-based announcement -->
+                                <div class="announcement-category">
+                                    @if($announcement->category == 'recognition')
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-award"></i>
+                                        </span>
+                                    @elseif($announcement->category == 'important_update')
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-bell"></i>
+                                        </span>
+                                    @elseif($announcement->category == 'upcoming_event')
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-calendar"></i>
+                                        </span>
+                                    @else
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="announcement-title">{{ $announcement->title }}</div>
                             @endif
                             
                             <div class="announcement-date">{{ $announcement->created_at->diffForHumans() }}</div>

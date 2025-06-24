@@ -35,9 +35,8 @@ class AnnouncementController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'nullable|string|max:255',
-            'content' => 'nullable|string',
+        // Custom validation logic based on whether image is uploaded
+        $rules = [
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:25600',
             'button_text' => 'nullable|string|max:50',
             'button_link' => 'nullable|string|max:255',
@@ -46,8 +45,28 @@ class AnnouncementController extends Controller
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
             'background_color' => 'nullable|string|max:10',
             'priority' => 'nullable|integer|min:0|max:10',
-            'category' => 'nullable|string|in:announcement,recognition,important_update,upcoming_event',
-        ]);
+        ];
+
+        // If no image is uploaded, require title, content, and category
+        if (!$request->hasFile('image')) {
+            $rules['title'] = 'required|string|max:255';
+            $rules['content'] = 'required|string';
+            $rules['category'] = 'required|string|in:announcement,recognition,important_update,upcoming_event';
+        } else {
+            // If image is uploaded, these fields are optional
+            $rules['title'] = 'nullable|string|max:255';
+            $rules['content'] = 'nullable|string';
+            $rules['category'] = 'nullable|string|in:announcement,recognition,important_update,upcoming_event';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+
+        // Add custom validation message
+        $validator->after(function ($validator) use ($request) {
+            if (!$request->hasFile('image') && (empty($request->title) || empty($request->content) || empty($request->category))) {
+                $validator->errors()->add('validation', 'When no image is uploaded, Title, Content, and Category are required.');
+            }
+        });
 
         if ($validator->fails()) {
             return redirect()->back()
@@ -57,11 +76,15 @@ class AnnouncementController extends Controller
 
         $data = $request->except('image');
         $data['created_by'] = Auth::id();
-        
+
         // Handle image upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('announcements', 'public');
             $data['image_path'] = $path;
+
+            // Clear text overlay fields when image is uploaded to avoid redundancy
+            // But don't include them in the data array to avoid null constraint violations
+            unset($data['title'], $data['content'], $data['category']);
         }
 
         Announcement::create($data);
@@ -91,9 +114,8 @@ class AnnouncementController extends Controller
      */
     public function update(Request $request, Announcement $announcement)
     {
-        $validator = Validator::make($request->all(), [
-            'title' => 'nullable|string|max:255',
-            'content' => 'nullable|string',
+        // Custom validation logic based on whether image is uploaded or exists
+        $rules = [
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:25600',
             'button_text' => 'nullable|string|max:50',
             'button_link' => 'nullable|string|max:255',
@@ -102,8 +124,32 @@ class AnnouncementController extends Controller
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
             'background_color' => 'nullable|string|max:10',
             'priority' => 'nullable|integer|min:0|max:10',
-            'category' => 'nullable|string|in:announcement,recognition,important_update,upcoming_event',
-        ]);
+        ];
+
+        // Check if there will be an image after this update
+        $willHaveImage = $request->hasFile('image') || (!$request->has('remove_image') && $announcement->image_path);
+
+        // If no image will exist after update, require title, content, and category
+        if (!$willHaveImage) {
+            $rules['title'] = 'required|string|max:255';
+            $rules['content'] = 'required|string';
+            $rules['category'] = 'required|string|in:announcement,recognition,important_update,upcoming_event';
+        } else {
+            // If image will exist, these fields are optional
+            $rules['title'] = 'nullable|string|max:255';
+            $rules['content'] = 'nullable|string';
+            $rules['category'] = 'nullable|string|in:announcement,recognition,important_update,upcoming_event';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+
+        // Add custom validation message
+        $validator->after(function ($validator) use ($request, $announcement) {
+            $willHaveImage = $request->hasFile('image') || (!$request->has('remove_image') && $announcement->image_path);
+            if (!$willHaveImage && (empty($request->title) || empty($request->content) || empty($request->category))) {
+                $validator->errors()->add('validation', 'When no image is present, Title, Content, and Category are required.');
+            }
+        });
 
         if ($validator->fails()) {
             return redirect()->back()
@@ -113,16 +159,20 @@ class AnnouncementController extends Controller
 
         $data = $request->except('image');
         $data['updated_by'] = Auth::id();
-        
+
         // Handle image upload
         if ($request->hasFile('image')) {
             // Delete old image if exists
             if ($announcement->image_path) {
                 Storage::disk('public')->delete($announcement->image_path);
             }
-            
+
             $path = $request->file('image')->store('announcements', 'public');
             $data['image_path'] = $path;
+
+            // Clear text overlay fields when image is uploaded to avoid redundancy
+            // But don't include them in the data array to avoid null constraint violations
+            unset($data['title'], $data['content'], $data['category']);
         }
 
         $announcement->update($data);
