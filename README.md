@@ -1,66 +1,192 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Barangay Submission and Report System (DILG)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![Laravel](https://img.shields.io/badge/Laravel-11.x-red.svg)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2+-blue.svg)](https://php.net)
+[![MySQL](https://img.shields.io/badge/MySQL-5.7+-orange.svg)](https://mysql.com)
+[![License](https://img.shields.io/badge/License-Government%20Use-green.svg)](LICENSE)
 
-## About Laravel
+A comprehensive web-based platform for the Department of the Interior and Local Government (DILG) to streamline report submission and management processes for barangays across the Philippines.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🏛️ Overview
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The **Barangay Submission and Report System** digitizes and modernizes the traditional paper-based reporting system, enabling real-time monitoring, efficient data management, and improved transparency in local government operations.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Key Features
 
-## Learning Laravel
+- 📊 **Multi-Role Dashboard System** - Admin, Facilitator, and Barangay interfaces
+- 📋 **Comprehensive Report Management** - Weekly, Monthly, Quarterly, Semestral, and Annual reports
+- 🔔 **Advanced Notification System** - Real-time alerts and email notifications
+- 📈 **Analytics & Reporting** - Real-time statistics and performance metrics
+- 🏢 **Organizational Structure** - Cluster management and facilitator assignment
+- 🔐 **Security Features** - Role-based access control and file validation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 🚀 Quick Start
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Prerequisites
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP 8.2 or higher
+- MySQL 5.7 or higher
+- Composer
+- Node.js 16+
+- Web server (Apache/Nginx)
 
-## Laravel Sponsors
+### Installation
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/alexandernicolebravo/barangay-submission-report-system.git
+   cd barangay-submission-report-system
+   ```
 
-### Premium Partners
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+3. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-## Contributing
+4. **Database configuration**
+   ```bash
+   # Update .env with your database credentials
+   php artisan migrate
+   php artisan db:seed
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+5. **Build assets**
+   ```bash
+   npm run build
+   ```
 
-## Code of Conduct
+6. **Start the application**
+   ```bash
+   php artisan serve
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 📚 Documentation
 
-## Security Vulnerabilities
+- **[Project Overview](PROJECT_OVERVIEW.md)** - Comprehensive project documentation
+- **[Technical Documentation](TECHNICAL_DOCUMENTATION.md)** - Technical architecture and implementation details
+- **[API Documentation](API_DOCUMENTATION.md)** - RESTful API reference
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+- **[User Manual](USER_MANUAL.md)** - User guide for all roles
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🛠️ Technology Stack
 
-## License
+- **Backend**: Laravel 11.x (PHP 8.2+)
+- **Frontend**: Blade Templates, Bootstrap 5, jQuery
+- **Database**: MySQL 5.7+
+- **Real-time**: Pusher WebSockets
+- **File Storage**: Laravel Storage
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 👥 User Roles
+
+### 🔧 System Administrator
+- Full system access and user management
+- Report type configuration
+- System analytics and announcements
+
+### 👨‍💼 Cluster Facilitator
+- Regional oversight and report review
+- Barangay management and notifications
+- Performance monitoring
+
+### 🏘️ Barangay Official
+- Report submission and file management
+- Status tracking and deadline management
+- Report resubmission capabilities
+
+## 📊 System Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Barangay      │    │   Facilitator   │    │     Admin       │
+│   Interface     │    │   Interface     │    │   Interface     │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          └──────────────────────┼──────────────────────┘
+                                 │
+                    ┌─────────────▼─────────────┐
+                    │     Laravel Backend       │
+                    │   (Controllers, Models)   │
+                    └─────────────┬─────────────┘
+                                 │
+                    ┌─────────────▼─────────────┐
+                    │      MySQL Database       │
+                    │   (Reports, Users, etc.)  │
+                    └───────────────────────────┘
+```
+
+## 🔐 Security Features
+
+- Role-based access control
+- File type and size validation
+- CSRF protection
+- SQL injection prevention
+- XSS protection
+- Secure file storage
+
+## 📈 Performance Optimizations
+
+- Database query optimization
+- Eager loading relationships
+- Route and view caching
+- File compression
+- CDN-ready architecture
+
+## 🚀 Deployment
+
+For production deployment, see the [Deployment Guide](DEPLOYMENT_GUIDE.md).
+
+### Quick Production Setup
+
+```bash
+# Install dependencies
+composer install --optimize-autoloader --no-dev
+
+# Build assets
+npm run production
+
+# Run migrations
+php artisan migrate --force
+
+# Cache configurations
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is developed for the Department of the Interior and Local Government (DILG) and is intended for government use. All rights reserved.
+
+## 👨‍💻 Developer
+
+**Alexander Nicole E. Bravo**
+- **GitHub**: [@alexandernicolebravo](https://github.com/alexandernicolebravo)
+- **LinkedIn**: [Alexander Nicole Bravo](https://linkedin.com/in/alexander-nicole-bravo-3aa544377)
+- **Institution**: University of Negros Occidental - Recoletos (UNO-R)
+- **Specialization**: Full Stack Web Developer and Android Developer
+
+## 📞 Support
+
+For support and questions:
+- Check the [documentation](PROJECT_OVERVIEW.md)
+- Review [troubleshooting guide](DEPLOYMENT_GUIDE.md#troubleshooting)
+- Open an [issue](https://github.com/alexandernicolebravo/barangay-submission-report-system/issues)
+
+---
+
+**Built with ❤️ for the Department of the Interior and Local Government (DILG)**
