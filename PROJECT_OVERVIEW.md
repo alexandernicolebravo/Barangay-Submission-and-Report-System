@@ -2,10 +2,10 @@
 
 ## 🏛️ Project Overview
 
-The **Barangay Submission and Report System** is a comprehensive web-based platform developed for the Department of the Interior and Local Government (DILG) to streamline report submission and management processes for barangays across the Philippines. This system facilitates efficient communication between barangay officials, cluster facilitators, and DILG administrators through a centralized digital platform.
+The **Barangay Submission and Report System** is a comprehensive web-based platform developed for the Department of the Interior and Local Government (DILG) to streamline report submission and management processes for all 61 barangays in Bacolod City, Philippines. This system facilitates efficient communication between barangay officials, cluster facilitators, and DILG administrators through a centralized digital platform specifically designed for Bacolod City's local government operations.
 
 ### 🎯 Project Mission
-To digitize and modernize the traditional paper-based reporting system, enabling real-time monitoring, efficient data management, and improved transparency in local government operations.
+To digitize and modernize the traditional paper-based reporting system for all 61 barangays in Bacolod City, enabling real-time monitoring, efficient data management, and improved transparency in local government operations.
 
 ---
 
@@ -33,9 +33,9 @@ To digitize and modernize the traditional paper-based reporting system, enabling
 - **Performance Metrics**: Dashboard analytics for all user roles
 
 ### 🏢 **Organizational Structure**
-- **Cluster Management**: Geographic grouping of barangays
-- **Facilitator Assignment**: Multi-cluster facilitator support
-- **User Role Management**: Granular permission system
+- **Cluster Management**: Geographic grouping of Bacolod City's 61 barangays
+- **Facilitator Assignment**: Multi-cluster facilitator support for Bacolod City
+- **User Role Management**: Granular permission system for local government operations
 
 ---
 
@@ -96,14 +96,14 @@ FINAL_DILG/
 - **Announcement Management**: Create and manage system-wide announcements
 
 ### 👨‍💼 **Cluster Facilitator**
-- **Regional Oversight**: Monitor multiple barangay clusters
-- **Report Review**: Review and approve submitted reports
-- **Barangay Management**: Manage assigned barangay accounts
-- **Notification Management**: Send alerts and reminders
-- **Performance Monitoring**: Track cluster performance metrics
+- **Regional Oversight**: Monitor multiple barangay clusters in Bacolod City
+- **Report Review**: Review and approve submitted reports from all 61 barangays
+- **Barangay Management**: Manage assigned barangay accounts for Bacolod City
+- **Notification Management**: Send alerts and reminders to local officials
+- **Performance Monitoring**: Track cluster performance metrics for Bacolod City
 
-### 🏘️ **Barangay Official**
-- **Report Submission**: Submit various types of reports
+### 🏘️ **Barangay Official (61 Barangays)**
+- **Report Submission**: Submit various types of reports for each barangay
 - **File Management**: Upload and manage report files
 - **Status Tracking**: Monitor submission status and feedback
 - **Deadline Management**: Track upcoming and overdue reports

@@ -5,11 +5,11 @@
 [![MySQL](https://img.shields.io/badge/MySQL-5.7+-orange.svg)](https://mysql.com)
 [![License](https://img.shields.io/badge/License-Government%20Use-green.svg)](LICENSE)
 
-A comprehensive web-based platform for the Department of the Interior and Local Government (DILG) to streamline report submission and management processes for barangays across the Philippines.
+A comprehensive web-based platform for the Department of the Interior and Local Government (DILG) to streamline report submission and management processes for all 61 barangays in Bacolod City, Philippines.
 
 ## 🏛️ Overview
 
-The **Barangay Submission and Report System** digitizes and modernizes the traditional paper-based reporting system, enabling real-time monitoring, efficient data management, and improved transparency in local government operations.
+The **Barangay Submission and Report System** digitizes and modernizes the traditional paper-based reporting system for all 61 barangays in Bacolod City, enabling real-time monitoring, efficient data management, and improved transparency in local government operations.
 
 ### Key Features
 
@@ -17,7 +17,7 @@ The **Barangay Submission and Report System** digitizes and modernizes the tradi
 - 📋 **Comprehensive Report Management** - Weekly, Monthly, Quarterly, Semestral, and Annual reports
 - 🔔 **Advanced Notification System** - Real-time alerts and email notifications
 - 📈 **Analytics & Reporting** - Real-time statistics and performance metrics
-- 🏢 **Organizational Structure** - Cluster management and facilitator assignment
+- 🏢 **Organizational Structure** - Cluster management for Bacolod City's 61 barangays and facilitator assignment
 - 🔐 **Security Features** - Role-based access control and file validation
 
 ## 🚀 Quick Start
@@ -91,12 +91,12 @@ The **Barangay Submission and Report System** digitizes and modernizes the tradi
 - System analytics and announcements
 
 ### 👨‍💼 Cluster Facilitator
-- Regional oversight and report review
-- Barangay management and notifications
-- Performance monitoring
+- Regional oversight and report review for assigned Bacolod City barangays
+- Barangay management and notifications for all 61 barangays
+- Performance monitoring for Bacolod City's barangay system
 
-### 🏘️ Barangay Official
-- Report submission and file management
+### 🏘️ Barangay Official (61 Barangays)
+- Report submission and file management for each barangay
 - Status tracking and deadline management
 - Report resubmission capabilities
 
