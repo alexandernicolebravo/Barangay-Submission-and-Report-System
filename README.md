@@ -78,10 +78,11 @@ The **Barangay Submission and Report System** digitizes and modernizes the tradi
 ## 🛠️ Technology Stack
 
 - **Backend**: Laravel 11.x (PHP 8.2+)
-- **Frontend**: Blade Templates, Bootstrap 5, jQuery
+- **Frontend**: Blade Templates, Tailwind CSS, Bootstrap 5, jQuery
 - **Database**: MySQL 5.7+
 - **Real-time**: Pusher WebSockets
 - **File Storage**: Laravel Storage
+- **Build Tools**: Vite, PostCSS, Autoprefixer
 
 ## 👥 User Roles
 

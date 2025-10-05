@@ -48,6 +48,7 @@ To digitize and modernize the traditional paper-based reporting system for all 6
 
 ### **Frontend Technologies**
 - **Blade Templates**: Laravel's powerful templating engine
+- **Tailwind CSS**: Utility-first CSS framework for rapid UI development
 - **Bootstrap 5**: Responsive UI framework
 - **JavaScript/jQuery**: Interactive user experience
 - **Font Awesome**: Comprehensive icon library
@@ -56,6 +57,8 @@ To digitize and modernize the traditional paper-based reporting system for all 6
 - **Pusher**: Real-time notifications and updates
 - **Carbon**: Advanced date/time manipulation
 - **Laravel Tinker**: Development and debugging tools
+- **Vite**: Modern build tool for asset compilation
+- **PostCSS**: CSS processing with Tailwind CSS and Autoprefixer
 
 ---
 
