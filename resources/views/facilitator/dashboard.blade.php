@@ -1391,32 +1391,32 @@
     <div class="row">
         <div class="col-12">
             <div class="recent-submissions-responsive">
-                <div class="chart-card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-clock text-primary"></i>
-                            Recent Submissions
-                        </h5>
-                        <a href="{{ route('facilitator.view-submissions') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-list me-1"></i> View All
-                        </a>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="border-0 fw-semibold">Report</th>
-                                        <th class="border-0 fw-semibold">Barangay</th>
-                                        <th class="border-0 fw-semibold">Date</th>
-                                        <th class="border-0 fw-semibold">Status</th>
-                                        <th class="border-0 fw-semibold text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+            <div class="chart-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock text-primary"></i>
+                        Recent Submissions
+                    </h5>
+                    <a href="{{ route('facilitator.view-submissions') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-list me-1"></i> View All
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="border-0 fw-semibold">Report</th>
+                                    <th class="border-0 fw-semibold">Barangay</th>
+                                    <th class="border-0 fw-semibold">Date</th>
+                                    <th class="border-0 fw-semibold">Status</th>
+                                    <th class="border-0 fw-semibold text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                                     @include('facilitator.partials.submissions-table', ['reports' => $recentReports])
-                                </tbody>
-                            </table>
+                            </tbody>
+                        </table>
                         </div>
                     </div>
                 </div>

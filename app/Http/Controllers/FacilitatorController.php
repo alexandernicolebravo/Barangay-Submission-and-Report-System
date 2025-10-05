@@ -1570,7 +1570,7 @@ class FacilitatorController extends Controller
         $user = Auth::user();
         $user->unreadNotifications->markAsRead();
 
-        return response()->json(['success' => true]);
+            return response()->json(['success' => true]);
     }
 
     public function profile()

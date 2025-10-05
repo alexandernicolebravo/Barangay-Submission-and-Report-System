@@ -517,7 +517,7 @@
                                 </small>
                             </div>
                             <div>
-                                {{ $reports->links() }}
+                                {{ $reports->links('pagination::bootstrap-5') }}
                             </div>
                         </div>
                         @endif
